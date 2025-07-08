@@ -33,8 +33,10 @@
             animation: spin 1s ease infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .content-pane {
+        .content-pane, #settings-modal {
             transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .content-pane {
             opacity: 0;
             transform: scale(0.98);
             position: absolute;
@@ -47,8 +49,6 @@
             from { opacity: 0; transform: scale(0.8); }
             to { opacity: 1; transform: scale(1); }
         }
-        
-        /* 수정된 부분: 미리보기 컨테이너 애니메이션 */
         #image-preview-container {
             transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, margin-bottom 0.3s ease-in-out;
             max-height: 0;
@@ -61,16 +61,40 @@
             opacity: 1;
             margin-bottom: 0.75rem;
         }
+        #settings-modal.hidden {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+        <div class="glass-effect w-full max-w-lg rounded-2xl shadow-lg p-6 border-none">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-slate-800">AI 페르소나 설정</h2>
+                <button id="close-persona-button" class="text-slate-500 hover:text-slate-800 text-3xl leading-none">&times;</button>
+            </div>
+            <p class="text-sm text-slate-600 mb-4">AI의 이름, 성격, 말투 등을 자유롭게 설정하여 나만의 AI를 만들어보세요.</p>
+            <textarea id="persona-input" class="w-full h-40 p-3 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm" placeholder="AI의 페르소나를 입력하세요..."></textarea>
+            <div class="flex justify-end mt-4">
+                <button id="save-persona-button" class="bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors shadow-md">저장</button>
+            </div>
+        </div>
+    </div>
+
     <div class="w-full max-w-4xl h-[95vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col overflow-hidden">
         <!-- Header -->
         <header class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center">
             <h1 class="text-xl font-bold text-slate-800">FERA</h1>
-            <div id="tabs" class="flex bg-white/40 rounded-full p-1">
-                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300">AI 챗봇</button>
+            <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1">
+                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300">채팅</button>
                 <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300">이미지 생성</button>
+                <div class="w-px h-5 bg-slate-300/70 mx-1"></div>
+                <button id="settings-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
             </div>
         </header>
 
@@ -79,7 +103,7 @@
             <!-- Chatbot UI -->
             <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-2 sm:p-4 md:p-6">
                 <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5 pr-2">
-                    <div class="flex items-start gap-3 max-w-lg message-bubble">
+                    <div id="initial-message" class="flex items-start gap-3 max-w-lg message-bubble">
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
                         <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
                             <p>안녕하세요! FERA 챗봇입니다. 이미지와 함께 질문하거나, 무엇이든 물어보세요.</p>
@@ -136,6 +160,11 @@
 
     <script>
         // --- DOM Elements ---
+        const settingsButton = document.getElementById('settings-button');
+        const settingsModal = document.getElementById('settings-modal');
+        const personaInput = document.getElementById('persona-input');
+        const savePersonaButton = document.getElementById('save-persona-button');
+        const closePersonaButton = document.getElementById('close-persona-button');
         const chatTabButton = document.getElementById('chat-tab-button');
         const imageTabButton = document.getElementById('image-tab-button');
         const chatUi = document.getElementById('chat-ui');
@@ -154,10 +183,13 @@
         const imagePlaceholder = document.getElementById('image-placeholder');
         const imageLoader = document.getElementById('image-loader');
         const generatedImage = document.getElementById('generated-image');
-    
+
         // --- State ---
         let chatHistory = [];
         let uploadedImage = { base64: null, mimeType: null };
+        const defaultPersona = "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 평범한 젊은 한국인의 말투. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요.";
+        let currentPersona = localStorage.getItem('feraPersona') || defaultPersona;
+        personaInput.value = currentPersona;
     
         // --- Functions ---
     
@@ -190,7 +222,7 @@
                 newActivePane.classList.add('is-active');
             }, 300);
         }
-    
+
         function addChatMessage(sender, parts) {
             const wrapper = document.createElement('div');
             wrapper.className = 'flex items-start gap-3 message-bubble';
@@ -200,7 +232,8 @@
 
             parts.forEach(part => {
                 if (part.inlineData) {
-                    imageHtml = `<img src="data:${part.inlineData.mimeType};base64,${part.inlineData.data}" class="rounded-lg mt-2 max-w-xs">`;
+                    // *** 수정된 부분: 모바일 이미지 잘림 현상 해결 ***
+                    imageHtml = `<img src="data:${part.inlineData.mimeType};base64,${part.inlineData.data}" class="rounded-lg mt-2 w-full h-auto">`;
                 }
                 if (part.text) {
                     textContent = `<p>${part.text.replace(/\n/g, '<br>')}</p>`;
@@ -263,16 +296,14 @@
 
             const userParts = [];
             if (uploadedImage.base64) {
-                userParts.push({
-                    inlineData: {
-                        mimeType: uploadedImage.mimeType,
-                        data: uploadedImage.base64.split(',')[1]
-                    }
-                });
+                userParts.push({ inlineData: { mimeType: uploadedImage.mimeType, data: uploadedImage.base64.split(',')[1] } });
             }
             if (message) {
                 userParts.push({ text: message });
             }
+
+            const initialMessage = document.getElementById('initial-message');
+            if(initialMessage) initialMessage.remove();
 
             addChatMessage('user', userParts);
             chatInput.value = '';
@@ -286,7 +317,11 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatHistory: chatHistory, model: 'gemini' })
+                    body: JSON.stringify({ 
+                        chatHistory: chatHistory, 
+                        model: 'gemini',
+                        persona: currentPersona
+                    })
                 });
     
                 if (!response.ok) {
@@ -356,7 +391,6 @@
     
             } catch (error) {
                 console.error('Image Generation Error:', error);
-                // 수정된 부분: alert 대신 placeholder에 에러 메시지 표시
                 imagePlaceholder.innerHTML = `<div class="text-red-500 text-sm p-4 text-center">이미지 생성 중 오류:<br>${error.message}</div>`;
                 imagePlaceholder.classList.remove('opacity-0');
             } finally {
@@ -383,8 +417,32 @@
             fileInput.value = '';
             imagePreviewContainer.classList.remove('visible');
         }
+
+        function openSettings() {
+            personaInput.value = currentPersona;
+            settingsModal.classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            settingsModal.classList.add('hidden');
+        }
+
+        function saveSettings() {
+            currentPersona = personaInput.value;
+            localStorage.setItem('feraPersona', currentPersona);
+            closeSettings();
+            chatMessages.innerHTML = '';
+            chatHistory = [];
+            const initialMessageDiv = document.createElement('div');
+            initialMessageDiv.id = 'initial-message';
+            chatMessages.appendChild(initialMessageDiv);
+            addChatMessage('bot', [{text: '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!'}]);
+        }
     
         // --- Event Listeners ---
+        settingsButton.addEventListener('click', openSettings);
+        closePersonaButton.addEventListener('click', closeSettings);
+        savePersonaButton.addEventListener('click', saveSettings);
         chatTabButton.addEventListener('click', () => switchTabs('chat'));
         imageTabButton.addEventListener('click', () => switchTabs('image'));
         fileButton.addEventListener('click', () => fileInput.click());
@@ -407,4 +465,3 @@
     </script>
 </body>
 </html>
-
