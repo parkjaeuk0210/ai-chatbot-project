@@ -3,100 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI SaaS Platform (보안 적용 버전)</title>
-    <!-- Tailwind CSS CDN -->
+    <title>AI SaaS Platform - Glassmorphism Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide-react@latest/dist/lucide-react.js"></script>
     <style>
         body {
             font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            background: linear-gradient(120deg, #f0f9ff 0%, #e0f2fe 100%);
+            overflow: hidden;
         }
-        /* 스크롤바 스타일링 */
+
+        /* 글래스모피즘 효과 클래스 */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.5);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* 스크롤바 스타일 */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #f1f5f9;
+            background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: #94a3b8;
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
+            background: rgba(0, 0, 0, 0.4);
         }
+        
+        /* 로딩 스피너 */
         .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border-left-color: #09f;
+            border-left-color: #3b82f6;
             animation: spin 1s ease infinite;
         }
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 탭 전환 애니메이션을 위한 클래스 */
+        .content-pane {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            opacity: 0;
+            transform: scale(0.98);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* 비활성 상태일 때 클릭 방지 */
+        }
+        .content-pane.is-active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+        
+        /* 채팅 메시지 등장 애니메이션 */
+        .message-bubble {
+            animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop-in {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
     </style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen">
-    <div class="w-full max-w-4xl h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-4xl h-[90vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col overflow-hidden">
         <!-- Header -->
-        <header class="bg-slate-800 text-white p-4 flex justify-between items-center shadow-md z-10">
-            <h1 class="text-xl font-bold">🚀 AI SaaS Platform</h1>
-            <div id="tabs" class="flex bg-slate-700 rounded-lg p-1">
-                <button id="chat-tab-button" class="tab-button bg-slate-500 text-white px-4 py-1.5 rounded-md text-sm font-semibold">AI 챗봇</button>
-                <button id="image-tab-button" class="tab-button text-slate-300 px-4 py-1.5 rounded-md text-sm font-semibold">이미지 생성</button>
+        <header class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center">
+            <h1 class="text-lg font-bold text-slate-700">🚀 AI Platform</h1>
+            <div id="tabs" class="flex bg-white/40 rounded-full p-1">
+                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300">AI 챗봇</button>
+                <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300">이미지 생성</button>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-4 md:p-6">
+        <!-- Main Content Wrapper -->
+        <main class="flex-1 relative">
             <!-- Chatbot UI -->
-            <div id="chat-ui">
-                <div id="chat-messages" class="h-[calc(80vh-180px)] overflow-y-auto space-y-4 pr-2">
+            <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-4 md:p-6">
+                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5 pr-2">
                     <!-- Initial Bot Message -->
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">AI</div>
-                        <div class="bg-slate-200 rounded-lg p-3 max-w-lg">
-                            <p class="text-sm text-slate-800">안녕하세요! 저는 최신 정보를 검색하고 답변할 수 있는 AI 챗봇입니다. 무엇이든 물어보세요.</p>
+                    <div class="flex items-start gap-3 max-w-lg message-bubble">
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
+                        <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
+                            <p>안녕하세요! 애플 스타일로 새롭게 디자인된 AI 챗봇입니다. 무엇이든 물어보세요.</p>
                         </div>
                     </div>
                 </div>
                 <!-- Chat Input -->
-                <div class="mt-4 flex items-center gap-2">
-                    <input type="text" id="chat-input" class="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition" placeholder="메시지를 입력하세요...">
-                    <button id="send-button" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-slate-400">
-                        전송
+                <div class="mt-4 flex items-center gap-3 flex-shrink-0">
+                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500" placeholder="메시지를 입력하세요...">
+                    <button id="send-button" class="bg-blue-500 text-white w-11 h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </button>
                 </div>
             </div>
 
-            <!-- Image Generation UI (Initially Hidden) -->
-            <div id="image-ui" class="hidden">
-                 <div class="flex flex-col items-center justify-center h-full">
-                    <div class="w-full max-w-2xl text-center">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2">AI 이미지 생성</h2>
-                        <p class="text-slate-500 mb-6">생성하고 싶은 이미지에 대한 설명을 입력해주세요.</p>
-                        <div class="flex items-center gap-2 mb-6">
-                            <input type="text" id="image-prompt" class="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" placeholder="예: 밤하늘을 나는 우주 고양이, 유화 스타일">
-                            <button id="generate-image-button" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-slate-400">
-                                생성
-                            </button>
+            <!-- Image Generation UI -->
+            <div id="image-ui" class="content-pane hidden flex-col items-center justify-center h-full p-4 md:p-6">
+                 <div class="w-full max-w-2xl text-center">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">AI 이미지 생성</h2>
+                    <p class="text-slate-500 mb-8">생성하고 싶은 이미지에 대한 설명을 입력해주세요.</p>
+                    <div class="flex items-center gap-3 mb-6">
+                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500" placeholder="예: 밤하늘을 나는 우주 고양이, 유화 스타일">
+                        <button id="generate-image-button" class="bg-indigo-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-600 transition-colors disabled:bg-slate-400 shadow-lg">
+                            생성하기
+                        </button>
+                    </div>
+                    <div id="image-display" class="w-full h-72 md:h-96 bg-black/5 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/30 transition-all">
+                       <div id="image-placeholder" class="text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            생성된 이미지가 여기에 표시됩니다.
                         </div>
-                        <div id="image-display" class="w-full h-96 bg-slate-200 rounded-lg flex items-center justify-center border-2 border-dashed border-slate-300">
-                           <div id="image-placeholder" class="text-slate-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                                생성된 이미지가 여기에 표시됩니다.
-                            </div>
-                           <div id="image-loader" class="hidden spinner"></div>
-                           <img id="generated-image" src="" alt="Generated Image" class="hidden object-contain w-full h-full rounded-lg"/>
-                        </div>
+                       <div id="image-loader" class="hidden spinner"></div>
+                       <img id="generated-image" src="" alt="Generated Image" class="hidden object-contain w-full h-full rounded-2xl"/>
                     </div>
                 </div>
             </div>
@@ -126,51 +165,62 @@
     
         // --- Functions ---
     
-        function setupTabs() {
-            chatTabButton.addEventListener('click', () => {
-                chatUi.style.display = 'block';
-                imageUi.style.display = 'none';
-                chatTabButton.classList.add('bg-slate-500', 'text-white');
-                chatTabButton.classList.remove('text-slate-300');
-                imageTabButton.classList.add('text-slate-300');
-                imageTabButton.classList.remove('bg-slate-500', 'text-white');
-            });
-    
-            imageTabButton.addEventListener('click', () => {
-                chatUi.style.display = 'none';
-                imageUi.style.display = 'block';
-                imageTabButton.classList.add('bg-slate-500', 'text-white');
-                imageTabButton.classList.remove('text-slate-300');
-                chatTabButton.classList.add('text-slate-300');
-                chatTabButton.classList.remove('bg-slate-500', 'text-white');
-            });
+        function switchTabs(targetTab) {
+            const panes = { chat: chatUi, image: imageUi };
+            const buttons = { chat: chatTabButton, image: imageTabButton };
+
+            // Update button styles
+            for (const tabName in buttons) {
+                if (tabName === targetTab) {
+                    buttons[tabName].classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                    buttons[tabName].classList.remove('text-slate-600');
+                } else {
+                    buttons[tabName].classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                    buttons[tabName].classList.add('text-slate-600');
+                }
+            }
+            
+            // Animate panes
+            const currentActivePane = document.querySelector('.content-pane.is-active');
+            const newActivePane = panes[targetTab];
+
+            if (currentActivePane === newActivePane) return;
+
+            if (currentActivePane) {
+                currentActivePane.classList.remove('is-active');
+            }
+            
+            setTimeout(() => {
+                if (currentActivePane) currentActivePane.classList.add('hidden');
+                newActivePane.classList.remove('hidden');
+                newActivePane.classList.add('is-active');
+            }, 300); // CSS transition duration
         }
     
         function addChatMessage(sender, text) {
-            const messageDiv = document.createElement('div');
-            const iconDiv = document.createElement('div');
-            const textDiv = document.createElement('div');
-            const p = document.createElement('p');
-    
-            messageDiv.className = 'flex items-start gap-3';
-            p.className = 'text-sm text-slate-800';
-            p.innerHTML = text; // innerHTML을 사용하여 줄바꿈 등 서식 지원
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-start gap-3 message-bubble';
             
+            let content;
             if (sender === 'user') {
-                messageDiv.classList.add('justify-end');
-                iconDiv.className = 'w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-sm';
-                iconDiv.textContent = '나';
-                textDiv.className = 'bg-blue-100 rounded-lg p-3 max-w-lg';
-                messageDiv.append(textDiv, iconDiv);
+                wrapper.classList.add('justify-end');
+                content = `
+                    <div class="bg-blue-500 text-white rounded-2xl rounded-tr-none p-3.5 text-sm shadow-md max-w-lg">
+                        <p>${text}</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">나</div>
+                `;
             } else {
-                iconDiv.className = 'w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm';
-                iconDiv.textContent = 'AI';
-                textDiv.className = 'bg-slate-200 rounded-lg p-3 max-w-lg';
-                messageDiv.append(iconDiv, textDiv);
+                wrapper.classList.add('max-w-lg');
+                content = `
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
+                    <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
+                        <p>${text}</p>
+                    </div>
+                `;
             }
-            
-            textDiv.appendChild(p);
-            chatMessages.appendChild(messageDiv);
+            wrapper.innerHTML = content;
+            chatMessages.appendChild(wrapper);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     
@@ -180,13 +230,13 @@
                 if (!loadingEl) {
                     loadingEl = document.createElement('div');
                     loadingEl.id = 'loading-indicator';
-                    loadingEl.className = 'flex items-start gap-3';
+                    loadingEl.className = 'flex items-start gap-3 max-w-lg message-bubble';
                     loadingEl.innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">AI</div>
-                        <div class="bg-slate-200 rounded-lg p-3 max-w-lg flex items-center">
-                            <div class="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style="animation-delay: -0.3s;"></div>
-                            <div class="w-2 h-2 bg-slate-500 rounded-full animate-bounce mx-1" style="animation-delay: -0.15s;"></div>
-                            <div class="w-2 h-2 bg-slate-500 rounded-full animate-bounce"></div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
+                        <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm flex items-center space-x-1.5">
+                            <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: -0.3s;"></div>
+                            <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: -0.15s;"></div>
+                            <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
                         </div>
                     `;
                     chatMessages.appendChild(loadingEl);
@@ -218,16 +268,12 @@
                 });
     
                 if (!response.ok) {
-                    // 응답 본문을 텍스트로 딱 한 번만 읽습니다.
                     const errorText = await response.text();
                     let errorMessage = errorText;
                     try {
-                        // 읽은 텍스트를 JSON으로 파싱 시도
                         const errorData = JSON.parse(errorText);
                         errorMessage = errorData.message || JSON.stringify(errorData);
-                    } catch (e) {
-                        // 파싱 실패 시, 원래 텍스트를 에러 메시지로 사용
-                    }
+                    } catch (e) { /* Ignore parsing error, use raw text */ }
                     throw new Error(errorMessage);
                 }
     
@@ -235,17 +281,18 @@
                 
                 if (result.candidates && result.candidates.length > 0) {
                     const botMessage = result.candidates[0].content.parts[0].text;
+                    toggleChatLoading(false);
                     addChatMessage('bot', botMessage.replace(/\n/g, '<br>'));
                     chatHistory.push(result.candidates[0].content);
                 } else {
-                    addChatMessage('bot', '죄송합니다. 응답을 받았지만 내용이 비어있습니다.');
+                    throw new Error('응답을 받았지만 내용이 비어있습니다.');
                 }
     
             } catch (error) {
                 console.error('Error:', error);
+                toggleChatLoading(false);
                 addChatMessage('bot', `오류가 발생했습니다: ${error.message}`);
             } finally {
-                toggleChatLoading(false);
                 sendButton.disabled = false;
                 chatInput.focus();
             }
@@ -271,16 +318,12 @@
                 });
     
                 if (!response.ok) {
-                    // 응답 본문을 텍스트로 딱 한 번만 읽습니다.
                     const errorText = await response.text();
                     let errorMessage = errorText;
                     try {
-                        // 읽은 텍스트를 JSON으로 파싱 시도
                         const errorData = JSON.parse(errorText);
                         errorMessage = errorData.message || JSON.stringify(errorData);
-                    } catch (e) {
-                        // 파싱 실패 시, 원래 텍스트를 에러 메시지로 사용
-                    }
+                    } catch (e) { /* Ignore parsing error, use raw text */ }
                     throw new Error(errorMessage);
                 }
     
@@ -305,6 +348,9 @@
         }
     
         // --- Event Listeners ---
+        chatTabButton.addEventListener('click', () => switchTabs('chat'));
+        imageTabButton.addEventListener('click', () => switchTabs('image'));
+
         sendButton.addEventListener('click', handleSendMessage);
         chatInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
@@ -319,8 +365,6 @@
             }
         });
     
-        // --- Initialization ---
-        setupTabs();
     </script>
 </body>
 </html>
