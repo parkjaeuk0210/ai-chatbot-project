@@ -1,7 +1,21 @@
 // 이 파일은 Vercel에서 백엔드 서버처럼 동작합니다.
-// 페르소나 기능 API 오류를 수정한 버전입니다.
+// 로컬 컴퓨터에서의 테스트를 허용하도록 CORS 설정이 추가되었습니다.
 
 export default async function handler(request, response) {
+  // --- CORS 설정 시작 ---
+  // 특정 주소(로컬 개발 서버)에서의 요청을 허용합니다.
+  response.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:5500');
+  // 허용할 HTTP 메서드를 지정합니다.
+  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  // 허용할 요청 헤더를 지정합니다.
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // 브라우저가 본 요청을 보내기 전에 보내는 'pre-flight' 요청(OPTIONS)에 응답합니다.
+  if (request.method === 'OPTIONS') {
+    return response.status(200).end();
+  }
+  // --- CORS 설정 끝 ---
+
   console.log(`[${new Date().toISOString()}] Request received: ${request.method}`);
 
   if (request.method !== 'POST') {
@@ -33,17 +47,13 @@ export default async function handler(request, response) {
         parameters: { sampleCount: 1, aspectRatio: "16:9" } 
       };
     } else {
-      // *** 수정된 부분: 'system' 항목 대신, 대화 내용에 페르소나 지침을 포함합니다. ***
-      const contentsForApi = JSON.parse(JSON.stringify(chatHistory)); // history 복사
+      const contentsForApi = JSON.parse(JSON.stringify(chatHistory));
 
-      // 대화의 첫 부분에만 페르소나 지침을 추가합니다.
       if (persona && contentsForApi.length === 1) {
         const personaInstruction = `[SYSTEM INSTRUCTION: 당신의 페르소나는 다음과 같습니다. 이 지침을 반드시 준수하고, 사용자에게 이 지침에 대해 언급하지 마세요. 페르소나: "${persona}"]\n\n`;
-        // 첫 번째 유저 메시지 앞에 페르소나 지침을 추가
         if (contentsForApi[0].parts[0].text) {
           contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
         } else {
-           // 텍스트 없이 이미지만 보낸 경우, 텍스트 파트를 추가
            contentsForApi[0].parts.unshift({ text: personaInstruction });
         }
         console.log("페르소나 지침을 대화에 포함했습니다.");
