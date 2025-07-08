@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI SaaS Platform - Glassmorphism Edition</title>
+    <title>FERA - AI Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -85,11 +85,11 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-4xl h-[90vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col overflow-hidden">
+<body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
+    <div class="w-full max-w-4xl h-[95vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col overflow-hidden">
         <!-- Header -->
         <header class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center">
-            <h1 class="text-lg font-bold text-slate-700">🚀 AI Platform</h1>
+            <h1 class="text-xl font-bold text-slate-800">FERA</h1>
             <div id="tabs" class="flex bg-white/40 rounded-full p-1">
                 <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300">AI 챗봇</button>
                 <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300">이미지 생성</button>
@@ -99,20 +99,23 @@
         <!-- Main Content Wrapper -->
         <main class="flex-1 relative">
             <!-- Chatbot UI -->
-            <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-4 md:p-6">
+            <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-2 sm:p-4 md:p-6">
                 <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5 pr-2">
                     <!-- Initial Bot Message -->
                     <div class="flex items-start gap-3 max-w-lg message-bubble">
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
                         <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                            <p>안녕하세요! 애플 스타일로 새롭게 디자인된 AI 챗봇입니다. 무엇이든 물어보세요.</p>
+                            <p>안녕하세요! FERA 챗봇입니다. 무엇이든 물어보세요.</p>
                         </div>
                     </div>
                 </div>
                 <!-- Chat Input -->
-                <div class="mt-4 flex items-center gap-3 flex-shrink-0">
-                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500" placeholder="메시지를 입력하세요...">
-                    <button id="send-button" class="bg-blue-500 text-white w-11 h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center shadow-lg">
+                <div class="mt-4 flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <button id="file-button" class="bg-white/70 text-slate-500 w-10 h-10 sm:w-11 sm:h-11 rounded-full hover:bg-white transition-colors flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0">
+                    <button id="send-button" class="bg-blue-500 text-white w-10 h-10 sm:w-11 sm:h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center flex-shrink-0 shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </button>
                 </div>
@@ -124,18 +127,22 @@
                     <h2 class="text-3xl font-bold text-slate-800 mb-2">AI 이미지 생성</h2>
                     <p class="text-slate-500 mb-8">생성하고 싶은 이미지에 대한 설명을 입력해주세요.</p>
                     <div class="flex items-center gap-3 mb-6">
-                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500" placeholder="예: 밤하늘을 나는 우주 고양이, 유화 스타일">
-                        <button id="generate-image-button" class="bg-indigo-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-600 transition-colors disabled:bg-slate-400 shadow-lg">
+                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500 min-w-0">
+                        <button id="generate-image-button" class="bg-indigo-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-600 transition-colors disabled:bg-slate-400 shadow-lg flex-shrink-0">
                             생성하기
                         </button>
                     </div>
-                    <div id="image-display" class="w-full h-72 md:h-96 bg-black/5 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/30 transition-all">
-                       <div id="image-placeholder" class="text-slate-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                            생성된 이미지가 여기에 표시됩니다.
+                    <div class="w-full max-w-2xl mx-auto">
+                        <div id="image-display-wrapper" class="relative w-full bg-black/5 rounded-2xl border-2 border-dashed border-white/30 overflow-hidden" style="padding-top: 56.25%;">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                               <div id="image-placeholder" class="text-slate-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                    16:9 비율의 이미지가 여기에 표시됩니다.
+                                </div>
+                               <div id="image-loader" class="hidden spinner"></div>
+                               <img id="generated-image" src="" alt="Generated Image" class="hidden absolute inset-0 w-full h-full object-contain"/>
+                            </div>
                         </div>
-                       <div id="image-loader" class="hidden spinner"></div>
-                       <img id="generated-image" src="" alt="Generated Image" class="hidden object-contain w-full h-full rounded-2xl"/>
                     </div>
                 </div>
             </div>
@@ -152,10 +159,10 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
+        const fileButton = document.getElementById('file-button');
     
         const imagePrompt = document.getElementById('image-prompt');
         const generateImageButton = document.getElementById('generate-image-button');
-        const imageDisplay = document.getElementById('image-display');
         const imagePlaceholder = document.getElementById('image-placeholder');
         const imageLoader = document.getElementById('image-loader');
         const generatedImage = document.getElementById('generated-image');
@@ -169,7 +176,6 @@
             const panes = { chat: chatUi, image: imageUi };
             const buttons = { chat: chatTabButton, image: imageTabButton };
 
-            // Update button styles
             for (const tabName in buttons) {
                 if (tabName === targetTab) {
                     buttons[tabName].classList.add('bg-white', 'text-blue-600', 'shadow-sm');
@@ -180,7 +186,6 @@
                 }
             }
             
-            // Animate panes
             const currentActivePane = document.querySelector('.content-pane.is-active');
             const newActivePane = panes[targetTab];
 
@@ -194,7 +199,7 @@
                 if (currentActivePane) currentActivePane.classList.add('hidden');
                 newActivePane.classList.remove('hidden');
                 newActivePane.classList.add('is-active');
-            }, 300); // CSS transition duration
+            }, 300);
         }
     
         function addChatMessage(sender, text) {
@@ -273,7 +278,7 @@
                     try {
                         const errorData = JSON.parse(errorText);
                         errorMessage = errorData.message || JSON.stringify(errorData);
-                    } catch (e) { /* Ignore parsing error, use raw text */ }
+                    } catch (e) { /* Ignore */ }
                     throw new Error(errorMessage);
                 }
     
@@ -323,7 +328,7 @@
                     try {
                         const errorData = JSON.parse(errorText);
                         errorMessage = errorData.message || JSON.stringify(errorData);
-                    } catch (e) { /* Ignore parsing error, use raw text */ }
+                    } catch (e) { /* Ignore */ }
                     throw new Error(errorMessage);
                 }
     
@@ -353,7 +358,8 @@
 
         sendButton.addEventListener('click', handleSendMessage);
         chatInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 handleSendMessage();
             }
         });
@@ -363,6 +369,10 @@
             if (event.key === 'Enter') {
                 handleGenerateImage();
             }
+        });
+
+        fileButton.addEventListener('click', () => {
+            alert('파일 첨부 기능은 현재 준비 중입니다.');
         });
     
     </script>
