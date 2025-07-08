@@ -123,7 +123,8 @@
                     <button id="file-button" class="bg-white/70 text-slate-500 w-10 h-10 sm:w-11 sm:h-11 rounded-full hover:bg-white transition-colors flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
-                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0">
+                    <!-- *** 수정된 부분: 채팅 입력창 스타일 변경 *** -->
+                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5">
                     <button id="send-button" class="bg-blue-500 text-white w-10 h-10 sm:w-11 sm:h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center flex-shrink-0 shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </button>
@@ -133,10 +134,11 @@
             <!-- Image Generation UI -->
             <div id="image-ui" class="content-pane hidden flex-col items-center justify-center h-full p-4 md:p-6">
                  <div class="w-full max-w-2xl text-center">
-                    <h2 class="text-3xl font-bold text-slate-800 mb-2">AI 이미지 생성</h2>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2"> 이미지 생성</h2>
                     <p class="text-slate-500 mb-8">생성하고 싶은 이미지에 대한 설명을 입력해주세요.</p>
                     <div class="flex items-center gap-3 mb-6">
-                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/70 border border-transparent rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500 min-w-0">
+                        <!-- *** 수정된 부분: 이미지 생성 입력창 스타일 변경 *** -->
+                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5">
                         <button id="generate-image-button" class="bg-indigo-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-600 transition-colors disabled:bg-slate-400 shadow-lg flex-shrink-0">
                             생성하기
                         </button>
@@ -146,7 +148,7 @@
                             <div id="image-result-container" class="absolute inset-0 flex items-center justify-center">
                                <div id="image-placeholder" class="text-slate-500 transition-opacity duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                                    16:9 비율의 이미지가 여기에 표시됩니다.
+                                    생성된 이미지가 여기에 표시됩니다.
                                 </div>
                                <div id="image-loader" class="hidden spinner"></div>
                                <img id="generated-image" src="" alt="Generated Image" class="hidden absolute inset-0 w-full h-full object-contain"/>
@@ -232,7 +234,6 @@
 
             parts.forEach(part => {
                 if (part.inlineData) {
-                    // *** 수정된 부분: 모바일 이미지 잘림 현상 해결 ***
                     imageHtml = `<img src="data:${part.inlineData.mimeType};base64,${part.inlineData.data}" class="rounded-lg mt-2 w-full h-auto">`;
                 }
                 if (part.text) {
