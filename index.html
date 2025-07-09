@@ -112,17 +112,15 @@
                         </div>
                     </div>
                 </div>
-                <!-- File Preview Area -->
+                <!-- *** 수정된 부분: 파일 미리보기 UI *** -->
                 <div id="file-preview-container" class="px-2">
-                    <div class="relative inline-block bg-slate-100 rounded-lg p-2">
-                        <div id="preview-image-wrapper" class="hidden">
-                            <img id="preview-image" src="" class="h-20 rounded-lg object-cover">
+                    <div class="glass-effect rounded-full inline-flex items-center p-1.5 pl-3 border-none">
+                        <div id="preview-content" class="flex items-center gap-2">
+                            <img id="preview-image" src="" class="h-8 w-8 rounded-full object-cover hidden">
+                            <svg id="preview-pdf-icon" class="w-6 h-6 text-red-500 flex-shrink-0 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM9 17v-2h6v2H9zm6-5H9v-2h6v2z"/></svg>
+                            <span id="preview-filename" class="text-sm text-slate-700 font-medium truncate max-w-[200px] sm:max-w-xs"></span>
                         </div>
-                        <div id="preview-pdf-wrapper" class="hidden flex items-center gap-2">
-                            <svg class="w-8 h-8 text-red-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM9 17v-2h6v2H9zm6-5H9v-2h6v2z"/></svg>
-                            <span id="pdf-filename" class="text-sm text-slate-700 truncate"></span>
-                        </div>
-                        <button id="remove-preview-button" class="absolute -top-2 -right-2 bg-slate-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold border-2 border-white">&times;</button>
+                        <button id="remove-preview-button" class="ml-2 bg-slate-500/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-slate-600/70 flex-shrink-0">&times;</button>
                     </div>
                 </div>
                 <!-- Chat Input -->
@@ -186,10 +184,9 @@
         const fileButton = document.getElementById('file-button');
         const fileInput = document.getElementById('file-input');
         const filePreviewContainer = document.getElementById('file-preview-container');
-        const previewImageWrapper = document.getElementById('preview-image-wrapper');
         const previewImage = document.getElementById('preview-image');
-        const previewPdfWrapper = document.getElementById('preview-pdf-wrapper');
-        const pdfFilename = document.getElementById('pdf-filename');
+        const previewPdfIcon = document.getElementById('preview-pdf-icon');
+        const previewFilename = document.getElementById('preview-filename');
         const removePreviewButton = document.getElementById('remove-preview-button');
         const imagePrompt = document.getElementById('image-prompt');
         const generateImageButton = document.getElementById('generate-image-button');
@@ -443,14 +440,17 @@
                 reader.onload = (e) => {
                     uploadedFile = { type: 'image', data: e.target.result, mimeType: file.type, name: file.name };
                     previewImage.src = e.target.result;
-                    previewImageWrapper.classList.remove('hidden');
+                    previewFilename.textContent = file.name;
+                    previewImage.classList.remove('hidden');
+                    previewPdfIcon.classList.add('hidden');
                     filePreviewContainer.classList.add('visible');
                 };
                 reader.readAsDataURL(file);
             } else if (file.type === 'application/pdf') {
                 uploadedFile = { type: 'pdf', data: file, name: file.name };
-                pdfFilename.textContent = file.name;
-                previewPdfWrapper.classList.remove('hidden');
+                previewFilename.textContent = file.name;
+                previewImage.classList.add('hidden');
+                previewPdfIcon.classList.remove('hidden');
                 filePreviewContainer.classList.add('visible');
             }
         }
@@ -459,8 +459,6 @@
             uploadedFile = { type: null, data: null, name: null };
             fileInput.value = '';
             filePreviewContainer.classList.remove('visible');
-            previewImageWrapper.classList.add('hidden');
-            previewPdfWrapper.classList.add('hidden');
         }
 
         async function extractTextFromPdf(file) {
