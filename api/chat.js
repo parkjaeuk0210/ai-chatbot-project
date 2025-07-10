@@ -30,6 +30,7 @@ export default async function handler(request, response) {
 
   try {
     const { chatHistory, model, persona } = request.body;
+    console.log("사용자 요청:", JSON.stringify(chatHistory, null, 2));
     console.log("요청 받은 모델:", model);
 
     const isImagen = model === 'imagen';
@@ -80,6 +81,7 @@ export default async function handler(request, response) {
     }
 
     const data = await googleResponse.json();
+    console.log("AI 응답:", JSON.stringify(data, null, 2));
     console.log("성공적으로 응답을 프론트엔드로 전달합니다.");
     response.status(200).json(data);
 
