@@ -1,0 +1,23 @@
+{
+  "name": "ai-chatbot-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parkjaeuk0210/ai-chatbot-project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/parkjaeuk0210/ai-chatbot-project/issues"
+  },
+  "homepage": "https://github.com/parkjaeuk0210/ai-chatbot-project#readme",
+  "description": "",
+  "dependencies": {
+    "@vercel/kv": "^3.0.0"
+  }
+}
