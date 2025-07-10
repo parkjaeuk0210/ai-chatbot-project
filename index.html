@@ -207,25 +207,8 @@
         let currentPersona = localStorage.getItem('feraPersona') || defaultPersona;
         personaInput.value = currentPersona;
 
-        // --- 대화 저장 관련 로직 ---
         // 고유한 세션 ID 생성 (페이지 로드 시 한 번만)
         const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-        // 서버에 대화 기록을 저장하는 함수
-        async function saveChatHistory() {
-            // 저장할 대화 내용이 없으면 함수 종료
-            if (chatHistory.length === 0) return;
-
-            try {
-                // navigator.sendBeacon을 사용하여 페이지가 닫히는 중에도 안정적으로 요청 전송
-                const blob = new Blob([JSON.stringify({ sessionId, chatHistory })], { type: 'application/json' });
-                navigator.sendBeacon('/api/save-chat', blob);
-                console.log('대화 기록 저장 요청 전송:', sessionId);
-            } catch (error) {
-                // sendBeacon은 보통 에러를 반환하지 않지만, 만약을 위해 로깅
-                console.error('대화 기록 저장 요청 중 에러:', error);
-            }
-        }
     
         // --- Functions ---
     
@@ -377,7 +360,8 @@
                     body: JSON.stringify({ 
                         chatHistory: chatHistory, 
                         model: 'gemini',
-                        persona: currentPersona
+                        persona: currentPersona,
+                        sessionId: sessionId // 세션 ID 추가
                     })
                 });
     
@@ -542,9 +526,6 @@
                 handleGenerateImage();
             }
         });
-
-        // 페이지를 떠나기 전에 대화 기록 저장
-        window.addEventListener('beforeunload', saveChatHistory);
     
     </script>
 </body>

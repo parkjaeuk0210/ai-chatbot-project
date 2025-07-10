@@ -1,6 +1,13 @@
 // 이 파일은 Vercel에서 백엔드 서버처럼 동작합니다.
 // 로컬 컴퓨터에서의 테스트를 허용하도록 CORS 설정이 추가되었습니다.
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 export default async function handler(request, response) {
   // --- CORS 설정 시작 ---
   // 특정 주소(로컬 개발 서버)에서의 요청을 허용합니다.
@@ -29,8 +36,28 @@ export default async function handler(request, response) {
   }
 
   try {
-    const { chatHistory, model, persona } = request.body;
+    const { chatHistory, model, persona, sessionId } = request.body;
     console.log("사용자 요청:", JSON.stringify(chatHistory, null, 2));
+
+    // Supabase에 사용자 메시지 저장
+    if (sessionId && chatHistory && chatHistory.length > 0) {
+        const lastUserMessage = chatHistory[chatHistory.length - 1];
+        if (lastUserMessage.role === 'user') {
+            const { error: userInsertError } = await supabase
+                .from('chat_logs')
+                .insert({
+                    session_id: sessionId,
+                    sender: 'user',
+                    message: lastUserMessage.parts.map(part => part.text || '').join(' '),
+                    raw_data: lastUserMessage
+                });
+            if (userInsertError) {
+                console.error('Supabase 사용자 메시지 저장 오류:', userInsertError);
+            }
+        }
+    } else {
+        console.warn('sessionId 또는 chatHistory가 없어 사용자 메시지를 저장할 수 없습니다.');
+    }
     console.log("요청 받은 모델:", model);
 
     const isImagen = model === 'imagen';
@@ -82,6 +109,23 @@ export default async function handler(request, response) {
 
     const data = await googleResponse.json();
     console.log("AI 응답:", JSON.stringify(data, null, 2));
+
+    // Supabase에 AI 응답 저장
+    if (sessionId && data.candidates && data.candidates.length > 0) {
+        const botResponse = data.candidates[0].content;
+        const { error: botInsertError } = await supabase
+            .from('chat_logs')
+            .insert({
+                session_id: sessionId,
+                sender: 'bot',
+                message: botResponse.parts.map(part => part.text || '').join(' '),
+                raw_data: botResponse
+            });
+        if (botInsertError) {
+            console.error('Supabase AI 응답 저장 오류:', botInsertError);
+        }
+    }
+
     console.log("성공적으로 응답을 프론트엔드로 전달합니다.");
     response.status(200).json(data);
 
