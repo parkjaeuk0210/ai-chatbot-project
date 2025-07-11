@@ -123,7 +123,7 @@ export default async function handler(request, response) {
       const lastUserMessage = chatHistory[chatHistory.length - 1];
       if (lastUserMessage && lastUserMessage.role === 'user') {
         const messageContent = lastUserMessage.parts.map(p => p.text || '').join(' ');
-        cacheKey = generateCacheKey(model, messageContent, persona);
+        cacheKey = await generateCacheKey(model, messageContent, persona);
         
         const cachedResponse = await getCache(cacheKey);
         if (cachedResponse) {

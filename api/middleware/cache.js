@@ -1,13 +1,18 @@
 import { kv } from '@vercel/kv';
-import crypto from 'crypto';
 
 const CACHE_TTL = 3600; // 1시간 캐시
 
-// 캐시 키 생성 함수
-function generateCacheKey(model, content, persona) {
-  const hash = crypto.createHash('sha256');
-  hash.update(JSON.stringify({ model, content, persona }));
-  return `cache:${hash.digest('hex')}`;
+// 캐시 키 생성 함수 (Node.js crypto 사용)
+async function generateCacheKey(model, content, persona) {
+  // 간단한 해시 함수 사용 (crypto 모듈 없이)
+  const str = JSON.stringify({ model, content, persona });
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return `cache:${Math.abs(hash).toString(16)}`;
 }
 
 // 캐시 읽기
