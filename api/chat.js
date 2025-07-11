@@ -2,7 +2,6 @@
 // 로컬 컴퓨터에서의 테스트를 허용하도록 CORS 설정이 추가되었습니다.
 
 import { createClient } from '@supabase/supabase-js';
-import { Analytics } from "@vercel/analytics/next"
 import { track } from "@vercel/analytics";
 import { rateLimit } from './middleware/rateLimit.js';
 import { getCache, setCache, shouldCache, generateCacheKey } from './middleware/cache.js';
