@@ -129,6 +129,9 @@
                     </div>
                 </div>
                 <!-- Chat Input -->
+                <div class="mt-2 flex-shrink-0">
+                    <input type="text" id="url-input" class="w-full p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 shadow-inner shadow-black/5" placeholder="URL을 입력하여 컨텍스트를 제공하세요 (선택 사항)">
+                </div>
                 <div class="mt-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf">
                     <button id="file-button" class="bg-white/70 text-slate-500 w-10 h-10 sm:w-11 sm:h-11 rounded-full hover:bg-white transition-colors flex items-center justify-center flex-shrink-0">
@@ -199,6 +202,7 @@
         const imagePlaceholder = document.getElementById('image-placeholder');
         const imageLoader = document.getElementById('image-loader');
         const generatedImage = document.getElementById('generated-image');
+        const urlInput = document.getElementById('url-input'); // URL 입력 필드 추가
 
         // --- State ---
         let chatHistory = [];
@@ -314,12 +318,17 @@
     
         async function handleSendMessage() {
             const message = chatInput.value.trim();
-            if (!message && !uploadedFile.type) return;
+            const url = urlInput.value.trim(); // URL 값 가져오기
+            if (!message && !uploadedFile.type && !url) return;
 
             sendButton.disabled = true;
             toggleChatLoading(true);
 
             const userParts = [];
+
+            if (url) {
+                userParts.push({ text: `[URL 컨텍스트: ${url}]` }); // URL을 텍스트로 추가
+            }
 
             if (uploadedFile.type === 'image') {
                 userParts.push({ inlineData: { mimeType: uploadedFile.mimeType, data: uploadedFile.data.split(',')[1] } });
@@ -361,7 +370,8 @@
                         chatHistory: chatHistory, 
                         model: 'gemini',
                         persona: currentPersona,
-                        sessionId: sessionId // 세션 ID 추가
+                        sessionId: sessionId, // 세션 ID 추가
+                        url: url // URL 추가
                     })
                 });
     
