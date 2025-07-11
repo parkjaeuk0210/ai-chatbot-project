@@ -2,10 +2,10 @@
   "functions": {
     "api/chat.js": {
       "runtime": "nodejs20.x",
-      "regions": ["icn1"],
       "maxDuration": 30
     }
   },
+  "regions": ["icn1"],
   "env": {
     "GEMINI_API_KEY": "@gemini-api-key",
     "SUPABASE_URL": "@supabase-url",
