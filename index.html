@@ -23,6 +23,8 @@
             --text-secondary: #475569;
             --text-muted: #64748b;
             --shadow-color: rgba(59, 130, 246, 0.1);
+            --vh: 1vh;
+            --actual-height: 100vh;
         }
         
         [data-theme="dark"] {
@@ -41,6 +43,14 @@
             background: linear-gradient(120deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             overflow: hidden;
             transition: background 0.3s ease;
+            height: 100vh;
+            height: -webkit-fill-available;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html {
+            height: -webkit-fill-available;
         }
         .glass-effect {
             background: var(--glass-bg);
@@ -125,8 +135,12 @@
             
             .w-full.max-w-4xl {
                 height: 100vh;
+                height: -webkit-fill-available;
+                height: var(--actual-height);
                 max-width: 100%;
                 border-radius: 0;
+                position: relative;
+                overflow: hidden;
             }
             
             #chat-input {
@@ -140,7 +154,46 @@
             
             /* 가상 키보드 대응 */
             .content-pane {
-                height: calc(100vh - env(safe-area-inset-bottom));
+                height: 100%;
+            }
+            
+            /* 채팅 UI 모바일 최적화 */
+            #chat-ui {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                position: relative;
+            }
+            
+            #chat-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding-bottom: calc(100px + env(safe-area-inset-bottom, 20px) + 30px);
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* 입력창 영역 고정 */
+            .mt-2.flex.items-center {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--bg-gradient-start);
+                padding: 0.5rem;
+                padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px) + 40px);
+                z-index: 100;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            
+            /* 파일 미리보기 위치 조정 */
+            #file-preview-container.visible {
+                position: fixed;
+                bottom: calc(70px + env(safe-area-inset-bottom, 20px) + 40px);
+                left: 0.5rem;
+                right: 0.5rem;
+                z-index: 99;
             }
             
             /* 키보드가 열렸을 때 채팅 영역 조정 */
@@ -173,7 +226,7 @@
         </div>
     </div>
 
-    <div class="w-full max-w-4xl h-[95vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col overflow-hidden">
+    <div class="w-full max-w-4xl h-[95vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col">
         <!-- Header -->
         <header class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center">
             <a href="./" style="text-decoration: none; color: inherit;"><h1 class="text-xl font-bold text-slate-800">FERA</h1></a>
@@ -307,6 +360,36 @@
         updateThemeIcon(savedTheme);
     
         // --- Functions ---
+        
+        // 실제 viewport 높이 계산 및 설정
+        function setViewportHeight() {
+            // 실제 viewport 높이를 계산
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // 모바일 환경에서만 적용
+            if (window.innerWidth <= 640) {
+                const actualHeight = window.innerHeight;
+                document.documentElement.style.setProperty('--actual-height', `${actualHeight}px`);
+            }
+        }
+        
+        // 초기 설정 및 리사이즈 이벤트
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', setViewportHeight);
+        
+        // 페이지 로드 시 약간의 지연 후 재계산 (Safari 툴바 로딩 대응)
+        setTimeout(setViewportHeight, 100);
+        
+        // Safari에서 스크롤로 주소창 숨기기
+        if (/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    window.scrollTo(0, 1);
+                }, 0);
+            });
+        }
         
         // 터치 제스처 지원
         let touchStartX = 0;
