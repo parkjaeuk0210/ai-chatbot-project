@@ -258,6 +258,7 @@
     </div>
 
     <script>
+    document.addEventListener('DOMContentLoaded', () => {
         // --- PDF.js Worker 설정 ---
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;
 
@@ -886,6 +887,7 @@
             }, 100);
         });
     
+    });
     </script>
 </body>
 </html>
