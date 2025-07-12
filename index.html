@@ -6,6 +6,8 @@
     <meta name="google-site-verification" content="69vBy7QiAiBCp1GXYwYh3Ia5c7Hk0wl113WbW2xjzOg" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>FERA - AI Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PDF.js 라이브러리 추가 -->
@@ -23,6 +25,8 @@
             --text-secondary: #475569;
             --text-muted: #64748b;
             --shadow-color: rgba(59, 130, 246, 0.1);
+            --vh: 1vh;
+            --app-height: 100vh;
         }
         
         [data-theme="dark"] {
@@ -41,6 +45,13 @@
             background: linear-gradient(120deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             overflow: hidden;
             transition: background 0.3s ease;
+            height: 100%;
+            position: fixed;
+            width: 100%;
+        }
+        
+        html {
+            height: 100%;
         }
         .glass-effect {
             background: var(--glass-bg);
@@ -124,7 +135,7 @@
             }
             
             .w-full.max-w-4xl {
-                height: 100vh;
+                height: var(--app-height);
                 max-width: 100%;
                 border-radius: 0;
             }
@@ -155,31 +166,55 @@
                 left: 0;
                 right: 0;
                 background: var(--bg-gradient-start);
-                padding: 0.5rem;
-                padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+                padding: 0.75rem;
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 100px); /* 충분한 여백 확보 */
                 z-index: 100;
                 transition: transform 0.3s ease-out;
                 border-top: 1px solid var(--glass-border);
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
             }
             
             .ios-safari.keyboard-open .mt-2.flex.items-center {
                 transform: translateY(calc(var(--keyboard-height, 0px) * -1));
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 20px); /* 키보드 열릴 때 */
             }
             
             .ios-safari #chat-ui {
-                padding-bottom: 80px;
+                padding-bottom: 180px; /* 입력창 + 여유 공간 */
+                height: 100%;
             }
             
             .ios-safari.keyboard-open #chat-messages {
-                padding-bottom: calc(80px + var(--keyboard-height, 0px));
+                padding-bottom: calc(120px + var(--keyboard-height, 0px));
                 transition: padding-bottom 0.3s ease-out;
             }
             
             /* iOS Safe Area 대응 */
             .ios-safari .w-full.max-w-4xl {
-                padding-bottom: env(safe-area-inset-bottom);
+                padding-bottom: 0;
+                overflow: hidden; /* 스크롤 제어 */
+            }
+            
+            /* iOS에서 채팅 영역 높이 조정 */
+            .ios-safari #chat-messages {
+                height: calc(100% - 80px);
+                padding-bottom: 100px;
+                -webkit-overflow-scrolling: touch; /* 부드러운 스크롤 */
+            }
+            
+            /* 파일 미리보기 위치 조정 */
+            .ios-safari #file-preview-container {
+                position: fixed;
+                bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 100px);
+                left: 0.5rem;
+                right: 0.5rem;
+                z-index: 99;
+            }
+            
+            .ios-safari.keyboard-open #file-preview-container {
+                transform: translateY(calc(var(--keyboard-height, 0px) * -1));
             }
         }
         
@@ -349,6 +384,42 @@
         updateThemeIcon(savedTheme);
     
         // --- Functions ---
+        
+        // iOS Safari에서 실제 viewport 높이 설정
+        function setAppHeight() {
+            const appHeight = window.innerHeight;
+            document.documentElement.style.setProperty('--app-height', `${appHeight}px`);
+            document.documentElement.style.setProperty('--vh', `${appHeight * 0.01}px`);
+            
+            // iOS Safari에서 하단 툴바 높이 계산
+            if (isIOSSafari) {
+                const screenHeight = window.screen.height;
+                const safariBarHeight = screenHeight - appHeight;
+                document.documentElement.style.setProperty('--safari-bar-height', `${safariBarHeight}px`);
+            }
+        }
+        
+        // 초기 설정 및 리사이즈 이벤트
+        setAppHeight();
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', setAppHeight);
+        
+        // iOS Safari에서 스크롤로 툴바 숨기기
+        if (isIOSSafari) {
+            // 페이지 로드 시 살짝 스크롤하여 툴바 숨기기
+            setTimeout(() => {
+                window.scrollTo(0, 1);
+            }, 100);
+            
+            // 채팅 입력에 포커스할 때 툴바 숨기기
+            document.addEventListener('focusin', (e) => {
+                if (e.target === chatInput) {
+                    setTimeout(() => {
+                        window.scrollTo(0, 1);
+                    }, 100);
+                }
+            });
+        }
         
         // 터치 제스처 지원
         let touchStartX = 0;
