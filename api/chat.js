@@ -1,15 +1,15 @@
 // 이 파일은 Vercel에서 백엔드 서버처럼 동작합니다.
 // 로컬 컴퓨터에서의 테스트를 허용하도록 CORS 설정이 추가되었습니다.
 
-import { createClient } from '@supabase/supabase-js';
+// import { createClient } from '@supabase/supabase-js';
 import { track } from "@vercel/analytics";
 import { rateLimit } from './middleware/rateLimit.js';
 import { getCache, setCache, shouldCache, generateCacheKey } from './middleware/cache.js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// const supabaseUrl = process.env.SUPABASE_URL;
+// const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default async function handler(request, response) {
   // --- CORS 설정 시작 ---
@@ -92,6 +92,7 @@ export default async function handler(request, response) {
     }
 
     // Supabase에 사용자 메시지 저장
+    /*
     if (sessionId && chatHistory && chatHistory.length > 0) {
         const lastUserMessage = chatHistory[chatHistory.length - 1];
         if (lastUserMessage.role === 'user') {
@@ -110,6 +111,7 @@ export default async function handler(request, response) {
     } else if (process.env.NODE_ENV !== 'production') {
         console.warn('sessionId 또는 chatHistory가 없어 사용자 메시지를 저장할 수 없습니다.');
     }
+    */
     if (process.env.NODE_ENV !== 'production') {
       console.log("요청 받은 모델:", model);
     }
@@ -198,6 +200,7 @@ export default async function handler(request, response) {
     }
 
     // Supabase에 AI 응답 저장
+    /*
     if (sessionId && data.candidates && data.candidates.length > 0) {
         const botResponse = data.candidates[0].content;
         const { error: botInsertError } = await supabase
@@ -212,6 +215,7 @@ export default async function handler(request, response) {
             console.error('Supabase AI 응답 저장 오류:', botInsertError);
         }
     }
+    */
 
     if (process.env.NODE_ENV !== 'production') {
       console.log("성공적으로 응답을 프론트엔드로 전달합니다.");
