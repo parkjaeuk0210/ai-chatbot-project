@@ -23,8 +23,6 @@
             --text-secondary: #475569;
             --text-muted: #64748b;
             --shadow-color: rgba(59, 130, 246, 0.1);
-            --vh: 1vh;
-            --actual-height: 100vh;
         }
         
         [data-theme="dark"] {
@@ -43,14 +41,8 @@
             background: linear-gradient(120deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             overflow: hidden;
             transition: background 0.3s ease;
-            height: 100vh;
-            height: -webkit-fill-available;
             margin: 0;
             padding: 0;
-        }
-        
-        html {
-            height: -webkit-fill-available;
         }
         .glass-effect {
             background: var(--glass-bg);
@@ -135,12 +127,9 @@
             
             .w-full.max-w-4xl {
                 height: 100vh;
-                height: -webkit-fill-available;
-                height: var(--actual-height);
+                height: 100dvh; /* Dynamic viewport height - 공식 해결책 */
                 max-width: 100%;
                 border-radius: 0;
-                position: relative;
-                overflow: hidden;
             }
             
             #chat-input {
@@ -162,43 +151,25 @@
                 display: flex;
                 flex-direction: column;
                 height: 100%;
-                position: relative;
             }
             
             #chat-messages {
                 flex: 1;
                 overflow-y: auto;
-                padding-bottom: calc(100px + env(safe-area-inset-bottom, 20px) + 30px);
+                padding-top: 20px;
+                padding-bottom: 20px;
                 -webkit-overflow-scrolling: touch;
             }
             
-            /* 입력창 영역 고정 */
+            /* 입력창 영역 */
             .mt-2.flex.items-center {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: var(--bg-gradient-start);
-                padding: 0.5rem;
-                padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px) + 40px);
-                z-index: 100;
-                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-            }
-            
-            /* 파일 미리보기 위치 조정 */
-            #file-preview-container.visible {
-                position: fixed;
-                bottom: calc(70px + env(safe-area-inset-bottom, 20px) + 40px);
-                left: 0.5rem;
-                right: 0.5rem;
-                z-index: 99;
+                flex-shrink: 0;
+                padding-bottom: env(safe-area-inset-bottom, 0);
             }
             
             /* 키보드가 열렸을 때 채팅 영역 조정 */
             .keyboard-open #chat-messages {
-                padding-bottom: 100px;
+                padding-bottom: 20px;
             }
         }
         
@@ -248,7 +219,8 @@
         <main class="flex-1 relative">
             <!-- Chatbot UI -->
             <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-2 sm:p-4 md:p-6" role="tabpanel" aria-labelledby="chat-tab-button" tabindex="0">
-                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5 pr-2">
+                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5 pr-2 flex flex-col-reverse">
+                    <div class="flex-1"></div>
                     <div id="initial-message" class="flex items-start gap-3 max-w-lg message-bubble">
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
                         <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
@@ -361,35 +333,6 @@
     
         // --- Functions ---
         
-        // 실제 viewport 높이 계산 및 설정
-        function setViewportHeight() {
-            // 실제 viewport 높이를 계산
-            const vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-            
-            // 모바일 환경에서만 적용
-            if (window.innerWidth <= 640) {
-                const actualHeight = window.innerHeight;
-                document.documentElement.style.setProperty('--actual-height', `${actualHeight}px`);
-            }
-        }
-        
-        // 초기 설정 및 리사이즈 이벤트
-        setViewportHeight();
-        window.addEventListener('resize', setViewportHeight);
-        window.addEventListener('orientationchange', setViewportHeight);
-        
-        // 페이지 로드 시 약간의 지연 후 재계산 (Safari 툴바 로딩 대응)
-        setTimeout(setViewportHeight, 100);
-        
-        // Safari에서 스크롤로 주소창 숨기기
-        if (/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) {
-            window.addEventListener('load', () => {
-                setTimeout(() => {
-                    window.scrollTo(0, 1);
-                }, 0);
-            });
-        }
         
         // 터치 제스처 지원
         let touchStartX = 0;
@@ -613,10 +556,16 @@
                 `;
             }
             wrapper.innerHTML = content;
-            chatMessages.appendChild(wrapper);
+            // flex-col-reverse를 사용하므로 prepend 사용
+            const firstMessage = chatMessages.querySelector('.message-bubble');
+            if (firstMessage) {
+                chatMessages.insertBefore(wrapper, firstMessage);
+            } else {
+                chatMessages.appendChild(wrapper);
+            }
             
-            // 스크롤 처리
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // 스크롤을 맨 아래로
+            chatMessages.scrollTop = 0;
         }
     
         function toggleChatLoading(show) {
@@ -634,8 +583,13 @@
                             <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
                         </div>
                     `;
-                    chatMessages.appendChild(loadingEl);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    const firstMessage = chatMessages.querySelector('.message-bubble');
+                    if (firstMessage) {
+                        chatMessages.insertBefore(loadingEl, firstMessage);
+                    } else {
+                        chatMessages.appendChild(loadingEl);
+                    }
+                    chatMessages.scrollTop = 0;
                 }
             } else {
                 if (loadingEl) {
@@ -777,11 +731,8 @@
                     // 약간의 지연 후 포커스와 스크롤
                     setTimeout(() => {
                         chatInput.focus();
-                        // 채팅 메시지를 볼 수 있도록 스크롤 조정
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                        // 입력창이 키보드 위에 오도록 조정
-                        const inputContainer = chatInput.parentElement;
-                        inputContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        // flex-col-reverse이므로 스크롤을 맨 위로
+                        chatMessages.scrollTop = 0;
                     }, 100);
                 } else {
                     chatInput.focus();
