@@ -7,12 +7,6 @@
       "maxDuration": 30
     }
   },
-  "env": {
-    "GEMINI_API_KEY": "@gemini-api-key",
-    "SUPABASE_URL": "@supabase-url",
-    "SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "PRODUCTION_URL": "@production-url"
-  },
   "headers": [
     {
       "source": "/(.*)",
