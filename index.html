@@ -147,6 +147,40 @@
             .keyboard-open #chat-messages {
                 padding-bottom: 100px;
             }
+            
+            /* iOS Safari에서 입력창 고정 */
+            .ios-safari .mt-2.flex.items-center {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--bg-gradient-start);
+                padding: 0.5rem;
+                padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+                z-index: 100;
+                transition: transform 0.3s ease-out;
+                border-top: 1px solid var(--glass-border);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            
+            .ios-safari.keyboard-open .mt-2.flex.items-center {
+                transform: translateY(calc(var(--keyboard-height, 0px) * -1));
+            }
+            
+            .ios-safari #chat-ui {
+                padding-bottom: 80px;
+            }
+            
+            .ios-safari.keyboard-open #chat-messages {
+                padding-bottom: calc(80px + var(--keyboard-height, 0px));
+                transition: padding-bottom 0.3s ease-out;
+            }
+            
+            /* iOS Safe Area 대응 */
+            .ios-safari .w-full.max-w-4xl {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
         }
         
         /* 스와이프 제스처를 위한 스타일 */
@@ -300,6 +334,15 @@
         // 고유한 세션 ID 생성 (페이지 로드 시 한 번만)
         const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         
+        // iOS Safari 감지
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isIOSSafari = isIOS && isSafari;
+        
+        if (isIOSSafari) {
+            document.body.classList.add('ios-safari');
+        }
+        
         // 다크 모드 초기화
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -337,9 +380,27 @@
                 
                 chatInput.addEventListener('focus', () => {
                     viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-                    setTimeout(() => {
-                        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 300);
+                    
+                    if (isIOSSafari) {
+                        // iOS Safari에서 특별 처리
+                        setTimeout(() => {
+                            // 입력창이 키보드 위에 오도록 조정
+                            const inputRect = chatInput.getBoundingClientRect();
+                            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+                            
+                            if (inputRect.bottom > viewportHeight - 50) {
+                                const scrollAmount = inputRect.bottom - (viewportHeight - 100);
+                                window.scrollTo({
+                                    top: window.pageYOffset + scrollAmount,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }, 300);
+                    } else {
+                        setTimeout(() => {
+                            chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 300);
+                    }
                 });
                 
                 chatInput.addEventListener('blur', () => {
@@ -350,22 +411,60 @@
         
         // 가상 키보드 높이 감지
         function detectVirtualKeyboard() {
-            const initialHeight = window.innerHeight;
-            
-            window.addEventListener('resize', () => {
-                const currentHeight = window.innerHeight;
-                const keyboardHeight = initialHeight - currentHeight;
+            if (isIOSSafari && window.visualViewport) {
+                // iOS Safari에서 visualViewport API 사용
+                let lastHeight = window.visualViewport.height;
                 
-                if (keyboardHeight > 100) {
-                    // 키보드가 열림
-                    document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
-                    document.body.classList.add('keyboard-open');
-                } else {
-                    // 키보드가 닫힘
-                    document.documentElement.style.setProperty('--keyboard-height', '0px');
-                    document.body.classList.remove('keyboard-open');
-                }
-            });
+                const handleViewportChange = () => {
+                    const currentHeight = window.visualViewport.height;
+                    const windowHeight = window.innerHeight;
+                    const keyboardHeight = windowHeight - currentHeight;
+                    
+                    if (keyboardHeight > 50) {
+                        // 키보드가 열림
+                        document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+                        document.body.classList.add('keyboard-open');
+                        
+                        // 입력창이 보이도록 스크롤
+                        setTimeout(() => {
+                            const inputContainer = chatInput.parentElement;
+                            if (inputContainer) {
+                                const rect = inputContainer.getBoundingClientRect();
+                                if (rect.bottom > currentHeight) {
+                                    window.scrollTo(0, window.pageYOffset + (rect.bottom - currentHeight) + 20);
+                                }
+                            }
+                        }, 100);
+                    } else {
+                        // 키보드가 닫힘
+                        document.documentElement.style.setProperty('--keyboard-height', '0px');
+                        document.body.classList.remove('keyboard-open');
+                    }
+                    
+                    lastHeight = currentHeight;
+                };
+                
+                window.visualViewport.addEventListener('resize', handleViewportChange);
+                window.visualViewport.addEventListener('scroll', handleViewportChange);
+            } else {
+                // 기존 방식 (다른 브라우저)
+                const initialHeight = window.innerHeight;
+                
+                window.addEventListener('resize', () => {
+                    const currentHeight = window.innerHeight;
+                    const keyboardHeight = initialHeight - currentHeight;
+                    
+                    if (keyboardHeight > 100) {
+                        // 키보드가 열림
+                        document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+                        document.body.classList.add('keyboard-open');
+                    } else {
+                        // 키보드가 닫힘
+                        document.documentElement.style.setProperty('--keyboard-height', '0px');
+                        document.body.classList.remove('keyboard-open');
+                    }
+                });
+            }
         }
         
         // 테마 변경 함수
@@ -696,15 +795,28 @@
                 const isMobile = window.innerWidth <= 640;
                 if (isMobile) {
                     chatInput.removeAttribute('readonly');
-                    // 약간의 지연 후 포커스와 스크롤
-                    setTimeout(() => {
-                        chatInput.focus();
-                        // 채팅 메시지를 볼 수 있도록 스크롤 조정
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                        // 입력창이 키보드 위에 오도록 조정
-                        const inputContainer = chatInput.parentElement;
-                        inputContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                    }, 100);
+                    
+                    if (isIOSSafari) {
+                        // iOS Safari 특별 처리
+                        setTimeout(() => {
+                            chatInput.focus();
+                            // 최신 메시지가 보이도록 스크롤
+                            const lastMessage = chatMessages.lastElementChild;
+                            if (lastMessage) {
+                                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                            }
+                        }, 300);
+                    } else {
+                        // 다른 모바일 브라우저
+                        setTimeout(() => {
+                            chatInput.focus();
+                            // 채팅 메시지를 볼 수 있도록 스크롤 조정
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            // 입력창이 키보드 위에 오도록 조정
+                            const inputContainer = chatInput.parentElement;
+                            inputContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        }, 100);
+                    }
                 } else {
                     chatInput.focus();
                 }
