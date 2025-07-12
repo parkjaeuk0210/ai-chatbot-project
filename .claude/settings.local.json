@@ -7,7 +7,9 @@
       "Bash(git fetch:*)",
       "Bash(git commit:*)",
       "Bash(chmod:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

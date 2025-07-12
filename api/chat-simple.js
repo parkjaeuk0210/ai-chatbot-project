@@ -1,5 +1,40 @@
 // 간단한 버전 - Supabase 없이 작동 테스트용
 
+// Simple in-memory rate limiter
+const rateLimitStore = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 20; // 20 requests per minute per IP
+
+function getRateLimitKey(ip, sessionId) {
+    return `${ip}-${sessionId || 'anonymous'}`;
+}
+
+function checkRateLimit(key) {
+    const now = Date.now();
+    const userRequests = rateLimitStore.get(key) || [];
+    
+    // Clean old requests
+    const validRequests = userRequests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
+    
+    if (validRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
+        return false;
+    }
+    
+    validRequests.push(now);
+    rateLimitStore.set(key, validRequests);
+    
+    // Clean up old entries periodically
+    if (rateLimitStore.size > 1000) {
+        for (const [k, v] of rateLimitStore.entries()) {
+            if (v.length === 0 || now - v[v.length - 1] > RATE_LIMIT_WINDOW) {
+                rateLimitStore.delete(k);
+            }
+        }
+    }
+    
+    return true;
+}
+
 export default async function handler(request, response) {
   // CORS 설정
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,6 +51,21 @@ export default async function handler(request, response) {
     return response.status(405).json({ message: '허용되지 않은 메서드입니다.' });
   }
 
+  // Get client IP for rate limiting
+  const clientIp = request.headers['x-forwarded-for'] || 
+                  request.headers['x-real-ip'] || 
+                  request.connection?.remoteAddress || 
+                  'unknown';
+
+  // Check request body size (1MB limit)
+  const requestSize = JSON.stringify(request.body).length;
+  if (requestSize > 1024 * 1024) {
+    console.log(`Request too large: ${requestSize} bytes`);
+    return response.status(413).json({ 
+      message: '요청 크기가 너무 큽니다. 1MB 이하로 줄여주세요.' 
+    });
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("Vercel 환경 변수에 'GEMINI_API_KEY'가 설정되지 않았습니다.");
@@ -24,6 +74,15 @@ export default async function handler(request, response) {
 
   try {
     const { chatHistory, model, persona, sessionId, url } = request.body;
+    
+    // Check rate limit
+    const rateLimitKey = getRateLimitKey(clientIp, sessionId);
+    if (!checkRateLimit(rateLimitKey)) {
+      console.log(`Rate limit exceeded for ${rateLimitKey}`);
+      return response.status(429).json({ 
+        message: '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.' 
+      });
+    }
     console.log("요청 받은 모델:", model);
 
     const isImagen = model === 'imagen';

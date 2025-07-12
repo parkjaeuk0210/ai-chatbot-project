@@ -421,7 +421,7 @@
             URL.revokeObjectURL(url);
         }
         
-        // 이미지 압축 함수
+        // 이미지 압축 함수 - 최적화된 버전
         async function compressImage(file, maxWidth = 1920, maxHeight = 1080, quality = 0.85) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -451,12 +451,16 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
+                        // 압축된 크기 계산을 위해 blob 생성
                         canvas.toBlob((blob) => {
+                            console.log(`이미지 압축 완료: ${formatFileSize(file.size)} → ${formatFileSize(blob.size)}`);
                             resolve({
                                 blob,
                                 dataUrl: canvas.toDataURL(file.type, quality),
                                 width,
-                                height
+                                height,
+                                originalSize: file.size,
+                                compressedSize: blob.size
                             });
                         }, file.type, quality);
                     };
@@ -796,7 +800,9 @@
                         };
                         previewImage.src = compressed.dataUrl;
                         previewFilename.textContent = file.name;
-                        previewFilesize.textContent = `(${formatFileSize(compressed.blob.size)})`;
+                        // 압축률 표시
+                        const compressionRate = Math.round((1 - compressed.blob.size / file.size) * 100);
+                        previewFilesize.textContent = `(${formatFileSize(compressed.blob.size)} - ${compressionRate}% 압축됨)`;
                     } else {
                         const reader = new FileReader();
                         reader.onload = (e) => {
