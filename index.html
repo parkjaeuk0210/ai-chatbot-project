@@ -142,6 +142,11 @@
             .content-pane {
                 height: calc(100vh - env(safe-area-inset-bottom));
             }
+            
+            /* 키보드가 열렸을 때 채팅 영역 조정 */
+            .keyboard-open #chat-messages {
+                padding-bottom: 100px;
+            }
         }
         
         /* 스와이프 제스처를 위한 스타일 */
@@ -354,9 +359,11 @@
                 if (keyboardHeight > 100) {
                     // 키보드가 열림
                     document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+                    document.body.classList.add('keyboard-open');
                 } else {
                     // 키보드가 닫힘
                     document.documentElement.style.setProperty('--keyboard-height', '0px');
+                    document.body.classList.remove('keyboard-open');
                 }
             });
         }
@@ -522,7 +529,16 @@
             }
             wrapper.innerHTML = content;
             chatMessages.appendChild(wrapper);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // 모바일에서 스크롤 조정 개선
+            const isMobile = window.innerWidth <= 640;
+            if (isMobile && document.body.classList.contains('keyboard-open')) {
+                setTimeout(() => {
+                    wrapper.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 100);
+            } else {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
     
         function toggleChatLoading(show) {
@@ -556,6 +572,12 @@
 
             sendButton.disabled = true;
             toggleChatLoading(true);
+            
+            // 모바일에서 키보드 포커스 유지
+            const isMobile = window.innerWidth <= 640;
+            if (isMobile) {
+                chatInput.setAttribute('readonly', 'readonly');
+            }
 
             const userParts = [];
 
@@ -669,7 +691,23 @@
             } finally {
                 toggleChatLoading(false);
                 sendButton.disabled = false;
-                chatInput.focus();
+                
+                // 모바일에서 키보드 포커스 처리
+                const isMobile = window.innerWidth <= 640;
+                if (isMobile) {
+                    chatInput.removeAttribute('readonly');
+                    // 약간의 지연 후 포커스와 스크롤
+                    setTimeout(() => {
+                        chatInput.focus();
+                        // 채팅 메시지를 볼 수 있도록 스크롤 조정
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        // 입력창이 키보드 위에 오도록 조정
+                        const inputContainer = chatInput.parentElement;
+                        inputContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }, 100);
+                } else {
+                    chatInput.focus();
+                }
             }
         }
     
