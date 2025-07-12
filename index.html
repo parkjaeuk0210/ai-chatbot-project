@@ -126,6 +126,12 @@
             background: rgba(15, 23, 42, 0.95) !important;
             border-top: 1px solid rgba(148, 163, 184, 0.1);
         }
+        
+        /* 다크모드에서 헤더 배경 */
+        [data-theme="dark"] #main-header {
+            background: rgba(15, 23, 42, 0.95) !important;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
@@ -223,6 +229,45 @@
                 height: 100dvh; /* Dynamic viewport height - 공식 해결책 */
                 max-width: 100%;
                 border-radius: 0;
+                position: relative;
+            }
+            
+            /* 모바일에서 헤더 고정 및 컴팩트화 */
+            #main-header {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                background: var(--glass-bg);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                padding: 0.75rem;
+                transition: transform 0.3s ease;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            }
+            
+            /* 헤더 숨김 상태 */
+            #main-header.header-hidden {
+                transform: translateY(-100%);
+            }
+            
+            /* 컴팩트 헤더 스타일 */
+            #main-header h1 {
+                font-size: 1.1rem;
+            }
+            
+            #main-header .tab-button {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            #main-header button.w-9 {
+                width: 2rem;
+                height: 2rem;
+            }
+            
+            #main-header button svg {
+                width: 18px;
+                height: 18px;
             }
             
             #chat-input {
@@ -251,6 +296,11 @@
                 flex-direction: column;
                 height: 100%;
                 position: relative;
+            }
+            
+            /* 헤더 높이만큼 채팅 영역 조정 */
+            main {
+                height: calc(100% - 60px); /* 헤더 높이 고려 */
             }
             
             #chat-messages {
@@ -354,7 +404,7 @@
 
     <div class="w-full max-w-4xl h-[95vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col">
         <!-- Header -->
-        <header class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center">
+        <header id="main-header" class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center transition-transform duration-300">
             <a href="./" style="text-decoration: none; color: inherit;"><h1 class="text-xl font-bold text-slate-800">FERA</h1></a>
             <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1" role="tablist" aria-label="탭 선택">
                 <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0">채팅</button>
@@ -487,6 +537,47 @@
     
         // --- Functions ---
         
+        // 모바일에서 헤더 자동 숨김/표시
+        function initHeaderScroll() {
+            if (window.innerWidth > 640) return; // 모바일에서만 작동
+            
+            const header = document.getElementById('main-header');
+            const chatMessages = document.getElementById('chat-messages');
+            let lastScrollTop = 0;
+            let scrollTimer;
+            let isScrolling = false;
+            
+            chatMessages.addEventListener('scroll', () => {
+                if (!isScrolling) {
+                    isScrolling = true;
+                    
+                    clearTimeout(scrollTimer);
+                    
+                    const currentScrollTop = chatMessages.scrollTop;
+                    const scrollDiff = currentScrollTop - lastScrollTop;
+                    
+                    // 스크롤 다운 (20px 이상) - 헤더 숨김
+                    if (scrollDiff > 20 && currentScrollTop > 100) {
+                        header.classList.add('header-hidden');
+                    } 
+                    // 스크롤 업 또는 최상단 근처 - 헤더 표시
+                    else if (scrollDiff < -10 || currentScrollTop < 50) {
+                        header.classList.remove('header-hidden');
+                    }
+                    
+                    lastScrollTop = currentScrollTop;
+                    
+                    // 스크롤 멈춤 감지
+                    scrollTimer = setTimeout(() => {
+                        isScrolling = false;
+                        // 최상단에서는 항상 헤더 표시
+                        if (chatMessages.scrollTop < 50) {
+                            header.classList.remove('header-hidden');
+                        }
+                    }, 150);
+                }
+            });
+        }
         
         // 터치 제스처 지원
         let touchStartX = 0;
@@ -501,11 +592,17 @@
                     // 오른쪽 스와이프 - 채팅으로 전환
                     if (document.querySelector('.content-pane.is-active') === imageUi) {
                         switchTabs('chat');
+                        // 스와이프 시에도 헤더 표시
+                        const header = document.getElementById('main-header');
+                        if (header) header.classList.remove('header-hidden');
                     }
                 } else {
                     // 왼쪽 스와이프 - 이미지 생성으로 전환
                     if (document.querySelector('.content-pane.is-active') === chatUi) {
                         switchTabs('image');
+                        // 스와이프 시에도 헤더 표시
+                        const header = document.getElementById('main-header');
+                        if (header) header.classList.remove('header-hidden');
                     }
                 }
             }
@@ -687,6 +784,12 @@
                 if (currentActivePane) currentActivePane.classList.add('hidden');
                 newActivePane.classList.remove('hidden');
                 newActivePane.classList.add('is-active');
+                
+                // 탭 전환 시 헤더 표시
+                const header = document.getElementById('main-header');
+                if (header) {
+                    header.classList.remove('header-hidden');
+                }
             }, 300);
         }
 
@@ -1158,6 +1261,7 @@
             // 모바일 키보드 대응
             handleMobileKeyboard();
             detectVirtualKeyboard();
+            initHeaderScroll();
         }
         
         // 화면 회전 감지
