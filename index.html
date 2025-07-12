@@ -176,7 +176,7 @@
                 right: 0;
                 background: var(--bg-gradient-start);
                 padding: 0.75rem;
-                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 100px); /* 충분한 여백 확보 */
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 50px); /* Safari 툴바 높이 고려 */
                 z-index: 100;
                 transition: transform 0.3s ease-out;
                 border-top: 1px solid var(--glass-border);
@@ -187,16 +187,16 @@
             
             .ios-safari.keyboard-open .mt-2.flex.items-center {
                 transform: translateY(calc(var(--keyboard-height, 0px) * -1));
-                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + 20px); /* 키보드 열릴 때 */
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); /* 키보드 열릴 때는 기본 패딩만 */
             }
             
             .ios-safari #chat-ui {
-                padding-bottom: 180px; /* 입력창 + 여유 공간 */
+                padding-bottom: 130px; /* 입력창 높이 + Safari 툴바 공간 */
                 height: 100%;
             }
             
             .ios-safari.keyboard-open #chat-messages {
-                padding-bottom: calc(120px + var(--keyboard-height, 0px));
+                padding-bottom: calc(80px + var(--keyboard-height, 0px));
                 transition: padding-bottom 0.3s ease-out;
             }
             
@@ -208,15 +208,15 @@
             
             /* iOS에서 채팅 영역 높이 조정 */
             .ios-safari #chat-messages {
-                height: calc(100% - 80px);
-                padding-bottom: 100px;
+                height: calc(100% - 60px);
+                padding-bottom: 60px;
                 -webkit-overflow-scrolling: touch; /* 부드러운 스크롤 */
             }
             
             /* 파일 미리보기 위치 조정 */
             .ios-safari #file-preview-container {
                 position: fixed;
-                bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 100px);
+                bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 50px);
                 left: 0.5rem;
                 right: 0.5rem;
                 z-index: 99;
