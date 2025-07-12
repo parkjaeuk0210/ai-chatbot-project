@@ -45,12 +45,16 @@
             background: linear-gradient(120deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             overflow: hidden;
             transition: background 0.3s ease;
+        }
+        
+        /* iOS Safari 전용 body 스타일 */
+        .ios-safari body {
             height: 100%;
             position: fixed;
             width: 100%;
         }
         
-        html {
+        .ios-safari html {
             height: 100%;
         }
         .glass-effect {
@@ -135,9 +139,14 @@
             }
             
             .w-full.max-w-4xl {
-                height: var(--app-height);
+                height: 100vh;
                 max-width: 100%;
                 border-radius: 0;
+            }
+            
+            /* iOS Safari에서만 동적 높이 적용 */
+            .ios-safari .w-full.max-w-4xl {
+                height: var(--app-height);
             }
             
             #chat-input {
@@ -154,8 +163,8 @@
                 height: calc(100vh - env(safe-area-inset-bottom));
             }
             
-            /* 키보드가 열렸을 때 채팅 영역 조정 */
-            .keyboard-open #chat-messages {
+            /* 일반 모바일에서 키보드가 열렸을 때 */
+            .keyboard-open:not(.ios-safari) #chat-messages {
                 padding-bottom: 100px;
             }
             
@@ -387,22 +396,24 @@
         
         // iOS Safari에서 실제 viewport 높이 설정
         function setAppHeight() {
-            const appHeight = window.innerHeight;
-            document.documentElement.style.setProperty('--app-height', `${appHeight}px`);
-            document.documentElement.style.setProperty('--vh', `${appHeight * 0.01}px`);
-            
-            // iOS Safari에서 하단 툴바 높이 계산
             if (isIOSSafari) {
+                const appHeight = window.innerHeight;
+                document.documentElement.style.setProperty('--app-height', `${appHeight}px`);
+                document.documentElement.style.setProperty('--vh', `${appHeight * 0.01}px`);
+                
+                // iOS Safari에서 하단 툴바 높이 계산
                 const screenHeight = window.screen.height;
                 const safariBarHeight = screenHeight - appHeight;
                 document.documentElement.style.setProperty('--safari-bar-height', `${safariBarHeight}px`);
             }
         }
         
-        // 초기 설정 및 리사이즈 이벤트
-        setAppHeight();
-        window.addEventListener('resize', setAppHeight);
-        window.addEventListener('orientationchange', setAppHeight);
+        // iOS Safari에서만 초기 설정 및 리사이즈 이벤트
+        if (isIOSSafari) {
+            setAppHeight();
+            window.addEventListener('resize', setAppHeight);
+            window.addEventListener('orientationchange', setAppHeight);
+        }
         
         // iOS Safari에서 스크롤로 툴바 숨기기
         if (isIOSSafari) {
@@ -702,11 +713,13 @@
             
             // 모바일에서 스크롤 조정 개선
             const isMobile = window.innerWidth <= 640;
-            if (isMobile && document.body.classList.contains('keyboard-open')) {
+            if (isIOSSafari && document.body.classList.contains('keyboard-open')) {
+                // iOS Safari에서 키보드 열렸을 때
                 setTimeout(() => {
                     wrapper.scrollIntoView({ behavior: 'smooth', block: 'end' });
                 }, 100);
             } else {
+                // 일반적인 스크롤 처리
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
@@ -745,7 +758,7 @@
             
             // 모바일에서 키보드 포커스 유지
             const isMobile = window.innerWidth <= 640;
-            if (isMobile) {
+            if (isMobile && !isIOSSafari) {
                 chatInput.setAttribute('readonly', 'readonly');
             }
 
@@ -865,8 +878,6 @@
                 // 모바일에서 키보드 포커스 처리
                 const isMobile = window.innerWidth <= 640;
                 if (isMobile) {
-                    chatInput.removeAttribute('readonly');
-                    
                     if (isIOSSafari) {
                         // iOS Safari 특별 처리
                         setTimeout(() => {
@@ -878,7 +889,8 @@
                             }
                         }, 300);
                     } else {
-                        // 다른 모바일 브라우저
+                        // 다른 모바일 브라우저 - 기존 동작 유지
+                        chatInput.removeAttribute('readonly');
                         setTimeout(() => {
                             chatInput.focus();
                             // 채팅 메시지를 볼 수 있도록 스크롤 조정
