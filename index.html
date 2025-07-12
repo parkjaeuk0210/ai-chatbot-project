@@ -5,7 +5,7 @@
     <meta name="description" content="페라는 최신 AI 모델을 이용한 내맘대로 만드는 실시간 챗봇 서비스입니다.">
     <meta name="google-site-verification" content="69vBy7QiAiBCp1GXYwYh3Ia5c7Hk0wl113WbW2xjzOg" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FERA - AI Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PDF.js 라이브러리 추가 -->
@@ -14,16 +14,61 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-gradient-start: #f0f9ff;
+            --bg-gradient-end: #e0f2fe;
+            --glass-bg: rgba(255, 255, 255, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --shadow-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        [data-theme="dark"] {
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e293b;
+            --glass-bg: rgba(30, 41, 59, 0.5);
+            --glass-border: rgba(71, 85, 105, 0.2);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+        
         body {
             font-family: 'Noto Sans KR', 'Inter', sans-serif;
-            background: linear-gradient(120deg, #f0f9ff 0%, #e0f2fe 100%);
+            background: linear-gradient(120deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             overflow: hidden;
+            transition: background 0.3s ease;
         }
         .glass-effect {
-            background: rgba(255, 255, 255, 0.5);
+            background: var(--glass-bg);
             -webkit-backdrop-filter: blur(20px);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--glass-border);
+            transition: background 0.3s ease, border 0.3s ease;
+        }
+        
+        /* 다크 모드 텍스트 색상 */
+        h1, h2, h3, p, span, button {
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+        }
+        
+        .text-slate-800 { color: var(--text-primary) !important; }
+        .text-slate-700 { color: var(--text-primary) !important; }
+        .text-slate-600 { color: var(--text-secondary) !important; }
+        .text-slate-500 { color: var(--text-muted) !important; }
+        
+        [data-theme="dark"] .bg-white\/80,
+        [data-theme="dark"] .bg-white\/70,
+        [data-theme="dark"] .bg-white\/40 {
+            background: rgba(30, 41, 59, 0.8) !important;
+        }
+        
+        [data-theme="dark"] .shadow-blue-100\/50 {
+            box-shadow: 0 20px 25px -5px var(--shadow-color), 0 10px 10px -5px var(--shadow-color) !important;
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -71,6 +116,38 @@
             transform: scale(1.05);
             pointer-events: none;
         }
+        
+        /* 모바일 최적화 */
+        @media (max-width: 640px) {
+            .glass-effect {
+                border-radius: 0;
+            }
+            
+            .w-full.max-w-4xl {
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            
+            #chat-input {
+                font-size: 16px; /* iOS 줌 방지 */
+            }
+            
+            /* 터치 피드백 개선 */
+            button {
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            /* 가상 키보드 대응 */
+            .content-pane {
+                height: calc(100vh - env(safe-area-inset-bottom));
+            }
+        }
+        
+        /* 스와이프 제스처를 위한 스타일 */
+        .swipe-transition {
+            transition: transform 0.3s ease-out;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
@@ -99,6 +176,13 @@
                 <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300">채팅</button>
                 <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300">이미지 생성</button>
                 <div class="w-px h-5 bg-slate-300/70 mx-1"></div>
+                <button id="export-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="채팅 내보내기">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </button>
+                <button id="theme-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="테마 변경">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </button>
                 <button id="settings-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
@@ -124,6 +208,7 @@
                             <img id="preview-image" src="" class="h-8 w-8 rounded-full object-cover hidden">
                             <svg id="preview-pdf-icon" class="w-6 h-6 text-red-500 flex-shrink-0 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM9 17v-2h6v2H9zm6-5H9v-2h6v2z"/></svg>
                             <span id="preview-filename" class="text-sm text-slate-700 font-medium truncate max-w-[200px] sm:max-w-xs"></span>
+                            <span id="preview-filesize" class="text-xs text-slate-500 ml-1"></span>
                         </div>
                         <button id="remove-preview-button" class="ml-2 bg-slate-500/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-slate-600/70 flex-shrink-0">&times;</button>
                     </div>
@@ -163,7 +248,7 @@
                                     이미지가 여기에 표시됩니다.
                                 </div>
                                <div id="image-loader" class="hidden spinner"></div>
-                               <img id="generated-image" src="" alt="Generated Image" class="hidden absolute inset-0 w-full h-full object-contain"/>
+                               <img id="generated-image" src="" alt="Generated Image" class="hidden absolute inset-0 w-full h-full object-contain" loading="lazy"/>
                             </div>
                         </div>
                     </div>
@@ -178,6 +263,8 @@
 
         // --- DOM Elements ---
         const settingsButton = document.getElementById('settings-button');
+        const exportButton = document.getElementById('export-button');
+        const themeToggle = document.getElementById('theme-toggle');
         const settingsModal = document.getElementById('settings-modal');
         const personaInput = document.getElementById('persona-input');
         const savePersonaButton = document.getElementById('save-persona-button');
@@ -195,6 +282,7 @@
         const previewImage = document.getElementById('preview-image');
         const previewPdfIcon = document.getElementById('preview-pdf-icon');
         const previewFilename = document.getElementById('preview-filename');
+        const previewFilesize = document.getElementById('preview-filesize');
         const removePreviewButton = document.getElementById('remove-preview-button');
         const imagePrompt = document.getElementById('image-prompt');
         const generateImageButton = document.getElementById('generate-image-button');
@@ -213,8 +301,180 @@
 
         // 고유한 세션 ID 생성 (페이지 로드 시 한 번만)
         const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        
+        // 다크 모드 초기화
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
     
         // --- Functions ---
+        
+        // 터치 제스처 지원
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        function handleSwipe() {
+            const swipeThreshold = 100;
+            const diff = touchEndX - touchStartX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    // 오른쪽 스와이프 - 채팅으로 전환
+                    if (document.querySelector('.content-pane.is-active') === imageUi) {
+                        switchTabs('chat');
+                    }
+                } else {
+                    // 왼쪽 스와이프 - 이미지 생성으로 전환
+                    if (document.querySelector('.content-pane.is-active') === chatUi) {
+                        switchTabs('image');
+                    }
+                }
+            }
+        }
+        
+        // 모바일 키보드 대응
+        function handleMobileKeyboard() {
+            if (window.innerWidth <= 640) {
+                const viewport = document.querySelector('meta[name="viewport"]');
+                
+                chatInput.addEventListener('focus', () => {
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                    setTimeout(() => {
+                        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+                
+                chatInput.addEventListener('blur', () => {
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+                });
+            }
+        }
+        
+        // 가상 키보드 높이 감지
+        function detectVirtualKeyboard() {
+            const initialHeight = window.innerHeight;
+            
+            window.addEventListener('resize', () => {
+                const currentHeight = window.innerHeight;
+                const keyboardHeight = initialHeight - currentHeight;
+                
+                if (keyboardHeight > 100) {
+                    // 키보드가 열림
+                    document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+                } else {
+                    // 키보드가 닫힘
+                    document.documentElement.style.setProperty('--keyboard-height', '0px');
+                }
+            });
+        }
+        
+        // 테마 변경 함수
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+        
+        // 테마 아이콘 업데이트
+        function updateThemeIcon(theme) {
+            const sunIcon = themeToggle.querySelector('.sun-icon');
+            const moonIcon = themeToggle.querySelector('.moon-icon');
+            
+            if (theme === 'dark') {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+        }
+        
+        // 채팅 내보내기 함수
+        function exportChat() {
+            if (chatHistory.length === 0) {
+                alert('내보낼 채팅 내용이 없습니다.');
+                return;
+            }
+            
+            let exportContent = `FERA 채팅 기록\n생성일: ${new Date().toLocaleString('ko-KR')}\n\n`;
+            exportContent += '='.repeat(50) + '\n\n';
+            
+            chatHistory.forEach((msg, index) => {
+                const sender = msg.role === 'user' ? '사용자' : 'AI';
+                const content = msg.parts.map(part => part.text || '[이미지/파일]').join('\n');
+                exportContent += `[${sender}]\n${content}\n\n`;
+            });
+            
+            // 텍스트 파일로 다운로드
+            const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fera-chat-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // 이미지 압축 함수
+        async function compressImage(file, maxWidth = 1920, maxHeight = 1080, quality = 0.85) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // 비율 유지하며 크기 조정
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve({
+                                blob,
+                                dataUrl: canvas.toDataURL(file.type, quality),
+                                width,
+                                height
+                            });
+                        }, file.type, quality);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 파일 크기 포맷 함수
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
     
         function switchTabs(targetTab) {
             const panes = { chat: chatUi, image: imageUi };
@@ -394,7 +654,25 @@
                 } else { throw new Error('응답을 받았지만 내용이 비어있습니다.'); }
     
             } catch (error) {
-                addChatMessage('bot', [{ text: `오류가 발생했습니다: ${error.message}` }]);
+                let errorMessage = '오류가 발생했습니다';
+                let fallbackMessage = '';
+                
+                if (error.message.includes('429') || error.message.includes('한도')) {
+                    errorMessage = '요청 한도를 초과했습니다.';
+                    fallbackMessage = '잠시 후 다시 시도해주세요. API 요청 제한에 도달했습니다.';
+                } else if (error.message.includes('500') || error.message.includes('내부')) {
+                    errorMessage = '서버에 일시적인 문제가 발생했습니다.';
+                    fallbackMessage = '서비스가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.';
+                } else if (!navigator.onLine) {
+                    errorMessage = '인터넷 연결을 확인해주세요.';
+                    fallbackMessage = '네트워크에 연결되어 있지 않습니다.';
+                } else {
+                    fallbackMessage = error.message;
+                }
+                
+                addChatMessage('bot', [{ 
+                    text: `${errorMessage}\n\n${fallbackMessage}\n\n문제가 지속되면 페이지를 새로고침해주세요.` 
+                }]);
             } finally {
                 toggleChatLoading(false);
                 sendButton.disabled = false;
@@ -440,7 +718,18 @@
     
             } catch (error) {
                 console.error('Image Generation Error:', error);
-                imagePlaceholder.innerHTML = `<div class="text-red-500 text-sm p-4 text-center">이미지 생성 중 오류:<br>${error.message}</div>`;
+                let errorHTML = '<div class="text-red-500 text-sm p-4 text-center">';
+                
+                if (error.message.includes('429') || error.message.includes('한도')) {
+                    errorHTML += '요청 한도를 초과했습니다.<br>잠시 후 다시 시도해주세요.';
+                } else if (!navigator.onLine) {
+                    errorHTML += '인터넷 연결을 확인해주세요.';
+                } else {
+                    errorHTML += `이미지 생성 중 오류가 발생했습니다.<br>${error.message}`;
+                }
+                
+                errorHTML += '<br><button onclick="location.reload()" class="mt-2 text-blue-500 underline">페이지 새로고침</button></div>';
+                imagePlaceholder.innerHTML = errorHTML;
                 imagePlaceholder.classList.remove('opacity-0');
             } finally {
                 imageLoader.classList.add('hidden');
@@ -448,26 +737,59 @@
             }
         }
 
-        function handleFileSelect(event) {
+        async function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             removePreview();
 
             if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadedFile = { type: 'image', data: e.target.result, mimeType: file.type, name: file.name };
-                    previewImage.src = e.target.result;
-                    previewFilename.textContent = file.name;
+                try {
+                    // 파일 크기가 1MB를 초과하면 압축
+                    if (file.size > 1024 * 1024) {
+                        const compressed = await compressImage(file);
+                        uploadedFile = { 
+                            type: 'image', 
+                            data: compressed.dataUrl, 
+                            mimeType: file.type, 
+                            name: file.name,
+                            originalSize: file.size,
+                            compressedSize: compressed.blob.size
+                        };
+                        previewImage.src = compressed.dataUrl;
+                        previewFilename.textContent = file.name;
+                        previewFilesize.textContent = `(${formatFileSize(compressed.blob.size)})`;
+                    } else {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            uploadedFile = { 
+                                type: 'image', 
+                                data: e.target.result, 
+                                mimeType: file.type, 
+                                name: file.name,
+                                originalSize: file.size
+                            };
+                            previewImage.src = e.target.result;
+                            previewFilename.textContent = file.name;
+                            previewFilesize.textContent = `(${formatFileSize(file.size)})`;
+                            previewImage.classList.remove('hidden');
+                            previewPdfIcon.classList.add('hidden');
+                            filePreviewContainer.classList.add('visible');
+                        };
+                        reader.readAsDataURL(file);
+                        return;
+                    }
                     previewImage.classList.remove('hidden');
                     previewPdfIcon.classList.add('hidden');
                     filePreviewContainer.classList.add('visible');
-                };
-                reader.readAsDataURL(file);
+                } catch (error) {
+                    console.error('이미지 압축 실패:', error);
+                    addChatMessage('bot', [{ text: '이미지 처리 중 오류가 발생했습니다.' }]);
+                }
             } else if (file.type === 'application/pdf') {
                 uploadedFile = { type: 'pdf', data: file, name: file.name };
                 previewFilename.textContent = file.name;
+                previewFilesize.textContent = `(${formatFileSize(file.size)})`;
                 previewImage.classList.add('hidden');
                 previewPdfIcon.classList.remove('hidden');
                 filePreviewContainer.classList.add('visible');
@@ -516,6 +838,8 @@
     
         // --- Event Listeners ---
         settingsButton.addEventListener('click', openSettings);
+        exportButton.addEventListener('click', exportChat);
+        themeToggle.addEventListener('click', toggleTheme);
         closePersonaButton.addEventListener('click', closeSettings);
         savePersonaButton.addEventListener('click', saveSettings);
         chatTabButton.addEventListener('click', () => switchTabs('chat'));
@@ -535,6 +859,31 @@
             if (event.key === 'Enter') {
                 handleGenerateImage();
             }
+        });
+        
+        // 모바일 최적화 초기화
+        if ('ontouchstart' in window) {
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            document.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            // 모바일 키보드 대응
+            handleMobileKeyboard();
+            detectVirtualKeyboard();
+        }
+        
+        // 화면 회전 감지
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (chatMessages) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }, 100);
         });
     
     </script>
