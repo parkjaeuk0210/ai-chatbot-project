@@ -88,6 +88,38 @@
             background: rgba(51, 65, 85, 0.8) !important;
             border-color: #3b82f6;
         }
+        
+        /* 다크모드에서 채팅 입력창 스타일 */
+        [data-theme="dark"] #chat-input {
+            background: rgba(51, 65, 85, 0.7) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+        
+        [data-theme="dark"] #chat-input::placeholder {
+            color: var(--text-muted) !important;
+        }
+        
+        [data-theme="dark"] #chat-input:focus {
+            background: rgba(51, 65, 85, 0.9) !important;
+            border-color: #3b82f6;
+        }
+        
+        /* 다크모드에서 이미지 프롬프트 입력창 스타일 */
+        [data-theme="dark"] #image-prompt {
+            background: rgba(51, 65, 85, 0.7) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+        
+        [data-theme="dark"] #image-prompt::placeholder {
+            color: var(--text-muted) !important;
+        }
+        
+        [data-theme="dark"] #image-prompt:focus {
+            background: rgba(51, 65, 85, 0.9) !important;
+            border-color: #6366f1;
+        }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
