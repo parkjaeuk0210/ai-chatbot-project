@@ -63,31 +63,10 @@ export default async function handler(request, response) {
 
     let urlContent = '';
     if (url) {
-      try {
-        const webFetchResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Summarize the content of this URL for me: ${url}`
-              }]
-            }]
-          })
-        });
-        const webFetchData = await webFetchResponse.json();
-        if (webFetchData.candidates && webFetchData.candidates.length > 0) {
-          urlContent = webFetchData.candidates[0].content.parts[0].text;
-          if (process.env.NODE_ENV !== 'production') {
-            console.log("URL 컨텐츠 요약:", urlContent);
-          }
-        } else if (process.env.NODE_ENV !== 'production') {
-          console.warn("URL 컨텐츠를 가져오지 못했습니다.");
-        }
-      } catch (webFetchError) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.error("web_fetch 오류:", webFetchError);
-        }
+      // URL 내용은 서버에서 직접 가져오는 대신 사용자가 제공한 컨텍스트로만 사용
+      urlContent = `사용자가 제공한 URL: ${url}`;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("URL 컨텍스트:", urlContent);
       }
     }
 
@@ -216,7 +195,7 @@ export default async function handler(request, response) {
     if (process.env.NODE_ENV !== 'production') {
       console.log("성공적으로 응답을 프론트엔드로 전달합니다.");
     }
-    
+     
     // 캐시에 저장 (이미지 생성 제외)
     if (cacheKey && shouldCache(model)) {
       await setCache(cacheKey, data);

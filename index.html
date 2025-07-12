@@ -172,18 +172,18 @@
         <!-- Header -->
         <header class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center">
             <a href="./" style="text-decoration: none; color: inherit;"><h1 class="text-xl font-bold text-slate-800">FERA</h1></a>
-            <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1">
-                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300">채팅</button>
-                <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300">이미지 생성</button>
+            <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1" role="tablist" aria-label="탭 선택">
+                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0">채팅</button>
+                <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300" role="tab" aria-selected="false" aria-controls="image-ui" tabindex="0">이미지 생성</button>
                 <div class="w-px h-5 bg-slate-300/70 mx-1"></div>
-                <button id="export-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="채팅 내보내기">
+                <button id="export-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="채팅 내보내기" aria-label="채팅 내보내기" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 </button>
-                <button id="theme-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="테마 변경">
+                <button id="theme-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="테마 변경" aria-label="테마 변경" tabindex="0">
                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 </button>
-                <button id="settings-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50">
+                <button id="settings-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" aria-label="설정" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
             </div>
@@ -192,7 +192,7 @@
         <!-- Main Content Wrapper -->
         <main class="flex-1 relative">
             <!-- Chatbot UI -->
-            <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-2 sm:p-4 md:p-6">
+            <div id="chat-ui" class="content-pane is-active flex flex-col h-full p-2 sm:p-4 md:p-6" role="tabpanel" aria-labelledby="chat-tab-button" tabindex="0">
                 <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5 pr-2">
                     <div id="initial-message" class="flex items-start gap-3 max-w-lg message-bubble">
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
@@ -222,15 +222,15 @@
                     <button id="file-button" class="bg-white/70 text-slate-500 w-10 h-10 sm:w-11 sm:h-11 rounded-full hover:bg-white transition-colors flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
-                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5">
-                    <button id="send-button" class="bg-blue-500 text-white w-10 h-10 sm:w-11 sm:h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5" placeholder="메시지를 입력하세요" aria-label="채팅 메시지 입력">
+                    <button id="send-button" class="bg-blue-500 text-white w-10 h-10 sm:w-11 sm:h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center flex-shrink-0 shadow-lg" aria-label="메시지 전송" tabindex="0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </button>
                 </div>
             </div>
 
             <!-- Image Generation UI -->
-            <div id="image-ui" class="content-pane hidden flex-col items-center justify-center h-full p-4 md:p-6">
+            <div id="image-ui" class="content-pane hidden flex-col items-center justify-center h-full p-4 md:p-6" role="tabpanel" aria-labelledby="image-tab-button" tabindex="0">
                  <div class="w-full max-w-2xl text-center">
                     <h2 class="text-3xl font-bold text-slate-800 mb-2"> 이미지 생성</h2>
                     <p class="text-slate-500 mb-8">생성하고 싶은 이미지에 대한 설명을 입력해주세요.</p>
@@ -485,9 +485,13 @@
                 if (tabName === targetTab) {
                     buttons[tabName].classList.add('bg-white', 'text-blue-600', 'shadow-sm');
                     buttons[tabName].classList.remove('text-slate-600');
+                    buttons[tabName].setAttribute('aria-selected', 'true');
+                    buttons[tabName].setAttribute('tabindex', '0');
                 } else {
                     buttons[tabName].classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
                     buttons[tabName].classList.add('text-slate-600');
+                    buttons[tabName].setAttribute('aria-selected', 'false');
+                    buttons[tabName].setAttribute('tabindex', '-1');
                 }
             }
             
@@ -657,18 +661,43 @@
             } catch (error) {
                 let errorMessage = '오류가 발생했습니다';
                 let fallbackMessage = '';
+                let errorType = 'unknown';
                 
-                if (error.message.includes('429') || error.message.includes('한도')) {
-                    errorMessage = '요청 한도를 초과했습니다.';
-                    fallbackMessage = '잠시 후 다시 시도해주세요. API 요청 제한에 도달했습니다.';
-                } else if (error.message.includes('500') || error.message.includes('내부')) {
-                    errorMessage = '서버에 일시적인 문제가 발생했습니다.';
-                    fallbackMessage = '서비스가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.';
-                } else if (!navigator.onLine) {
-                    errorMessage = '인터넷 연결을 확인해주세요.';
-                    fallbackMessage = '네트워크에 연결되어 있지 않습니다.';
+                // 네트워크 연결 확인
+                if (!navigator.onLine) {
+                    errorType = 'network';
+                    errorMessage = '🌐 네트워크 연결 오류';
+                    fallbackMessage = '인터넷 연결을 확인해주세요.';
+                } 
+                // API 응답 에러
+                else if (error.message.includes('429')) {
+                    errorType = 'rateLimit';
+                    errorMessage = '⏱️ 요청 한도 초과';
+                    fallbackMessage = '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.';
+                } else if (error.message.includes('401') || error.message.includes('403')) {
+                    errorType = 'auth';
+                    errorMessage = '🔐 인증 오류';
+                    fallbackMessage = 'API 인증에 실패했습니다. 관리자에게 문의하세요.';
+                } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+                    errorType = 'server';
+                    errorMessage = '🖥️ 서버 오류';
+                    fallbackMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                } else if (error.message.includes('timeout')) {
+                    errorType = 'timeout';
+                    errorMessage = '⏳ 요청 시간 초과';
+                    fallbackMessage = '응답 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.';
+                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorType = 'network';
+                    errorMessage = '🌐 네트워크 요청 실패';
+                    fallbackMessage = '서버에 연결할 수 없습니다. 네트워크 설정을 확인해주세요.';
                 } else {
-                    fallbackMessage = error.message;
+                    errorType = 'general';
+                    fallbackMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+                }
+                
+                // 에러 로깅 (개발 환경에서만)
+                if (process.env.NODE_ENV !== 'production') {
+                    console.error(`Error Type: ${errorType}`, error);
                 }
                 
                 addChatMessage('bot', [{ 
@@ -743,6 +772,14 @@
             if (!file) return;
 
             removePreview();
+
+            // 파일 크기 제한 (10MB)
+            const maxFileSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxFileSize) {
+                alert(`파일 크기는 10MB를 초과할 수 없습니다. 현재 파일 크기: ${formatFileSize(file.size)}`);
+                fileInput.value = '';
+                return;
+            }
 
             if (file.type.startsWith('image/')) {
                 try {
@@ -845,6 +882,47 @@
         savePersonaButton.addEventListener('click', saveSettings);
         chatTabButton.addEventListener('click', () => switchTabs('chat'));
         imageTabButton.addEventListener('click', () => switchTabs('image'));
+        
+        // 키보드 네비게이션 지원
+        chatTabButton.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                imageTabButton.focus();
+                switchTabs('image');
+            }
+        });
+        
+        imageTabButton.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                chatTabButton.focus();
+                switchTabs('chat');
+            }
+        });
+        
+        // 전역 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            // Escape 키로 모달 닫기
+            if (e.key === 'Escape') {
+                if (!settingsModal.classList.contains('hidden')) {
+                    closeSettings();
+                }
+            }
+            
+            // Ctrl/Cmd + E로 내보내기
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                exportChat();
+            }
+            
+            // Ctrl/Cmd + / 로 채팅 입력에 포커스
+            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                e.preventDefault();
+                if (chatUi.classList.contains('is-active')) {
+                    chatInput.focus();
+                } else if (imageUi.classList.contains('is-active')) {
+                    imagePrompt.focus();
+                }
+            }
+        });
         fileButton.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileSelect);
         removePreviewButton.addEventListener('click', removePreview);
