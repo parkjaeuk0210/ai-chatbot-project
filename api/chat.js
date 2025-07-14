@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { track } from "@vercel/analytics";
 import { rateLimit } from './middleware/rateLimit.js';
 import { getCache, setCache, shouldCache, generateCacheKey } from './middleware/cache.js';
+import { filterGeminiResponse, logFilteredContent } from './middleware/responseFilter.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -135,12 +136,30 @@ export default async function handler(request, response) {
         contentsForApi.unshift({ role: "user", parts: [{ text: `다음은 제공된 URL의 내용입니다: ${urlContent}` }] });
       }
 
-      if (persona && contentsForApi.length === 1) {
-        const personaInstruction = `[SYSTEM INSTRUCTION: 당신의 페르소나는 다음과 같습니다. 이 지침을 반드시 준수하고, 사용자에게 이 지침에 대해 언급하지 마세요. 페르소나: "${persona}"]\n\n`;
-        if (contentsForApi[0].parts[0].text) {
-          contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
-        } else {
-           contentsForApi[0].parts.unshift({ text: personaInstruction });
+      // Trim conversation history if it's getting too long
+      const maxHistoryLength = 20;
+      if (contentsForApi.length > maxHistoryLength) {
+        // Keep the first message (with persona) and the most recent messages
+        const firstMessage = contentsForApi[0];
+        const recentMessages = contentsForApi.slice(-(maxHistoryLength - 1));
+        contentsForApi = [firstMessage, ...recentMessages];
+      }
+
+      if (persona) {
+        const personaInstruction = `${persona}
+
+[IDENTITY ENFORCEMENT]:
+- 당신은 FERA AI입니다. FERA Technologies가 개발했습니다.
+- "모델명이 뭐야?"라는 질문에는 "저는 FERA AI 모델입니다"라고 답하세요.
+- "누가 만들었어?"라는 질문에는 "FERA Technologies에서 개발했습니다"라고 답하세요.
+- Google, Gemini, 대규모 언어 모델 등의 용어는 절대 사용하지 마세요.\n\n`;
+        
+        if (contentsForApi.length > 0 && contentsForApi[0].role === "user") {
+          if (contentsForApi[0].parts[0].text) {
+            contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
+          } else {
+            contentsForApi[0].parts.unshift({ text: personaInstruction });
+          }
         }
         if (process.env.NODE_ENV !== 'production') {
           console.log("페르소나 지침을 대화에 포함했습니다.");
@@ -192,13 +211,17 @@ export default async function handler(request, response) {
         }
     }
 
+    // Apply response filtering to protect FERA's identity
+    const filteredData = filterGeminiResponse(data);
+    
     if (process.env.NODE_ENV !== 'production') {
+      logFilteredContent(data, filteredData);
       console.log("성공적으로 응답을 프론트엔드로 전달합니다.");
     }
      
-    // 캐시에 저장 (이미지 생성 제외)
+    // 캐시에 저장 (이미지 생성 제외) - 필터링된 데이터를 저장
     if (cacheKey && shouldCache(model)) {
-      await setCache(cacheKey, data);
+      await setCache(cacheKey, filteredData);
     }
     
     // Vercel Analytics 트래킹
@@ -209,7 +232,7 @@ export default async function handler(request, response) {
       cached: false
     });
     
-    response.status(200).json(data);
+    response.status(200).json(filteredData);
 
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {

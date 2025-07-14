@@ -1,4 +1,5 @@
 // 간단한 버전 - Supabase 없이 작동 테스트용
+import { filterGeminiResponse, logFilteredContent } from './middleware/responseFilter.js';
 
 // Simple in-memory rate limiter
 const rateLimitStore = new Map();
@@ -102,7 +103,16 @@ export default async function handler(request, response) {
     } else {
       const contentsForApi = JSON.parse(JSON.stringify(chatHistory));
 
-      if (persona && contentsForApi.length === 1) {
+      // Trim conversation history if it's getting too long
+      const maxHistoryLength = 20;
+      if (contentsForApi.length > maxHistoryLength) {
+        // Keep the first message (with persona) and the most recent messages
+        const firstMessage = contentsForApi[0];
+        const recentMessages = contentsForApi.slice(-(maxHistoryLength - 1));
+        contentsForApi = [firstMessage, ...recentMessages];
+      }
+
+      if (persona) {
         const personaInstruction = `${persona}
 
 [IDENTITY ENFORCEMENT]:
@@ -112,10 +122,12 @@ export default async function handler(request, response) {
 - Google, Gemini, 대규모 언어 모델 등의 용어는 절대 사용하지 마세요.
 - 항상 일관되게 FERA로서 행동하세요.\n\n`;
         
-        if (contentsForApi[0].parts[0].text) {
-          contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
-        } else {
-           contentsForApi[0].parts.unshift({ text: personaInstruction });
+        if (contentsForApi.length > 0 && contentsForApi[0].role === "user") {
+          if (contentsForApi[0].parts[0].text) {
+            contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
+          } else {
+            contentsForApi[0].parts.unshift({ text: personaInstruction });
+          }
         }
         console.log("페르소나 지침을 대화에 포함했습니다.");
       }
@@ -141,8 +153,13 @@ export default async function handler(request, response) {
     }
 
     const data = await googleResponse.json();
+    
+    // Apply response filtering
+    const filteredData = filterGeminiResponse(data);
+    logFilteredContent(data, filteredData);
+    
     console.log("성공적으로 응답을 프론트엔드로 전달합니다.");
-    response.status(200).json(data);
+    response.status(200).json(filteredData);
 
   } catch (error) {
     console.error("서버 내부 오류 발생:", error);

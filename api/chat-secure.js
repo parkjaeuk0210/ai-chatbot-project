@@ -1,4 +1,5 @@
 // Secure version of the chat API with input validation and rate limiting
+import { filterGeminiResponse, containsForbiddenTerms, logFilteredContent } from './middleware/responseFilter.js';
 
 // Simple in-memory rate limiter (for production, use Redis)
 const rateLimitStore = new Map();
@@ -218,8 +219,25 @@ export default async function handler(request, response) {
         } else {
             const contentsForApi = JSON.parse(JSON.stringify(chatHistory));
 
+            // Trim conversation history if it's getting too long
+            const maxHistoryLength = 20;
+            if (contentsForApi.length > maxHistoryLength) {
+                // Keep the first message (with persona) and the most recent messages
+                const firstMessage = contentsForApi[0];
+                const recentMessages = contentsForApi.slice(-(maxHistoryLength - 1));
+                contentsForApi = [firstMessage, ...recentMessages];
+                
+                // Add context note about trimmed history
+                if (contentsForApi.length > 1) {
+                    contentsForApi.splice(1, 0, {
+                        role: "assistant",
+                        parts: [{ text: "[이전 대화 내용이 일부 요약되었습니다]" }]
+                    });
+                }
+            }
+
             // Add persona instruction if provided with enhanced identity enforcement
-            if (persona && contentsForApi.length === 1) {
+            if (persona) {
                 const personaInstruction = `${persona}
 
 [IDENTITY ENFORCEMENT]:
@@ -229,10 +247,19 @@ export default async function handler(request, response) {
 - Google, Gemini, 대규모 언어 모델 등의 용어는 절대 사용하지 마세요.
 - 항상 일관되게 FERA로서 행동하세요.\n\n`;
                 
-                if (contentsForApi[0].parts[0].text) {
-                    contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
+                // Always inject at the beginning of the conversation
+                if (contentsForApi.length > 0 && contentsForApi[0].role === "user") {
+                    if (contentsForApi[0].parts[0].text) {
+                        contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
+                    } else {
+                        contentsForApi[0].parts.unshift({ text: personaInstruction });
+                    }
                 } else {
-                    contentsForApi[0].parts.unshift({ text: personaInstruction });
+                    // If first message is not user, prepend a system message
+                    contentsForApi.unshift({
+                        role: "user",
+                        parts: [{ text: personaInstruction + "안녕하세요" }]
+                    });
                 }
             }
 
@@ -281,13 +308,21 @@ export default async function handler(request, response) {
 
         const data = await googleResponse.json();
         
+        // Apply response filtering to protect FERA's identity
+        const filteredData = filterGeminiResponse(data);
+        
+        // Log filtered content in development
+        if (process.env.NODE_ENV !== 'production') {
+            logFilteredContent(data, filteredData);
+        }
+        
         // Log response time
         const responseTime = Date.now() - startTime;
         console.log(`Request completed in ${responseTime}ms`);
         
         // Add response headers
         response.setHeader('X-Response-Time', `${responseTime}ms`);
-        response.status(200).json(data);
+        response.status(200).json(filteredData);
 
     } catch (error) {
         console.error("Server error:", error);

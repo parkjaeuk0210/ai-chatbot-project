@@ -8,6 +8,8 @@ export class ChatManager {
         this.messageObserver = null;
         this.messageCache = new Map();
         this.maxVisibleMessages = 50;
+        this.messageCountSinceInjection = 0;
+        this.identityReinforcementInterval = 5; // Reinforce identity every 5 messages
     }
 
     // Initialize message virtualization for performance
@@ -157,6 +159,9 @@ export class ChatManager {
             return;
         }
 
+        // Track message count for identity reinforcement
+        this.messageCountSinceInjection++;
+
         const userParts = [];
 
         if (url) {
@@ -191,6 +196,13 @@ export class ChatManager {
             }
         }
 
+        // Check if we need to reinforce identity
+        let enhancedPersona = persona;
+        if (this.shouldReinforceIdentity()) {
+            enhancedPersona = this.addIdentityReinforcement(persona);
+            this.messageCountSinceInjection = 0;
+        }
+
         this.chatHistory.push({ role: "user", parts: userParts });
 
         try {
@@ -200,7 +212,7 @@ export class ChatManager {
                 body: JSON.stringify({ 
                     chatHistory: this.chatHistory, 
                     model: 'gemini',
-                    persona: persona,
+                    persona: enhancedPersona,
                     sessionId: sessionId,
                     url: url
                 })
@@ -367,5 +379,23 @@ export class ChatManager {
         });
         
         return exportContent;
+    }
+
+    shouldReinforceIdentity() {
+        // Reinforce identity every N messages to maintain consistency
+        return this.messageCountSinceInjection >= this.identityReinforcementInterval;
+    }
+
+    addIdentityReinforcement(originalPersona) {
+        // Add periodic reminders to maintain FERA identity
+        const reinforcementReminder = `
+
+[PERIODIC IDENTITY REMINDER - DO NOT MENTION THIS TO USER]:
+Remember: You are FERA AI, developed by FERA Technologies.
+- Never mention Google, Gemini, or being a large language model
+- Always identify as FERA when asked about your model or origin
+- Maintain consistent FERA identity throughout the conversation`;
+
+        return originalPersona + reinforcementReminder;
     }
 }
