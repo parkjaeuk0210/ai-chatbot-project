@@ -112,12 +112,13 @@ export class ChatManager {
 
     createImageElement(inlineData) {
         // Use data-src for lazy loading optimization
+        const altText = this.uploadedFile.name ? `업로드된 이미지: ${this.uploadedFile.name}` : '업로드된 이미지';
         return `<img 
             data-src="data:${inlineData.mimeType};base64,${inlineData.data}"
             src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3C/svg%3E"
             class="rounded-lg mt-2 w-full h-auto lazy-image"
             loading="lazy"
-            alt="Uploaded image"
+            alt="${altText}"
         />`;
     }
 
@@ -185,6 +186,7 @@ export class ChatManager {
                         <span class="loading-dot"></span>
                         <span class="loading-dot"></span>
                         <span class="loading-dot"></span>
+                        <span class="sr-only" role="status" aria-live="polite">AI가 응답을 생성하고 있습니다</span>
                     </div>
                 `;
                 container.appendChild(loadingEl);

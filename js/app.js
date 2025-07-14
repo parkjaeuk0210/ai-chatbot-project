@@ -716,6 +716,57 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             );
         }, 1000); // 1 second delay before retry
     }
+    
+    announceToScreenReader(message) {
+        const announcement = document.createElement('div');
+        announcement.className = 'sr-only';
+        announcement.setAttribute('role', 'status');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.textContent = message;
+        document.body.appendChild(announcement);
+        
+        setTimeout(() => {
+            announcement.remove();
+        }, 1000);
+    }
+    
+    initializeMessageNavigation() {
+        // Enable keyboard navigation through messages
+        this.chatMessages.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const messages = Array.from(this.chatMessages.querySelectorAll('.message-bubble'));
+                const currentIndex = messages.indexOf(document.activeElement);
+                
+                let nextIndex;
+                if (e.key === 'ArrowUp') {
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : messages.length - 1;
+                } else {
+                    nextIndex = currentIndex < messages.length - 1 ? currentIndex + 1 : 0;
+                }
+                
+                if (messages[nextIndex]) {
+                    messages[nextIndex].focus();
+                    // Ensure focused message is visible
+                    messages[nextIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }
+        });
+        
+        // Make messages focusable
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.classList && node.classList.contains('message-bubble')) {
+                        node.setAttribute('tabindex', '0');
+                        node.setAttribute('role', 'article');
+                    }
+                });
+            });
+        });
+        
+        observer.observe(this.chatMessages, { childList: true });
+    }
 }
 
 // Initialize PDF.js

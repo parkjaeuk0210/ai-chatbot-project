@@ -5,9 +5,10 @@
     --glass-bg: rgba(255, 255, 255, 0.5);
     --glass-border: rgba(255, 255, 255, 0.2);
     --text-primary: #1e293b;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
+    --text-secondary: #334155; /* Improved contrast 7:1 */
+    --text-muted: #475569; /* Improved contrast 4.5:1 */
     --shadow-color: rgba(59, 130, 246, 0.1);
+    --text-size-multiplier: 1;
 }
 
 [data-theme="dark"] {
@@ -16,8 +17,8 @@
     --glass-bg: rgba(30, 41, 59, 0.5);
     --glass-border: rgba(71, 85, 105, 0.2);
     --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
+    --text-secondary: #e2e8f0; /* Improved contrast 13:1 */
+    --text-muted: #cbd5e1; /* Improved contrast 9:1 */
     --shadow-color: rgba(0, 0, 0, 0.3);
 }
 
@@ -303,4 +304,130 @@ textarea:focus-visible,
 
 [data-theme="dark"] .retry-button:hover {
     background-color: #3b82f6;
+}
+
+/* Text size adjustments */
+.text-size-adjust {
+    font-size: calc(1rem * var(--text-size-multiplier));
+}
+
+.text-size-small {
+    --text-size-multiplier: 0.875;
+}
+
+.text-size-normal {
+    --text-size-multiplier: 1;
+}
+
+.text-size-large {
+    --text-size-multiplier: 1.125;
+}
+
+.text-size-xlarge {
+    --text-size-multiplier: 1.25;
+}
+
+/* Apply text size to common elements */
+.message-bubble p,
+.chat-input,
+.tab-button,
+button {
+    font-size: calc(1rem * var(--text-size-multiplier));
+}
+
+/* Animation reduction for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .loading-dot {
+        animation: none !important;
+        opacity: 0.5;
+    }
+    
+    .glass-effect {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --text-primary: #000000;
+        --text-secondary: #000000;
+        --text-muted: #333333;
+        --glass-bg: rgba(255, 255, 255, 0.9);
+        --glass-border: rgba(0, 0, 0, 0.5);
+    }
+    
+    [data-theme="dark"] {
+        --text-primary: #ffffff;
+        --text-secondary: #ffffff;
+        --text-muted: #cccccc;
+        --glass-bg: rgba(0, 0, 0, 0.9);
+        --glass-border: rgba(255, 255, 255, 0.5);
+    }
+    
+    button, .tab-button {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Focus improvements for keyboard navigation */
+:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.message-bubble:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+/* Screen reader only content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* RTL language support preparation */
+[dir="rtl"] {
+    direction: rtl;
+}
+
+[dir="rtl"] .flex {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .text-left {
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+[dir="rtl"] .rounded-tr-none {
+    border-top-right-radius: 0.5rem;
+    border-top-left-radius: 0;
+}
+
+[dir="rtl"] .rounded-tl-none {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0;
 }
