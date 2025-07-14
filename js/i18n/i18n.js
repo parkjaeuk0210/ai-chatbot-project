@@ -7,20 +7,30 @@ import { zh } from './zh.js';
 class I18n {
     constructor() {
         this.translations = { ko, en, ja, zh };
-        this.currentLang = this.getStoredLanguage() || this.detectBrowserLanguage();
+        this.currentLang = this.detectBrowserLanguage();
         this.supportedLanguages = ['ko', 'en', 'ja', 'zh'];
     }
 
-    // Get stored language from localStorage
-    getStoredLanguage() {
-        return localStorage.getItem('fera-language');
-    }
-
-    // Detect browser language
+    // Detect browser language with more comprehensive matching
     detectBrowserLanguage() {
-        const browserLang = navigator.language || navigator.userLanguage;
-        const langCode = browserLang.split('-')[0];
-        return this.supportedLanguages.includes(langCode) ? langCode : 'ko';
+        // Get all browser languages in order of preference
+        const browserLanguages = navigator.languages || [navigator.language || navigator.userLanguage];
+        
+        // Check each browser language in order
+        for (const lang of browserLanguages) {
+            const langCode = lang.split('-')[0].toLowerCase();
+            if (this.supportedLanguages.includes(langCode)) {
+                return langCode;
+            }
+            
+            // Special handling for Chinese variants
+            if (lang.toLowerCase().includes('zh')) {
+                return 'zh';
+            }
+        }
+        
+        // Default to Korean
+        return 'ko';
     }
 
     // Set current language
@@ -31,7 +41,6 @@ class I18n {
         }
         
         this.currentLang = lang;
-        localStorage.setItem('fera-language', lang);
         document.documentElement.lang = lang;
         this.updatePageTranslations();
         this.dispatchLanguageChangeEvent(lang);
