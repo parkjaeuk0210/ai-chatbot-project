@@ -3,11 +3,12 @@ import { ko } from './ko.js';
 import { en } from './en.js';
 import { ja } from './ja.js';
 import { zh } from './zh.js';
+import { id } from './id.js';
 
 class I18n {
     constructor() {
-        this.translations = { ko, en, ja, zh };
-        this.supportedLanguages = ['ko', 'en', 'ja', 'zh'];
+        this.translations = { ko, en, ja, zh, id };
+        this.supportedLanguages = ['ko', 'en', 'ja', 'zh', 'id'];
         this.currentLang = 'ko'; // Default language
         this.isInitialized = false;
         this.initPromise = null;
@@ -101,6 +102,7 @@ class I18n {
                 'TW': 'zh',  // Taiwan
                 'HK': 'zh',  // Hong Kong
                 'SG': 'en',  // Singapore (English is the main language)
+                'ID': 'id',  // Indonesia
                 'US': 'en',  // United States
                 'GB': 'en',  // United Kingdom
                 'CA': 'en',  // Canada
@@ -133,6 +135,9 @@ class I18n {
             }
             if (timezone.includes('Asia/Tokyo') || timezone.includes('Asia/Osaka')) {
                 return 'ja'; // Japanese timezone
+            }
+            if (timezone.includes('Asia/Jakarta')) {
+                return 'id'; // Indonesian timezone
             }
             if (timezone.includes('Asia/Singapore')) {
                 return 'en'; // Singapore uses English as main language
@@ -282,7 +287,8 @@ class I18n {
             ko: '한국어로 응답해주세요.',
             en: 'Please respond in English.',
             ja: '日本語で返答してください。',
-            zh: '请用中文回复。'
+            zh: '请用中文回复。',
+            id: 'Harap merespons dalam bahasa Indonesia.'
         };
         // Use current language if initialized, otherwise use default
         const lang = this.isInitialized ? this.currentLang : 'ko';
@@ -303,7 +309,8 @@ class I18n {
             ko: 'ko-KR',
             en: 'en-US',
             ja: 'ja-JP',
-            zh: 'zh-CN'
+            zh: 'zh-CN',
+            id: 'id-ID'
         };
         
         return new Intl.DateTimeFormat(localeMap[this.currentLang], options).format(date);

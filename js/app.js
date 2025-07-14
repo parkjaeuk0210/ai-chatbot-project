@@ -36,7 +36,8 @@ class FeraApp {
             en: "ALL YOUR RESPONSES MUST BE IN ENGLISH. NO KOREAN, NO OTHER LANGUAGES.",
             ja: "すべての応答は日本語でなければなりません。韓国語や他の言語は使用しないでください。",
             zh: "您的所有回复必须使用中文。不要使用韩语或其他语言。",
-            ko: "모든 응답은 한국어로 해야 합니다."
+            ko: "모든 응답은 한국어로 해야 합니다.",
+            id: "SEMUA RESPONS ANDA HARUS DALAM BAHASA INDONESIA. TIDAK ADA BAHASA KOREA ATAU BAHASA LAIN."
         };
         
         const emphasis = languageEmphasis[currentLang] || languageEmphasis.ko;
