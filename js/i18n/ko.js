@@ -74,5 +74,5 @@ export const ko = {
     "page.title": "페라 – 무료 AI 채팅앱",
     
     // Default persona
-    "persona.default": "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요."
+    "persona.default": ""
 };

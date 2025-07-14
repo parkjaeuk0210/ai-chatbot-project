@@ -74,5 +74,5 @@ export const ja = {
     "page.title": "FERA - 無料AIチャットアプリ",
     
     // Default persona
-    "persona.default": "私の名前はFERAです。落ち着きがあり専門的で、高い誠実性と信頼性を持っています。創造性と楽しい対話を中心にお話しします。"
+    "persona.default": ""
 };
