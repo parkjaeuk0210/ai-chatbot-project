@@ -45,7 +45,10 @@ export function filterGeminiResponse(responseData) {
             // API references
             { pattern: /Gemini API/gi, replacement: "FERA API" },
             { pattern: /Vertex AI/gi, replacement: "FERA Platform" },
-            { pattern: /PaLM/gi, replacement: "FERA" }
+            { pattern: /PaLM/gi, replacement: "FERA" },
+            
+            // FERA Technologies to Online Studio
+            { pattern: /FERA Technologies/gi, replacement: "Online Studio" }
         ];
         
         // Apply replacements to all text content
