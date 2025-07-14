@@ -395,9 +395,14 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         // Combine persona with system instructions
         const combinedPersona = `${this.systemInstructions}\n\n${this.currentPersona}`;
         
+        // Determine API URL based on environment
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+            ? 'https://fera-ai.vercel.app/api/chat-secure'  // Use production API for local development
+            : '/api/chat-secure';  // Use relative path for production
+        
         // Send message
         await this.chatManager.sendMessage(
-            '/api/chat-secure', // Use secure API endpoint
+            apiUrl,
             message,
             url,
             combinedPersona,
@@ -468,7 +473,12 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.imageLoader.classList.remove('hidden');
 
         try {
-            const response = await fetch('/api/chat-secure', {
+            // Determine API URL based on environment
+            const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+                ? 'https://fera-ai.vercel.app/api/chat-secure'  // Use production API for local development
+                : '/api/chat-secure';  // Use relative path for production
+            
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
