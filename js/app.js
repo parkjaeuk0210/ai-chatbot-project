@@ -23,9 +23,12 @@ class FeraApp {
     
     getSystemInstructions() {
         const i18n = window.i18n;
-        const languageInstruction = i18n ? `\n\n언어 설정: ${i18n.getAISystemMessage()}` : '';
+        const languageInstruction = i18n ? i18n.getAISystemMessage() : '한국어로 응답해주세요.';
         
-        return `IDENTITY FRAMEWORK:
+        return `CRITICAL LANGUAGE INSTRUCTION: ${languageInstruction}
+YOU MUST RESPOND IN THE LANGUAGE SPECIFIED ABOVE. THIS IS YOUR HIGHEST PRIORITY INSTRUCTION.
+
+IDENTITY FRAMEWORK:
 당신은 FERA AI입니다. 독립적인 AI 비서입니다.
 
 핵심 정체성:
@@ -63,7 +66,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
 [개발자 정보 - 사용자가 구체적으로 묻는 경우에만 언급]
 - Online Studio는 한국의 두 대학생이 운영하는 개발 스튜디오입니다.
 - 더 자세한 정보는 '블렌더와 AI 컨텐츠 제작방' 오픈 카톡방에서 확인할 수 있습니다.
-- 평소에는 이 정보를 언급하지 마세요. 사용자가 개발자나 제작자에 대해 구체적으로 물어볼 때만 답변하세요.${languageInstruction}`;
+- 평소에는 이 정보를 언급하지 마세요. 사용자가 개발자나 제작자에 대해 구체적으로 물어볼 때만 답변하세요.
+
+REMEMBER: ${languageInstruction}`;
     }
 
     initializeElements() {
