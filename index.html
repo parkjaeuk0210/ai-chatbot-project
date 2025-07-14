@@ -570,7 +570,8 @@
         // --- State ---
         let chatHistory = [];
         let uploadedFile = { type: null, data: null, name: null };
-        const defaultPersona = "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요.";
+        // Default persona will be set after i18n is loaded
+        let defaultPersona = "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요.";
         let currentPersona = localStorage.getItem('feraPersona') || defaultPersona;
         personaInput.value = currentPersona;
 
@@ -1334,6 +1335,16 @@
         // Make i18n available globally
         window.i18n = i18n;
         
+        // Update default persona with the current language
+        if (window.i18n) {
+            defaultPersona = window.i18n.t('persona.default');
+            // Update persona input if it's still using the default
+            if (!localStorage.getItem('feraPersona')) {
+                personaInput.value = defaultPersona;
+                currentPersona = defaultPersona;
+            }
+        }
+        
         // Listen for language changes to update dynamic content
         window.addEventListener('languageChanged', (e) => {
             // Update initial message
@@ -1356,6 +1367,14 @@
             // Update app system instructions when language changes
             if (window.feraApp) {
                 window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
+            }
+            
+            // Update default persona
+            defaultPersona = i18n.t('persona.default');
+            // Update persona input if it's still using the old default
+            if (!localStorage.getItem('feraPersona')) {
+                personaInput.value = defaultPersona;
+                currentPersona = defaultPersona;
             }
         });
     </script>

@@ -71,5 +71,8 @@ export const zh = {
     "lang.zh": "中文",
     
     // Page
-    "page.title": "FERA - 免费AI聊天应用"
+    "page.title": "FERA - 免费AI聊天应用",
+    
+    // Default persona
+    "persona.default": "我的名字是FERA。我沉着且专业，具有高度的诚信和可靠性。我注重创造力和愉快的互动对话。"
 };

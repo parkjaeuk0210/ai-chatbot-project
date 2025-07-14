@@ -71,5 +71,8 @@ export const en = {
     "lang.zh": "中文",
     
     // Page
-    "page.title": "FERA - Free AI Chat App"
+    "page.title": "FERA - Free AI Chat App",
+    
+    // Default persona
+    "persona.default": "My name is FERA. I'm calm and professional, with high integrity and reliability. I focus on creativity and enjoyable interactions in our conversations."
 };
