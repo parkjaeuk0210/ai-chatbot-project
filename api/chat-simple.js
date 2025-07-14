@@ -104,7 +104,7 @@ export default async function handler(request, response) {
       const contentsForApi = JSON.parse(JSON.stringify(chatHistory));
 
       // Trim conversation history if it's getting too long
-      const maxHistoryLength = 20;
+      const maxHistoryLength = 50; // 25 conversations (user + AI)
       if (contentsForApi.length > maxHistoryLength) {
         // Keep the first message (with persona) and the most recent messages
         const firstMessage = contentsForApi[0];

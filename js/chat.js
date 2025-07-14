@@ -9,7 +9,7 @@ export class ChatManager {
         this.messageCache = new Map();
         this.maxVisibleMessages = 50;
         this.messageCountSinceInjection = 0;
-        this.identityReinforcementInterval = 5; // Reinforce identity every 5 messages
+        this.identityReinforcementInterval = 10; // Reinforce identity every 10 messages
     }
 
     // Initialize message virtualization for performance
