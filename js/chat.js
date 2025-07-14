@@ -433,22 +433,7 @@ export class ChatManager {
         return userParts;
     }
 
-    exportChat() {
-        if (this.chatHistory.length === 0) {
-            return null;
-        }
-        
-        let exportContent = `FERA 채팅 기록\n생성일: ${new Date().toLocaleString('ko-KR')}\n\n`;
-        exportContent += '='.repeat(50) + '\n\n';
-        
-        this.chatHistory.forEach((msg) => {
-            const sender = msg.role === 'user' ? '사용자' : 'AI';
-            const content = msg.parts.map(part => part.text || '[이미지/파일]').join('\n');
-            exportContent += `[${sender}]\n${content}\n\n`;
-        });
-        
-        return exportContent;
-    }
+    // Export chat - removed
 
     shouldReinforceIdentity() {
         // Reinforce identity every N messages to maintain consistency
