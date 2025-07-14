@@ -1333,12 +1333,34 @@
     <script type="module">
         import i18n from './js/i18n/i18n.js';
         
-        // Initialize i18n
-        i18n.init();
-        
-        // Make i18n available globally
+        // Make i18n available globally before initialization
         window.i18n = i18n;
         
+        // Initialize i18n asynchronously
+        (async function() {
+            try {
+                console.log('Starting i18n initialization...');
+                
+                // Initialize i18n with location detection
+                const detectedLanguage = await i18n.init();
+                console.log('i18n initialized with language:', detectedLanguage);
+                
+                // Show a brief notification about detected language (optional)
+                if (detectedLanguage !== 'ko') {
+                    const langNames = {
+                        'en': 'English',
+                        'ja': '日本語',
+                        'zh': '中文'
+                    };
+                    console.log(`Language auto-detected: ${langNames[detectedLanguage] || detectedLanguage}`);
+                }
+                
+            } catch (error) {
+                console.error('Failed to initialize i18n:', error);
+                // Fallback initialization
+                i18n.updatePageTranslations();
+            }
+        })();
         
         // Listen for language changes to update dynamic content
         window.addEventListener('languageChanged', (e) => {
@@ -1364,6 +1386,16 @@
                 window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
             }
             
+        });
+        
+        // Listen for i18n initialization complete
+        window.addEventListener('i18nInitialized', (e) => {
+            console.log('i18n fully initialized, language:', e.detail.language);
+            
+            // Update system instructions if app is already initialized
+            if (window.feraApp && window.feraApp.systemInstructions === null) {
+                window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
+            }
         });
     </script>
 </body>

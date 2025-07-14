@@ -8,12 +8,14 @@ class I18n {
     constructor() {
         this.translations = { ko, en, ja, zh };
         this.supportedLanguages = ['ko', 'en', 'ja', 'zh'];
-        this.currentLang = this.getInitialLanguage();
+        this.currentLang = 'ko'; // Default language
+        this.isInitialized = false;
+        this.initPromise = null;
     }
     
-    // Get initial language from URL parameter, localStorage, or browser
-    getInitialLanguage() {
-        // Check URL parameter first
+    // Get initial language from URL parameter, localStorage, location, or browser
+    async getInitialLanguage() {
+        // Check URL parameter first (highest priority)
         const urlParams = new URLSearchParams(window.location.search);
         const urlLang = urlParams.get('lang');
         if (urlLang && this.supportedLanguages.includes(urlLang)) {
@@ -25,6 +27,32 @@ class I18n {
         const storedLang = localStorage.getItem('fera-language');
         if (storedLang && this.supportedLanguages.includes(storedLang)) {
             return storedLang;
+        }
+        
+        // Check cached location-based language (to avoid repeated API calls)
+        const cachedLocationLang = localStorage.getItem('fera-location-language');
+        const cacheTimestamp = localStorage.getItem('fera-location-timestamp');
+        const cacheMaxAge = 24 * 60 * 60 * 1000; // 24 hours
+        
+        if (cachedLocationLang && cacheTimestamp) {
+            const age = Date.now() - parseInt(cacheTimestamp);
+            if (age < cacheMaxAge && this.supportedLanguages.includes(cachedLocationLang)) {
+                console.log('Using cached location-based language:', cachedLocationLang);
+                return cachedLocationLang;
+            }
+        }
+        
+        // Try location-based detection
+        try {
+            const locationLang = await this.detectLocationBasedLanguage();
+            if (this.supportedLanguages.includes(locationLang)) {
+                // Cache the result
+                localStorage.setItem('fera-location-language', locationLang);
+                localStorage.setItem('fera-location-timestamp', Date.now().toString());
+                return locationLang;
+            }
+        } catch (error) {
+            console.error('Location detection failed, falling back to browser language');
         }
         
         // Fall back to browser detection
@@ -56,6 +84,85 @@ class I18n {
         return 'ko';
     }
 
+    // Detect language based on user's location (IP-based)
+    async detectLocationBasedLanguage() {
+        try {
+            // Using ipapi.co free service for IP geolocation
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            
+            console.log('Detected location:', data.country_name, data.country_code);
+            
+            // Map country codes to languages
+            const countryToLanguage = {
+                'KR': 'ko',  // South Korea
+                'JP': 'ja',  // Japan
+                'CN': 'zh',  // China
+                'TW': 'zh',  // Taiwan
+                'HK': 'zh',  // Hong Kong
+                'SG': 'zh',  // Singapore (Chinese is common)
+                'US': 'en',  // United States
+                'GB': 'en',  // United Kingdom
+                'CA': 'en',  // Canada
+                'AU': 'en',  // Australia
+                'NZ': 'en',  // New Zealand
+                'IN': 'en',  // India
+                // Default to English for other countries
+            };
+            
+            const detectedLang = countryToLanguage[data.country_code] || 'en';
+            console.log('Location-based language:', detectedLang);
+            
+            return detectedLang;
+        } catch (error) {
+            console.error('Failed to detect location:', error);
+            // Fall back to timezone-based detection
+            return this.detectLanguageByTimezone();
+        }
+    }
+
+    // Detect language based on timezone (fallback method)
+    detectLanguageByTimezone() {
+        try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            console.log('Detected timezone:', timezone);
+            
+            // Map timezones to languages
+            if (timezone.includes('Asia/Seoul') || timezone.includes('Asia/Pyongyang')) {
+                return 'ko'; // Korean timezone
+            }
+            if (timezone.includes('Asia/Tokyo') || timezone.includes('Asia/Osaka')) {
+                return 'ja'; // Japanese timezone
+            }
+            if (timezone.includes('Asia/Shanghai') || 
+                timezone.includes('Asia/Beijing') || 
+                timezone.includes('Asia/Hong_Kong') || 
+                timezone.includes('Asia/Taipei') ||
+                timezone.includes('Asia/Singapore')) {
+                return 'zh'; // Chinese timezone
+            }
+            
+            // For other timezones, check if they're in English-speaking regions
+            const englishTimezones = [
+                'America/', 'US/', 'Canada/', 'Europe/London', 
+                'Australia/', 'Pacific/Auckland', 'Europe/Dublin'
+            ];
+            
+            for (const tz of englishTimezones) {
+                if (timezone.includes(tz)) {
+                    return 'en';
+                }
+            }
+            
+            // Default to English for unmatched timezones
+            return 'en';
+        } catch (error) {
+            console.error('Failed to detect timezone:', error);
+            // Final fallback to Korean
+            return 'ko';
+        }
+    }
+
     // Set current language
     setLanguage(lang) {
         if (!this.supportedLanguages.includes(lang)) {
@@ -73,11 +180,18 @@ class I18n {
 
     // Get current language
     getCurrentLanguage() {
-        return this.currentLang;
+        return this.isInitialized ? this.currentLang : 'ko';
     }
 
     // Get translation for a key
     t(key, lang = null) {
+        // If not initialized yet, use default language or key
+        if (!this.isInitialized) {
+            const targetLang = lang || 'ko';
+            const translations = this.translations[targetLang];
+            return translations ? (translations[key] || key) : key;
+        }
+        
         const targetLang = lang || this.currentLang;
         const translations = this.translations[targetLang];
         
@@ -168,7 +282,9 @@ class I18n {
             ja: '日本語で返答してください。',
             zh: '请用中文回复。'
         };
-        return langMessages[this.currentLang] || langMessages.ko;
+        // Use current language if initialized, otherwise use default
+        const lang = this.isInitialized ? this.currentLang : 'ko';
+        return langMessages[lang] || langMessages.ko;
     }
 
     // Format date/time based on language
@@ -191,20 +307,52 @@ class I18n {
         return new Intl.DateTimeFormat(localeMap[this.currentLang], options).format(date);
     }
 
-    // Initialize i18n
-    init() {
-        // Language is already set in constructor
-        // Set initial language
-        document.documentElement.lang = this.currentLang;
-        
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                this.updatePageTranslations();
-            });
-        } else {
-            this.updatePageTranslations();
+    // Initialize i18n with async language detection
+    async init() {
+        // Prevent multiple initializations
+        if (this.initPromise) {
+            return this.initPromise;
         }
+        
+        this.initPromise = (async () => {
+            try {
+                // Get initial language asynchronously
+                const detectedLang = await this.getInitialLanguage();
+                this.currentLang = detectedLang;
+                this.isInitialized = true;
+                
+                // Set language in DOM
+                document.documentElement.lang = this.currentLang;
+                
+                // Wait for DOM to be ready
+                if (document.readyState === 'loading') {
+                    await new Promise(resolve => {
+                        document.addEventListener('DOMContentLoaded', resolve, { once: true });
+                    });
+                }
+                
+                // Update all translations
+                this.updatePageTranslations();
+                
+                // Dispatch initialization event
+                window.dispatchEvent(new CustomEvent('i18nInitialized', { 
+                    detail: { language: this.currentLang } 
+                }));
+                
+                console.log('i18n initialized with language:', this.currentLang);
+                
+                return this.currentLang;
+            } catch (error) {
+                console.error('Failed to initialize i18n:', error);
+                // Fallback to default
+                this.isInitialized = true;
+                document.documentElement.lang = this.currentLang;
+                this.updatePageTranslations();
+                return this.currentLang;
+            }
+        })();
+        
+        return this.initPromise;
     }
 }
 
