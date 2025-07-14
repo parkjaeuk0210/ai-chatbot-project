@@ -1,7 +1,7 @@
 import { kv } from '@vercel/kv';
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1분
-const MAX_REQUESTS = 10; // 분당 최대 요청 수
+const MAX_REQUESTS = 20; // 분당 최대 요청 수
 
 export async function rateLimit(request) {
   try {
