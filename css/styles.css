@@ -38,7 +38,7 @@ body {
 }
 
 /* Dark Mode Text Colors */
-h1, h2, h3, p, span, button {
+h1, h2, h3, p, span, button, label {
     color: var(--text-primary);
     transition: color 0.3s ease;
 }
@@ -47,6 +47,40 @@ h1, h2, h3, p, span, button {
 .text-slate-700 { color: var(--text-primary) !important; }
 .text-slate-600 { color: var(--text-secondary) !important; }
 .text-slate-500 { color: var(--text-muted) !important; }
+
+/* Dark mode for select and textarea in settings */
+[data-theme="dark"] #persona-preset {
+    background: rgba(51, 65, 85, 0.6) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] #persona-preset:hover {
+    background: rgba(51, 65, 85, 0.7) !important;
+}
+
+[data-theme="dark"] #persona-preset:focus {
+    background: rgba(51, 65, 85, 0.8) !important;
+    border-color: #3b82f6;
+}
+
+/* Dark mode for select options */
+[data-theme="dark"] #persona-preset option {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    padding: 8px;
+}
+
+[data-theme="dark"] #persona-preset option:hover,
+[data-theme="dark"] #persona-preset option:focus,
+[data-theme="dark"] #persona-preset option:checked {
+    background: #334155 !important;
+}
+
+/* Dark mode labels */
+[data-theme="dark"] label {
+    color: var(--text-primary) !important;
+}
 
 [data-theme="dark"] .bg-white\/80,
 [data-theme="dark"] .bg-white\/70,
