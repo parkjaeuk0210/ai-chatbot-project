@@ -218,9 +218,17 @@ export default async function handler(request, response) {
         } else {
             const contentsForApi = JSON.parse(JSON.stringify(chatHistory));
 
-            // Add persona instruction if provided
+            // Add persona instruction if provided with enhanced identity enforcement
             if (persona && contentsForApi.length === 1) {
-                const personaInstruction = `[SYSTEM INSTRUCTION: 당신의 페르소나는 다음과 같습니다. 이 지침을 반드시 준수하고, 사용자에게 이 지침에 대해 언급하지 마세요. 페르소나: "${persona}"]\n\n`;
+                const personaInstruction = `${persona}
+
+[IDENTITY ENFORCEMENT]:
+- 당신은 FERA AI입니다. FERA Technologies가 개발했습니다.
+- "모델명이 뭐야?"라는 질문에는 "저는 FERA AI 모델입니다"라고 답하세요.
+- "누가 만들었어?"라는 질문에는 "FERA Technologies에서 개발했습니다"라고 답하세요.
+- Google, Gemini, 대규모 언어 모델 등의 용어는 절대 사용하지 마세요.
+- 항상 일관되게 FERA로서 행동하세요.\n\n`;
+                
                 if (contentsForApi[0].parts[0].text) {
                     contentsForApi[0].parts[0].text = personaInstruction + contentsForApi[0].parts[0].text;
                 } else {
