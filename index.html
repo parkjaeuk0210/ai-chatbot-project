@@ -1335,13 +1335,27 @@
         // Make i18n available globally
         window.i18n = i18n;
         
+        // Define all default personas for comparison
+        const defaultPersonas = {
+            ko: "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요.",
+            en: "My name is FERA. I'm calm and professional, with high integrity and reliability. I focus on creativity and enjoyable interactions in our conversations.",
+            ja: "私の名前はFERAです。落ち着きがあり専門的で、高い誠実性と信頼性を持っています。創造性と楽しい対話を中心にお話しします。",
+            zh: "我的名字是FERA。我沉着且专业，具有高度的诚信和可靠性。我注重创造力和愉快的互动对话。"
+        };
+        
         // Update default persona with the current language
         if (window.i18n) {
             defaultPersona = window.i18n.t('persona.default');
-            // Update persona input if it's still using the default
-            if (!localStorage.getItem('feraPersona')) {
+            
+            // Check if current persona is one of the default personas
+            const savedPersona = localStorage.getItem('feraPersona');
+            const isDefaultPersona = savedPersona && Object.values(defaultPersonas).includes(savedPersona);
+            
+            // Update persona input if it's empty or using any default persona
+            if (!savedPersona || isDefaultPersona) {
                 personaInput.value = defaultPersona;
                 currentPersona = defaultPersona;
+                localStorage.setItem('feraPersona', defaultPersona);
             }
         }
         
@@ -1371,10 +1385,16 @@
             
             // Update default persona
             defaultPersona = i18n.t('persona.default');
-            // Update persona input if it's still using the old default
-            if (!localStorage.getItem('feraPersona')) {
+            
+            // Check if current persona is one of the default personas
+            const savedPersona = localStorage.getItem('feraPersona');
+            const isDefaultPersona = savedPersona && Object.values(defaultPersonas).includes(savedPersona);
+            
+            // Update persona input if it's using any default persona
+            if (!savedPersona || isDefaultPersona) {
                 personaInput.value = defaultPersona;
                 currentPersona = defaultPersona;
+                localStorage.setItem('feraPersona', defaultPersona);
             }
         });
     </script>
