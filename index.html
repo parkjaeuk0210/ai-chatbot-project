@@ -1233,7 +1233,11 @@
             const initialMessageDiv = document.createElement('div');
             initialMessageDiv.id = 'initial-message';
             chatMessages.appendChild(initialMessageDiv);
-            addChatMessage('bot', [{text: '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!'}]);
+            // Use i18n if available, otherwise use fallback based on current language
+            const message = window.i18n 
+                ? window.i18n.t('message.personaUpdated') 
+                : '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!';
+            addChatMessage('bot', [{text: message}]);
         }
     
         // --- Event Listeners ---
