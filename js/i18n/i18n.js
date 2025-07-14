@@ -1,0 +1,165 @@
+// i18n Language Management Module
+import { ko } from './ko.js';
+import { en } from './en.js';
+import { ja } from './ja.js';
+import { zh } from './zh.js';
+
+class I18n {
+    constructor() {
+        this.translations = { ko, en, ja, zh };
+        this.currentLang = this.getStoredLanguage() || this.detectBrowserLanguage();
+        this.supportedLanguages = ['ko', 'en', 'ja', 'zh'];
+    }
+
+    // Get stored language from localStorage
+    getStoredLanguage() {
+        return localStorage.getItem('fera-language');
+    }
+
+    // Detect browser language
+    detectBrowserLanguage() {
+        const browserLang = navigator.language || navigator.userLanguage;
+        const langCode = browserLang.split('-')[0];
+        return this.supportedLanguages.includes(langCode) ? langCode : 'ko';
+    }
+
+    // Set current language
+    setLanguage(lang) {
+        if (!this.supportedLanguages.includes(lang)) {
+            console.error(`Language ${lang} not supported`);
+            return false;
+        }
+        
+        this.currentLang = lang;
+        localStorage.setItem('fera-language', lang);
+        document.documentElement.lang = lang;
+        this.updatePageTranslations();
+        this.dispatchLanguageChangeEvent(lang);
+        return true;
+    }
+
+    // Get current language
+    getCurrentLanguage() {
+        return this.currentLang;
+    }
+
+    // Get translation for a key
+    t(key, lang = null) {
+        const targetLang = lang || this.currentLang;
+        const translations = this.translations[targetLang];
+        
+        if (!translations) {
+            console.error(`No translations found for language: ${targetLang}`);
+            return key;
+        }
+        
+        return translations[key] || key;
+    }
+
+    // Update all page translations
+    updatePageTranslations() {
+        // Update elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            const translation = this.t(key);
+            
+            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                element.placeholder = translation;
+            } else {
+                element.textContent = translation;
+            }
+        });
+
+        // Update aria-labels
+        document.querySelectorAll('[data-i18n-aria]').forEach(element => {
+            const key = element.getAttribute('data-i18n-aria');
+            element.setAttribute('aria-label', this.t(key));
+        });
+
+        // Update title attributes
+        document.querySelectorAll('[data-i18n-title]').forEach(element => {
+            const key = element.getAttribute('data-i18n-title');
+            element.setAttribute('title', this.t(key));
+        });
+
+        // Update document title
+        document.title = this.t('page.title', this.currentLang) || 'FERA - AI Platform';
+    }
+
+    // Create language selector HTML
+    createLanguageSelector() {
+        const selector = document.createElement('select');
+        selector.id = 'language-selector';
+        selector.className = 'px-3 py-1.5 text-sm rounded-lg glass-effect cursor-pointer transition-all';
+        selector.setAttribute('aria-label', this.t('a11y.languageSelector'));
+        
+        this.supportedLanguages.forEach(lang => {
+            const option = document.createElement('option');
+            option.value = lang;
+            option.textContent = this.t(`lang.${lang}`, lang);
+            option.selected = lang === this.currentLang;
+            selector.appendChild(option);
+        });
+        
+        selector.addEventListener('change', (e) => {
+            this.setLanguage(e.target.value);
+        });
+        
+        return selector;
+    }
+
+    // Dispatch language change event
+    dispatchLanguageChangeEvent(lang) {
+        window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
+    }
+
+    // Get message for AI based on language
+    getAISystemMessage() {
+        const langMessages = {
+            ko: '한국어로 응답해주세요.',
+            en: 'Please respond in English.',
+            ja: '日本語で返答してください。',
+            zh: '请用中文回复。'
+        };
+        return langMessages[this.currentLang] || langMessages.ko;
+    }
+
+    // Format date/time based on language
+    formatDateTime(date) {
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        
+        const localeMap = {
+            ko: 'ko-KR',
+            en: 'en-US',
+            ja: 'ja-JP',
+            zh: 'zh-CN'
+        };
+        
+        return new Intl.DateTimeFormat(localeMap[this.currentLang], options).format(date);
+    }
+
+    // Initialize i18n
+    init() {
+        // Set initial language
+        document.documentElement.lang = this.currentLang;
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.updatePageTranslations();
+            });
+        } else {
+            this.updatePageTranslations();
+        }
+    }
+}
+
+// Create and export singleton instance
+const i18n = new I18n();
+export default i18n;

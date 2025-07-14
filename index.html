@@ -357,6 +357,30 @@
             transition: transform 0.3s ease-out;
         }
         
+        /* Screen reader only content */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        .focus\:not-sr-only:focus {
+            position: absolute;
+            width: auto;
+            height: auto;
+            padding: 0.5rem 1rem;
+            margin: 0;
+            overflow: visible;
+            clip: auto;
+            white-space: normal;
+        }
+        
         /* 모바일 최적화 추가 스타일 */
         @media (max-width: 640px) {
             /* 더 부드러운 스크롤 */
@@ -385,29 +409,32 @@
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
+    <!-- Skip Links for Accessibility -->
+    <a href="#chat-input" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-500 text-white px-4 py-2 rounded-lg" data-i18n="a11y.skipToInput">채팅 입력으로 건너뛰기</a>
+    <a href="#chat-messages" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-48 bg-blue-500 text-white px-4 py-2 rounded-lg" data-i18n="a11y.skipToMessages">채팅 메시지로 건너뛰기</a>
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <div class="glass-effect w-full max-w-lg rounded-2xl shadow-lg p-6 border-none">
             <div class="flex justify-between items-center mb-4">
-                <h2 id="settings-title" class="text-xl font-bold text-slate-800">AI 페르소나 설정</h2>
-                <button id="close-persona-button" class="text-slate-500 hover:text-slate-800 text-3xl leading-none" aria-label="설정 창 닫기">&times;</button>
+                <h2 id="settings-title" class="text-xl font-bold text-slate-800" data-i18n="settings.title">AI 페르소나 설정</h2>
+                <button id="close-persona-button" class="text-slate-500 hover:text-slate-800 text-3xl leading-none" aria-label="설정 창 닫기" data-i18n-aria="a11y.settingsClose">&times;</button>
             </div>
-            <p id="persona-description" class="text-sm text-slate-600 mb-4">AI의 이름, 성격, 말투 등을 자유롭게 설정하여 나만의 AI를 만들어보세요.
+            <p id="persona-description" class="text-sm text-slate-600 mb-4" data-i18n="settings.description">AI의 이름, 성격, 말투 등을 자유롭게 설정하여 나만의 AI를 만들어보세요.
                 페라는 세계에서 가장 빠르고 똑똑한 ai 모델입니다.
             </p>
-            <textarea id="persona-input" class="w-full h-40 p-3 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm" placeholder="AI의 페르소나를 입력하세요..." aria-label="AI 페르소나 입력란" aria-describedby="persona-description"></textarea>
+            <textarea id="persona-input" class="w-full h-40 p-3 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm" placeholder="AI의 페르소나를 입력하세요..." aria-label="AI 페르소나 입력란" aria-describedby="persona-description" data-i18n="settings.placeholder"></textarea>
             
             <!-- 페르소나 프리셋 -->
             <div class="mt-4">
-                <label for="persona-preset" class="block text-sm font-medium text-slate-700 mb-1">
+                <label for="persona-preset" class="block text-sm font-medium text-slate-700 mb-1" data-i18n="settings.presetLabel">
                     페르소나 프리셋
                 </label>
                 <select id="persona-preset" class="w-full p-2 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm cursor-pointer hover:bg-white/80 text-slate-700">
-                    <option value="">직접 설정</option>
-                    <option value="friendly">친근한 친구</option>
-                    <option value="professional">전문 비서</option>
-                    <option value="teacher">친절한 선생님</option>
-                    <option value="creative">창의적인 아티스트</option>
+                    <option value="" data-i18n="settings.presetDefault">직접 설정</option>
+                    <option value="friendly" data-i18n="settings.presetFriendly">친근한 친구</option>
+                    <option value="professional" data-i18n="settings.presetProfessional">전문 비서</option>
+                    <option value="teacher" data-i18n="settings.presetTeacher">친절한 선생님</option>
+                    <option value="creative" data-i18n="settings.presetCreative">창의적인 아티스트</option>
                 </select>
             </div>
             
@@ -415,7 +442,7 @@
             <input type="hidden" id="hidden-persona" value="" />
             
             <div class="flex justify-end mt-4">
-                <button id="save-persona-button" class="bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors shadow-md">저장</button>
+                <button id="save-persona-button" class="bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors shadow-md" data-i18n="settings.save">저장</button>
             </div>
         </div>
     </div>
@@ -425,14 +452,23 @@
         <header id="main-header" class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center transition-transform duration-300" role="banner">
             <a href="./" style="text-decoration: none; color: inherit;"><h1 class="text-xl font-bold text-slate-800">FERA</h1></a>
             <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1" role="tablist" aria-label="탭 선택">
-                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0">채팅</button>
-                <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300" role="tab" aria-selected="false" aria-controls="image-ui" tabindex="0">이미지 생성</button>
+                <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0" data-i18n="tab.chat">채팅</button>
+                <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300" role="tab" aria-selected="false" aria-controls="image-ui" tabindex="0" data-i18n="tab.image">이미지 생성</button>
                 <div class="w-px h-5 bg-slate-300/70 mx-1"></div>
+                <button id="export-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="채팅 내보내기" aria-label="채팅 내보내기" data-i18n-title="header.export" data-i18n-aria="header.export" tabindex="0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </button>
                 <button id="theme-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="테마 변경" aria-label="테마 변경" tabindex="0">
                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 </button>
-                <button id="settings-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" aria-label="설정" tabindex="0">
+                <select id="language-selector" class="px-3 py-1.5 text-sm rounded-lg glass-effect cursor-pointer transition-all text-slate-600 hover:text-slate-800">
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">中文</option>
+                </select>
+                <button id="settings-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" aria-label="설정" data-i18n-aria="header.settings" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
             </div>
@@ -442,11 +478,11 @@
         <main class="flex-1 relative" role="main">
             <!-- Chatbot UI -->
             <div id="chat-ui" class="content-pane is-active flex flex-col h-full" role="tabpanel" aria-labelledby="chat-tab-button" tabindex="0">
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="채팅 메시지">
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="채팅 메시지" data-i18n-aria="a11y.chatMessages">
                     <div id="initial-message" class="flex items-start gap-3 max-w-lg message-bubble">
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="AI 아바타">AI</div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="AI 아바타" data-i18n-aria="a11y.aiAvatar">AI</div>
                         <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                            <p>안녕하세요, FERA입니다. 무엇이든 가능합니다.</p>
+                            <p data-i18n="chat.initialMessage">안녕하세요, FERA입니다. 무엇이든 가능합니다.</p>
                         </div>
                     </div>
                 </div>
@@ -459,17 +495,17 @@
                             <span id="preview-filename" class="text-sm text-slate-700 font-medium truncate max-w-[200px] sm:max-w-xs"></span>
                             <span id="preview-filesize" class="text-xs text-slate-500 ml-1"></span>
                         </div>
-                        <button id="remove-preview-button" class="ml-2 bg-slate-500/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-slate-600/70 flex-shrink-0" aria-label="첨부 파일 제거">&times;</button>
+                        <button id="remove-preview-button" class="ml-2 bg-slate-500/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-slate-600/70 flex-shrink-0" aria-label="첨부 파일 제거" data-i18n-aria="a11y.removeFile">&times;</button>
                     </div>
                 </div>
                 <!-- Chat Input -->
                 <div class="mt-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf">
-                    <button id="file-button" class="bg-white/70 text-slate-500 w-10 h-10 sm:w-11 sm:h-11 rounded-full hover:bg-white transition-colors flex items-center justify-center flex-shrink-0">
+                    <button id="file-button" class="bg-white/70 text-slate-500 w-10 h-10 sm:w-11 sm:h-11 rounded-full hover:bg-white transition-colors flex items-center justify-center flex-shrink-0" aria-label="파일 업로드" data-i18n-aria="a11y.fileUpload">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     </button>
-                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5" placeholder="메시지를 입력하세요" aria-label="채팅 메시지 입력">
-                    <button id="send-button" class="bg-blue-500 text-white w-10 h-10 sm:w-11 sm:h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center flex-shrink-0 shadow-lg" aria-label="메시지 전송" tabindex="0">
+                    <input type="text" id="chat-input" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-blue-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5" placeholder="메시지를 입력하세요" aria-label="채팅 메시지 입력" data-i18n="chat.placeholder">
+                    <button id="send-button" class="bg-blue-500 text-white w-10 h-10 sm:w-11 sm:h-11 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:bg-slate-400 flex items-center justify-center flex-shrink-0 shadow-lg" aria-label="메시지 전송" data-i18n-aria="a11y.messageSend" tabindex="0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </button>
                 </div>
@@ -478,11 +514,11 @@
             <!-- Image Generation UI -->
             <div id="image-ui" class="content-pane hidden flex-col items-center justify-center h-full p-4 md:p-6" role="tabpanel" aria-labelledby="image-tab-button" tabindex="0">
                  <div class="w-full max-w-2xl text-center">
-                    <h2 class="text-3xl font-bold text-slate-800 mb-2"> 이미지 생성</h2>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2" data-i18n="tab.image"> 이미지 생성</h2>
                     <p class="text-slate-500 mb-8">생성하고 싶은 이미지에 대한 설명을 입력해주세요.</p>
                     <div class="flex items-center gap-3 mb-6">
-                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5">
-                        <button id="generate-image-button" class="bg-indigo-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-600 transition-colors disabled:bg-slate-400 shadow-lg flex-shrink-0">
+                        <input type="text" id="image-prompt" class="flex-1 p-3 bg-white/80 border border-white/40 rounded-full focus:ring-2 focus:ring-indigo-400 focus:outline-none transition placeholder:text-slate-500 min-w-0 shadow-inner shadow-black/5" placeholder="생성할 이미지를 설명해주세요..." data-i18n="image.placeholder">
+                        <button id="generate-image-button" class="bg-indigo-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-600 transition-colors disabled:bg-slate-400 shadow-lg flex-shrink-0" data-i18n="image.generate">
                             생성하기
                         </button>
                     </div>
@@ -1292,6 +1328,54 @@
         });
     
     });
+    </script>
+    
+    <!-- i18n Module -->
+    <script type="module">
+        import i18n from './js/i18n/i18n.js';
+        
+        // Initialize i18n
+        i18n.init();
+        
+        // Make i18n available globally
+        window.i18n = i18n;
+        
+        // Add language selector functionality
+        const languageSelector = document.getElementById('language-selector');
+        if (languageSelector) {
+            // Set current language
+            languageSelector.value = i18n.getCurrentLanguage();
+            
+            // Handle language change
+            languageSelector.addEventListener('change', (e) => {
+                i18n.setLanguage(e.target.value);
+            });
+        }
+        
+        // Listen for language changes to update dynamic content
+        window.addEventListener('languageChanged', (e) => {
+            // Update initial message
+            const initialMessage = document.querySelector('#initial-message p');
+            if (initialMessage) {
+                initialMessage.textContent = i18n.t('chat.initialMessage');
+            }
+            
+            // Update placeholder text that might be dynamically set
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.placeholder = i18n.t('chat.placeholder');
+            }
+            
+            const imagePrompt = document.getElementById('image-prompt');
+            if (imagePrompt) {
+                imagePrompt.placeholder = i18n.t('image.placeholder');
+            }
+            
+            // Update app system instructions when language changes
+            if (window.feraApp) {
+                window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
+            }
+        });
     </script>
 </body>
 </html>

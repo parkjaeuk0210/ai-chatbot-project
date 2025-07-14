@@ -250,7 +250,9 @@ export class ChatManager {
         // File size limit (10MB)
         const maxFileSize = 10 * 1024 * 1024;
         if (file.size > maxFileSize) {
-            onError(`파일 크기는 10MB를 초과할 수 없습니다. 현재 파일 크기: ${formatFileSize(file.size)}`);
+            const i18n = window.i18n;
+            const errorMsg = i18n ? i18n.t('error.fileSize') : '파일 크기는 10MB를 초과할 수 없습니다.';
+            onError(`${errorMsg} ${window.i18n ? '' : `현재 파일 크기: ${formatFileSize(file.size)}`}`);
             return;
         }
 
@@ -259,7 +261,8 @@ export class ChatManager {
         const allowedDocTypes = ['application/pdf'];
         
         if (!allowedImageTypes.includes(file.type) && !allowedDocTypes.includes(file.type)) {
-            onError('지원하지 않는 파일 형식입니다. 이미지(JPEG, PNG, GIF, WebP) 또는 PDF 파일만 업로드 가능합니다.');
+            const i18n = window.i18n;
+            onError(i18n ? i18n.t('error.fileType') : '지원하지 않는 파일 형식입니다. 이미지(JPEG, PNG, GIF, WebP) 또는 PDF 파일만 업로드 가능합니다.');
             return;
         }
 
@@ -311,7 +314,8 @@ export class ChatManager {
                 this.uploadedFile = imageData;
             } catch (error) {
                 console.error('이미지 처리 실패:', error);
-                onError('이미지 처리 중 오류가 발생했습니다.');
+                const i18n = window.i18n;
+                onError(i18n ? i18n.t('error.imageProcess') : '이미지 처리 중 오류가 발생했습니다.');
             }
         } else if (file.type === 'application/pdf') {
             this.uploadedFile = { type: 'pdf', data: file, name: file.name };

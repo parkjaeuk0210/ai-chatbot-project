@@ -116,15 +116,16 @@ export function validateInput(input) {
 
 // Error message formatter
 export function formatErrorMessage(error) {
-    let errorMessage = '오류가 발생했습니다';
+    const i18n = window.i18n;
+    let errorMessage = i18n ? i18n.t('error.general') : '오류가 발생했습니다';
     let fallbackMessage = '';
     let errorType = 'unknown';
     
     // Network connection check
     if (!navigator.onLine) {
         errorType = 'network';
-        errorMessage = '🌐 네트워크 연결 오류';
-        fallbackMessage = '인터넷 연결을 확인해주세요.';
+        errorMessage = i18n ? i18n.t('error.network') : '🌐 네트워크 연결 오류';
+        fallbackMessage = i18n ? i18n.t('error.network') : '인터넷 연결을 확인해주세요.';
     } 
     // API response errors
     else if (error.message.includes('429')) {
@@ -137,19 +138,19 @@ export function formatErrorMessage(error) {
         fallbackMessage = 'API 인증에 실패했습니다. 관리자에게 문의하세요.';
     } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
         errorType = 'server';
-        errorMessage = '🖥️ 서버 오류';
-        fallbackMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        errorMessage = i18n ? i18n.t('error.serverConfig') : '🖥️ 서버 오류';
+        fallbackMessage = i18n ? i18n.t('error.serverConfig') : '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
     } else if (error.message.includes('timeout')) {
         errorType = 'timeout';
         errorMessage = '⏳ 요청 시간 초과';
         fallbackMessage = '응답 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.';
     } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
         errorType = 'network';
-        errorMessage = '🌐 네트워크 요청 실패';
-        fallbackMessage = '서버에 연결할 수 없습니다. 네트워크 설정을 확인해주세요.';
+        errorMessage = i18n ? i18n.t('error.network') : '🌐 네트워크 요청 실패';
+        fallbackMessage = i18n ? i18n.t('error.network') : '서버에 연결할 수 없습니다. 네트워크 설정을 확인해주세요.';
     } else {
         errorType = 'general';
-        fallbackMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+        fallbackMessage = error.message || (i18n ? i18n.t('error.general') : '알 수 없는 오류가 발생했습니다.');
     }
     
     return {
