@@ -100,7 +100,7 @@ class I18n {
                 'CN': 'zh',  // China
                 'TW': 'zh',  // Taiwan
                 'HK': 'zh',  // Hong Kong
-                'SG': 'zh',  // Singapore (Chinese is common)
+                'SG': 'en',  // Singapore (English is the main language)
                 'US': 'en',  // United States
                 'GB': 'en',  // United Kingdom
                 'CA': 'en',  // Canada
@@ -134,11 +134,13 @@ class I18n {
             if (timezone.includes('Asia/Tokyo') || timezone.includes('Asia/Osaka')) {
                 return 'ja'; // Japanese timezone
             }
+            if (timezone.includes('Asia/Singapore')) {
+                return 'en'; // Singapore uses English as main language
+            }
             if (timezone.includes('Asia/Shanghai') || 
                 timezone.includes('Asia/Beijing') || 
                 timezone.includes('Asia/Hong_Kong') || 
-                timezone.includes('Asia/Taipei') ||
-                timezone.includes('Asia/Singapore')) {
+                timezone.includes('Asia/Taipei')) {
                 return 'zh'; // Chinese timezone
             }
             
