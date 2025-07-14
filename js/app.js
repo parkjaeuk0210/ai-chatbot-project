@@ -18,7 +18,7 @@ class FeraApp {
     }
 
     get defaultPersona() {
-        return "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 평범한 젊은 한국인의 말투. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요.";
+        return "이름은 FERA. 차분하고 전문적, 높은 성실성과 신뢰성. 높은 창의성과 즐거운 상호작용 중심의 대화를 해드릴게요.";
     }
     
     getSystemInstructions() {
