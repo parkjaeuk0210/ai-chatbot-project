@@ -164,6 +164,27 @@ class FeraApp {
                 }
             }
             
+            // Tab key trap when modal is open
+            if (!this.settingsModal.classList.contains('hidden') && e.key === 'Tab') {
+                const focusableElements = this.settingsModal.querySelectorAll(
+                    'button, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                const firstFocusable = focusableElements[0];
+                const lastFocusable = focusableElements[focusableElements.length - 1];
+                
+                if (e.shiftKey) { // Shift + Tab
+                    if (document.activeElement === firstFocusable) {
+                        lastFocusable.focus();
+                        e.preventDefault();
+                    }
+                } else { // Tab
+                    if (document.activeElement === lastFocusable) {
+                        firstFocusable.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
+            
             // Ctrl/Cmd + E to export
             if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
                 e.preventDefault();
@@ -178,6 +199,12 @@ class FeraApp {
                 } else if (this.imageUi.classList.contains('is-active')) {
                     this.imagePrompt.focus();
                 }
+            }
+            
+            // Ctrl/Cmd + K to open settings
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                this.openSettings();
             }
         });
     }
@@ -244,10 +271,16 @@ class FeraApp {
     openSettings() {
         this.personaInput.value = this.currentPersona;
         this.settingsModal.classList.remove('hidden');
+        // Focus first focusable element when modal opens
+        setTimeout(() => {
+            this.personaInput.focus();
+        }, 100);
     }
 
     closeSettings() {
         this.settingsModal.classList.add('hidden');
+        // Return focus to settings button when modal closes
+        this.settingsButton.focus();
     }
 
     saveSettings() {

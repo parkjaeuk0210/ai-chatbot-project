@@ -9,7 +9,10 @@
       "Bash(chmod:*)",
       "Bash(cp:*)",
       "Bash(ls:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)",
+      "Bash(python:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
