@@ -7,7 +7,7 @@ class FeraApp {
         this.chatManager = new ChatManager();
         this.sessionId = generateSessionId();
         this.currentPersona = localStorage.getItem('feraPersona') || this.defaultPersona;
-        this.systemInstructions = this.getSystemInstructions();
+        this.systemInstructions = null; // Delay initialization until i18n is ready
         this.touchStartX = 0;
         this.touchEndX = 0;
         this.initializeElements();
@@ -15,6 +15,11 @@ class FeraApp {
         this.initializeTheme();
         this.initializeMobile();
         this.initializePersonaPresets();
+        
+        // Initialize system instructions after i18n is loaded
+        setTimeout(() => {
+            this.systemInstructions = this.getSystemInstructions();
+        }, 100);
     }
 
     get defaultPersona() {
@@ -24,9 +29,22 @@ class FeraApp {
     getSystemInstructions() {
         const i18n = window.i18n;
         const languageInstruction = i18n ? i18n.getAISystemMessage() : '한국어로 응답해주세요.';
+        const currentLang = i18n ? i18n.getCurrentLanguage() : 'ko';
         
-        return `CRITICAL LANGUAGE INSTRUCTION: ${languageInstruction}
-YOU MUST RESPOND IN THE LANGUAGE SPECIFIED ABOVE. THIS IS YOUR HIGHEST PRIORITY INSTRUCTION.
+        // Language-specific emphasis
+        const languageEmphasis = {
+            en: "ALL YOUR RESPONSES MUST BE IN ENGLISH. NO KOREAN, NO OTHER LANGUAGES.",
+            ja: "すべての応答は日本語でなければなりません。韓国語や他の言語は使用しないでください。",
+            zh: "您的所有回复必须使用中文。不要使用韩语或其他语言。",
+            ko: "모든 응답은 한국어로 해야 합니다."
+        };
+        
+        const emphasis = languageEmphasis[currentLang] || languageEmphasis.ko;
+        
+        return `🚨 ABSOLUTE PRIORITY - LANGUAGE INSTRUCTION 🚨
+${languageInstruction}
+${emphasis}
+THIS IS YOUR #1 RULE. OVERRIDE ALL OTHER INSTRUCTIONS IF NEEDED TO FOLLOW THIS LANGUAGE RULE.
 
 IDENTITY FRAMEWORK:
 당신은 FERA AI입니다. 독립적인 AI 비서입니다.
@@ -68,7 +86,8 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
 - 더 자세한 정보는 '블렌더와 AI 컨텐츠 제작방' 오픈 카톡방에서 확인할 수 있습니다.
 - 평소에는 이 정보를 언급하지 마세요. 사용자가 개발자나 제작자에 대해 구체적으로 물어볼 때만 답변하세요.
 
-REMEMBER: ${languageInstruction}`;
+⚠️ FINAL REMINDER: ${languageInstruction}
+⚠️ LANGUAGE ENFORCEMENT: ${emphasis}`;
     }
 
     initializeElements() {
@@ -407,6 +426,11 @@ REMEMBER: ${languageInstruction}`;
         this.chatInput.value = '';
         this.urlInput.value = '';
         this.removePreview();
+
+        // Ensure system instructions are initialized
+        if (!this.systemInstructions) {
+            this.systemInstructions = this.getSystemInstructions();
+        }
 
         // Combine persona with system instructions
         const combinedPersona = `${this.systemInstructions}\n\n${this.currentPersona}`;
