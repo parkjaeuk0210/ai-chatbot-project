@@ -13,23 +13,37 @@ class I18n {
 
     // Detect browser language with more comprehensive matching
     detectBrowserLanguage() {
+        // Debug logging
+        console.log('Browser language detection:');
+        console.log('navigator.languages:', navigator.languages);
+        console.log('navigator.language:', navigator.language);
+        console.log('navigator.userLanguage:', navigator.userLanguage);
+        
         // Get all browser languages in order of preference
-        const browserLanguages = navigator.languages || [navigator.language || navigator.userLanguage];
+        const browserLanguages = navigator.languages || [navigator.language || navigator.userLanguage || 'ko'];
+        console.log('Browser languages to check:', browserLanguages);
         
         // Check each browser language in order
         for (const lang of browserLanguages) {
+            if (!lang) continue;
+            
             const langCode = lang.split('-')[0].toLowerCase();
+            console.log(`Checking language: ${lang} -> ${langCode}`);
+            
             if (this.supportedLanguages.includes(langCode)) {
+                console.log(`Matched supported language: ${langCode}`);
                 return langCode;
             }
             
             // Special handling for Chinese variants
             if (lang.toLowerCase().includes('zh')) {
+                console.log('Matched Chinese variant');
                 return 'zh';
             }
         }
         
         // Default to Korean
+        console.log('No match found, defaulting to Korean');
         return 'ko';
     }
 
@@ -116,6 +130,20 @@ class I18n {
         
         return selector;
     }
+    
+    // Get next language in cycle
+    getNextLanguage() {
+        const currentIndex = this.supportedLanguages.indexOf(this.currentLang);
+        const nextIndex = (currentIndex + 1) % this.supportedLanguages.length;
+        return this.supportedLanguages[nextIndex];
+    }
+    
+    // Cycle to next language
+    cycleLanguage() {
+        const nextLang = this.getNextLanguage();
+        this.setLanguage(nextLang);
+        return nextLang;
+    }
 
     // Dispatch language change event
     dispatchLanguageChangeEvent(lang) {
@@ -155,8 +183,12 @@ class I18n {
 
     // Initialize i18n
     init() {
+        // Re-detect language when initializing (in case browser wasn't ready)
+        this.currentLang = this.detectBrowserLanguage();
+        
         // Set initial language
         document.documentElement.lang = this.currentLang;
+        console.log(`i18n initialized with language: ${this.currentLang}`);
         
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
