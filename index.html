@@ -458,9 +458,6 @@
                 <button id="export-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="채팅 내보내기" aria-label="채팅 내보내기" data-i18n-title="header.export" data-i18n-aria="header.export" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 </button>
-                <button id="language-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="언어 변경" aria-label="언어 변경" tabindex="0">
-                    <span class="text-base font-medium" id="language-flag">🌐</span>
-                </button>
                 <button id="theme-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="테마 변경" aria-label="테마 변경" tabindex="0">
                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -1337,31 +1334,6 @@
         // Make i18n available globally
         window.i18n = i18n;
         
-        // Language toggle button functionality
-        const languageToggle = document.getElementById('language-toggle');
-        const languageFlag = document.getElementById('language-flag');
-        
-        if (languageToggle) {
-            // Update flag based on current language
-            const updateLanguageFlag = () => {
-                const flags = {
-                    ko: '🇰🇷',
-                    en: '🇺🇸',
-                    ja: '🇯🇵',
-                    zh: '🇨🇳'
-                };
-                languageFlag.textContent = flags[i18n.getCurrentLanguage()] || '🌐';
-            };
-            
-            updateLanguageFlag();
-            
-            // Handle language toggle click
-            languageToggle.addEventListener('click', () => {
-                const nextLang = i18n.cycleLanguage();
-                console.log(`Language manually changed to: ${nextLang}`);
-            });
-        }
-        
         // Listen for language changes to update dynamic content
         window.addEventListener('languageChanged', (e) => {
             // Update initial message
@@ -1384,17 +1356,6 @@
             // Update app system instructions when language changes
             if (window.feraApp) {
                 window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
-            }
-            
-            // Update language flag
-            if (languageFlag) {
-                const flags = {
-                    ko: '🇰🇷',
-                    en: '🇺🇸',
-                    ja: '🇯🇵',
-                    zh: '🇨🇳'
-                };
-                languageFlag.textContent = flags[e.detail.language] || '🌐';
             }
         });
     </script>

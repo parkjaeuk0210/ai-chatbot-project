@@ -7,43 +7,52 @@ import { zh } from './zh.js';
 class I18n {
     constructor() {
         this.translations = { ko, en, ja, zh };
-        this.currentLang = this.detectBrowserLanguage();
         this.supportedLanguages = ['ko', 'en', 'ja', 'zh'];
+        this.currentLang = this.getInitialLanguage();
+    }
+    
+    // Get initial language from URL parameter, localStorage, or browser
+    getInitialLanguage() {
+        // Check URL parameter first
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = urlParams.get('lang');
+        if (urlLang && this.supportedLanguages.includes(urlLang)) {
+            localStorage.setItem('fera-language', urlLang);
+            return urlLang;
+        }
+        
+        // Check localStorage
+        const storedLang = localStorage.getItem('fera-language');
+        if (storedLang && this.supportedLanguages.includes(storedLang)) {
+            return storedLang;
+        }
+        
+        // Fall back to browser detection
+        return this.detectBrowserLanguage();
     }
 
     // Detect browser language with more comprehensive matching
     detectBrowserLanguage() {
-        // Debug logging
-        console.log('Browser language detection:');
-        console.log('navigator.languages:', navigator.languages);
-        console.log('navigator.language:', navigator.language);
-        console.log('navigator.userLanguage:', navigator.userLanguage);
-        
         // Get all browser languages in order of preference
         const browserLanguages = navigator.languages || [navigator.language || navigator.userLanguage || 'ko'];
-        console.log('Browser languages to check:', browserLanguages);
         
         // Check each browser language in order
         for (const lang of browserLanguages) {
             if (!lang) continue;
             
             const langCode = lang.split('-')[0].toLowerCase();
-            console.log(`Checking language: ${lang} -> ${langCode}`);
             
             if (this.supportedLanguages.includes(langCode)) {
-                console.log(`Matched supported language: ${langCode}`);
                 return langCode;
             }
             
             // Special handling for Chinese variants
             if (lang.toLowerCase().includes('zh')) {
-                console.log('Matched Chinese variant');
                 return 'zh';
             }
         }
         
         // Default to Korean
-        console.log('No match found, defaulting to Korean');
         return 'ko';
     }
 
@@ -55,6 +64,7 @@ class I18n {
         }
         
         this.currentLang = lang;
+        localStorage.setItem('fera-language', lang);
         document.documentElement.lang = lang;
         this.updatePageTranslations();
         this.dispatchLanguageChangeEvent(lang);
@@ -183,12 +193,9 @@ class I18n {
 
     // Initialize i18n
     init() {
-        // Re-detect language when initializing (in case browser wasn't ready)
-        this.currentLang = this.detectBrowserLanguage();
-        
+        // Language is already set in constructor
         // Set initial language
         document.documentElement.lang = this.currentLang;
-        console.log(`i18n initialized with language: ${this.currentLang}`);
         
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
