@@ -270,3 +270,37 @@ textarea:focus-visible,
 .skip-link:focus {
     top: 0;
 }
+
+/* Retry Button Styles */
+.retry-button {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.retry-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .retry-button {
+    background-color: #2563eb;
+}
+
+[data-theme="dark"] .retry-button:hover {
+    background-color: #3b82f6;
+}

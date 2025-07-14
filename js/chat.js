@@ -1,5 +1,6 @@
 // Chat functionality module
-import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput } from './utils.js';
+import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput, errorHandler } from './utils.js';
+import { domBatcher, performanceMonitor } from './performance.js';
 
 export class ChatManager {
     constructor() {
@@ -10,6 +11,8 @@ export class ChatManager {
         this.maxVisibleMessages = 50;
         this.messageCountSinceInjection = 0;
         this.identityReinforcementInterval = 10; // Reinforce identity every 10 messages
+        this.maxHistoryLength = 20; // Maximum messages to keep in history
+        this.contextWindowSize = 10; // Messages to send to API
     }
 
     // Initialize message virtualization for performance
@@ -29,55 +32,93 @@ export class ChatManager {
         });
     }
 
+    // Load message content when visible
+    loadMessage(element) {
+        const messageId = element.dataset.messageId;
+        if (!messageId || !this.messageCache.has(messageId)) return;
+        
+        const cachedContent = this.messageCache.get(messageId);
+        const contentDiv = element.querySelector('.message-content');
+        if (contentDiv && contentDiv.dataset.virtualized === 'true') {
+            contentDiv.innerHTML = cachedContent;
+            contentDiv.dataset.virtualized = 'false';
+        }
+    }
+
+    // Unload message content when not visible
+    unloadMessage(element) {
+        const messageId = element.dataset.messageId;
+        if (!messageId) return;
+        
+        const contentDiv = element.querySelector('.message-content');
+        if (contentDiv && contentDiv.dataset.virtualized !== 'true') {
+            // Cache the content before removing
+            this.messageCache.set(messageId, contentDiv.innerHTML);
+            
+            // Replace with placeholder
+            contentDiv.innerHTML = '<div class="text-gray-400">...</div>';
+            contentDiv.dataset.virtualized = 'true';
+        }
+    }
+
     // Add message with security and performance optimizations
     addMessage(container, sender, parts) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'flex items-start gap-3 message-bubble';
-        wrapper.dataset.messageId = `msg-${Date.now()}-${Math.random()}`;
+        performanceMonitor.measureRender('addMessage', () => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-start gap-3 message-bubble';
+            wrapper.dataset.messageId = `msg-${Date.now()}-${Math.random()}`;
 
-        let imageHtml = '';
-        let textContent = '';
+            let imageHtml = '';
+            let textContent = '';
 
-        parts.forEach(part => {
-            if (part.inlineData) {
-                imageHtml = this.createImageElement(part.inlineData);
-            }
-            if (part.text) {
-                // Sanitize text to prevent XSS
-                const sanitizedText = sanitizeHTML(part.text);
-                
-                if (part.text.includes('---PDF 시작---')) {
-                    textContent += this.createPdfPreview(sanitizedText);
-                } else {
-                    textContent += `<p>${sanitizedText.replace(/\n/g, '<br>')}</p>`;
+            parts.forEach(part => {
+                if (part.inlineData) {
+                    imageHtml = this.createImageElement(part.inlineData);
                 }
-            }
-        });
+                if (part.text) {
+                    // Sanitize text to prevent XSS
+                    const sanitizedText = sanitizeHTML(part.text);
+                    
+                    if (part.text.includes('---PDF 시작---')) {
+                        textContent += this.createPdfPreview(sanitizedText);
+                    } else {
+                        textContent += `<p>${sanitizedText.replace(/\n/g, '<br>')}</p>`;
+                    }
+                }
+            });
 
-        const bubbleContent = textContent + imageHtml;
-        const messageHtml = this.createMessageHtml(sender, bubbleContent);
-        
-        wrapper.innerHTML = messageHtml;
-        container.appendChild(wrapper);
-        
-        // Observe for virtualization
-        if (this.messageObserver) {
-            this.messageObserver.observe(wrapper);
-        }
-        
-        // Limit visible messages for performance
-        this.limitVisibleMessages(container);
-        
-        // Smooth scroll to bottom
-        this.scrollToBottom(container);
+            const bubbleContent = textContent + imageHtml;
+            const messageHtml = this.createMessageHtml(sender, bubbleContent);
+            
+            wrapper.innerHTML = messageHtml;
+            
+            // Batch DOM updates
+            domBatcher.addUpdate((fragment) => {
+                container.appendChild(wrapper);
+                
+                // Observe for virtualization
+                if (this.messageObserver) {
+                    this.messageObserver.observe(wrapper);
+                }
+                
+                // Limit visible messages for performance
+                this.limitVisibleMessages(container);
+                
+                // Smooth scroll to bottom
+                this.scrollToBottom(container);
+            });
+        });
     }
 
     createImageElement(inlineData) {
-        const img = document.createElement('img');
-        img.src = `data:${inlineData.mimeType};base64,${inlineData.data}`;
-        img.className = 'rounded-lg mt-2 w-full h-auto';
-        img.loading = 'lazy';
-        return img.outerHTML;
+        // Use data-src for lazy loading optimization
+        return `<img 
+            data-src="data:${inlineData.mimeType};base64,${inlineData.data}"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3C/svg%3E"
+            class="rounded-lg mt-2 w-full h-auto lazy-image"
+            loading="lazy"
+            alt="Uploaded image"
+        />`;
     }
 
     createPdfPreview(text) {
@@ -94,7 +135,7 @@ export class ChatManager {
         if (sender === 'user') {
             return `
                 <div class="bg-blue-500 text-white rounded-2xl rounded-tr-none p-3.5 text-sm shadow-md max-w-lg" role="article" aria-label="사용자 메시지">
-                    ${content}
+                    <div class="message-content">${content}</div>
                 </div>
                 <div class="w-9 h-9 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="사용자 아바타">나</div>
             `;
@@ -102,7 +143,7 @@ export class ChatManager {
             return `
                 <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="AI 아바타">AI</div>
                 <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm" role="article" aria-label="AI 응답">
-                    ${content}
+                    <div class="message-content">${content}</div>
                 </div>
             `;
         }
@@ -122,8 +163,12 @@ export class ChatManager {
     }
 
     scrollToBottom(container) {
+        // Use passive scrolling for better performance
         requestAnimationFrame(() => {
-            container.scrollTop = container.scrollHeight;
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
         });
     }
 
@@ -155,7 +200,11 @@ export class ChatManager {
     async sendMessage(apiUrl, message, url, persona, sessionId, onSuccess, onError) {
         // Validate inputs
         if (message && !validateInput(message)) {
-            onError(new Error('입력값에 허용되지 않은 문자가 포함되어 있습니다.'));
+            const errorInfo = errorHandler.handle(
+                new Error('입력값에 허용되지 않은 문자가 포함되어 있습니다.'), 
+                { action: 'validateInput' }
+            );
+            onError(errorInfo);
             return;
         }
 
@@ -182,7 +231,11 @@ export class ChatManager {
                     text: `[첨부된 PDF 파일 '${this.uploadedFile.name}'의 내용입니다.]\n\n---PDF 시작---\n${pdfText}\n---PDF 끝---` 
                 });
             } catch (error) {
-                onError(error);
+                const errorInfo = errorHandler.handle(error, {
+                    action: 'extractPdfText',
+                    fileName: this.uploadedFile.name
+                });
+                onError(errorInfo);
                 return;
             }
         }
@@ -204,13 +257,19 @@ export class ChatManager {
         }
 
         this.chatHistory.push({ role: "user", parts: userParts });
+        
+        // Trim chat history to prevent token overflow
+        this.trimChatHistory();
+        
+        // Get context window for API request
+        const contextHistory = this.getContextWindow();
 
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    chatHistory: this.chatHistory, 
+                    chatHistory: contextHistory, 
                     model: 'gemini',
                     persona: enhancedPersona,
                     sessionId: sessionId,
@@ -239,7 +298,11 @@ export class ChatManager {
             }
 
         } catch (error) {
-            const errorInfo = formatErrorMessage(error);
+            const errorInfo = errorHandler.handle(error, {
+                action: 'sendMessage',
+                sessionId: sessionId,
+                messageLength: message?.length || 0
+            });
             onError(errorInfo);
         }
     }
@@ -439,5 +502,40 @@ Ingat: Anda adalah FERA AI, dikembangkan oleh Online Studio.
 
         const reinforcementReminder = reinforcementMessages[currentLang] || reinforcementMessages.en;
         return originalPersona + reinforcementReminder;
+    }
+    
+    // Trim chat history to prevent memory overflow
+    trimChatHistory() {
+        if (this.chatHistory.length > this.maxHistoryLength) {
+            // Keep the most recent messages
+            const trimCount = this.chatHistory.length - this.maxHistoryLength;
+            this.chatHistory = this.chatHistory.slice(trimCount);
+            
+            // Reset message count if we trimmed past reinforcement messages
+            if (trimCount > 0) {
+                this.messageCountSinceInjection = Math.max(0, this.messageCountSinceInjection - trimCount);
+            }
+        }
+    }
+    
+    // Get a sliding window of recent messages for API context
+    getContextWindow() {
+        if (this.chatHistory.length <= this.contextWindowSize) {
+            return this.chatHistory;
+        }
+        
+        // Always include the first system message if it exists
+        const systemMessages = this.chatHistory.filter(msg => msg.role === 'system');
+        const recentMessages = this.chatHistory.slice(-this.contextWindowSize);
+        
+        // Combine system messages with recent messages, avoiding duplicates
+        const contextHistory = [...systemMessages];
+        recentMessages.forEach(msg => {
+            if (!systemMessages.includes(msg)) {
+                contextHistory.push(msg);
+            }
+        });
+        
+        return contextHistory;
     }
 }

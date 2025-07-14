@@ -120,43 +120,111 @@ export function formatErrorMessage(error) {
     let errorMessage = i18n ? i18n.t('error.general') : '오류가 발생했습니다';
     let fallbackMessage = '';
     let errorType = 'unknown';
+    let userAction = '';
     
     // Network connection check
     if (!navigator.onLine) {
         errorType = 'network';
         errorMessage = i18n ? i18n.t('error.network') : '🌐 네트워크 연결 오류';
         fallbackMessage = i18n ? i18n.t('error.network') : '인터넷 연결을 확인해주세요.';
+        userAction = i18n ? i18n.t('action.checkConnection') : '🔄 인터넷 연결을 확인하고 다시 시도하세요';
     } 
     // API response errors
     else if (error.message.includes('429')) {
         errorType = 'rateLimit';
         errorMessage = '⏱️ 요청 한도 초과';
         fallbackMessage = '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.';
+        userAction = '⏰ 1분 후에 다시 시도해주세요';
     } else if (error.message.includes('401') || error.message.includes('403')) {
         errorType = 'auth';
         errorMessage = '🔐 인증 오류';
         fallbackMessage = 'API 인증에 실패했습니다. 관리자에게 문의하세요.';
+        userAction = '💁 관리자에게 문의하거나 페이지를 새로고침하세요';
     } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
         errorType = 'server';
         errorMessage = i18n ? i18n.t('error.serverConfig') : '🖥️ 서버 오류';
         fallbackMessage = i18n ? i18n.t('error.serverConfig') : '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        userAction = '⏰ 몇 분 후에 다시 시도해주세요';
     } else if (error.message.includes('timeout')) {
         errorType = 'timeout';
         errorMessage = '⏳ 요청 시간 초과';
         fallbackMessage = '응답 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.';
+        userAction = '🔄 다시 시도하거나 질문을 더 짧게 해보세요';
     } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
         errorType = 'network';
         errorMessage = i18n ? i18n.t('error.network') : '🌐 네트워크 요청 실패';
         fallbackMessage = i18n ? i18n.t('error.network') : '서버에 연결할 수 없습니다. 네트워크 설정을 확인해주세요.';
+        userAction = '🔌 네트워크 연결을 확인하세요';
+    } else if (error.message.includes('content blocked') || error.message.includes('safety')) {
+        errorType = 'safety';
+        errorMessage = '🚫 콘텐츠 안전 제한';
+        fallbackMessage = '요청하신 내용이 안전 정책에 의해 차단되었습니다.';
+        userAction = '📝 다른 내용으로 시도해주세요';
+    } else if (error.message.includes('file') || error.message.includes('size')) {
+        errorType = 'file';
+        errorMessage = '📁 파일 오류';
+        fallbackMessage = error.message;
+        userAction = '📄 파일 크기나 형식을 확인하세요';
     } else {
         errorType = 'general';
         fallbackMessage = error.message || (i18n ? i18n.t('error.general') : '알 수 없는 오류가 발생했습니다.');
+        userAction = '🔄 페이지를 새로고침하거나 다시 시도해주세요';
     }
     
     return {
         type: errorType,
         title: errorMessage,
         message: fallbackMessage,
-        fullMessage: `${errorMessage}\n\n${fallbackMessage}\n\n문제가 지속되면 페이지를 새로고침해주세요.`
+        action: userAction,
+        fullMessage: `${errorMessage}\n\n${fallbackMessage}\n\n${userAction}`,
+        isRetryable: ['network', 'timeout', 'server', 'rateLimit'].includes(errorType)
     };
 }
+
+// Unified error handler
+export class ErrorHandler {
+    constructor() {
+        this.errorLog = [];
+        this.maxLogSize = 100;
+    }
+    
+    handle(error, context = {}) {
+        const errorInfo = formatErrorMessage(error);
+        
+        // Log error for debugging
+        this.logError({
+            ...errorInfo,
+            timestamp: new Date().toISOString(),
+            context,
+            originalError: error
+        });
+        
+        // Return formatted error for UI
+        return errorInfo;
+    }
+    
+    logError(errorEntry) {
+        this.errorLog.push(errorEntry);
+        
+        // Limit log size
+        if (this.errorLog.length > this.maxLogSize) {
+            this.errorLog = this.errorLog.slice(-this.maxLogSize);
+        }
+        
+        // Log to console in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.error('[ErrorHandler]', errorEntry);
+        }
+    }
+    
+    getRecentErrors(count = 10) {
+        return this.errorLog.slice(-count);
+    }
+    
+    clearErrors() {
+        this.errorLog = [];
+    }
+}
+
+// Global error handler instance
+export const errorHandler = new ErrorHandler();

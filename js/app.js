@@ -1,6 +1,6 @@
 // Main application module
 import { ChatManager } from './chat.js';
-import { generateSessionId, sanitizeHTML } from './utils.js';
+import { generateSessionId, sanitizeHTML, errorHandler } from './utils.js';
 
 class FeraApp {
     constructor() {
@@ -10,6 +10,7 @@ class FeraApp {
         this.systemInstructions = null; // Delay initialization until i18n is ready
         this.touchStartX = 0;
         this.touchEndX = 0;
+        this.lastFailedMessage = null;
         this.initializeElements();
         this.initializeEventListeners();
         this.initializeTheme();
@@ -455,14 +456,26 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 this.chatInput.focus();
             },
             (errorInfo) => {
+                // Create error message with action button if retryable
+                let errorContent = errorInfo.fullMessage;
+                
+                if (errorInfo.isRetryable) {
+                    errorContent += `\n\n<button class="retry-button" onclick="window.feraApp.retryLastMessage()">🔄 다시 시도</button>`;
+                }
+                
                 this.chatManager.addMessage(
                     this.chatMessages, 
                     'bot', 
-                    [{ text: errorInfo.fullMessage }]
+                    [{ text: errorContent }]
                 );
                 this.chatManager.toggleLoading(this.chatMessages, false);
                 this.sendButton.disabled = false;
                 this.chatInput.focus();
+                
+                // Store last message for retry
+                if (errorInfo.isRetryable) {
+                    this.lastFailedMessage = { message, url, persona: combinedPersona };
+                }
             }
         );
     }
@@ -491,7 +504,8 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 this.filePreviewContainer.classList.add('visible');
             },
             (error) => {
-                alert(window.i18n ? window.i18n.t('error.general') + ': ' + error : error);
+                const errorInfo = typeof error === 'string' ? { fullMessage: error } : error;
+                alert(errorInfo.fullMessage || error);
                 this.fileInput.value = '';
             }
         );
@@ -544,23 +558,25 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             }
 
         } catch (error) {
-            console.error('Image Generation Error:', error);
-            this.showImageError(error);
+            const errorInfo = errorHandler.handle(error, {
+                action: 'generateImage',
+                prompt: prompt.substring(0, 50) + '...'
+            });
+            this.showImageError(errorInfo);
         } finally {
             this.imageLoader.classList.add('hidden');
             this.generateImageButton.disabled = false;
         }
     }
 
-    showImageError(error) {
+    showImageError(errorInfo) {
         let errorHTML = '<div class="text-red-500 text-sm p-4 text-center">';
+        errorHTML += `<strong>${errorInfo.title}</strong><br>`;
+        errorHTML += `${errorInfo.message}<br><br>`;
+        errorHTML += `<span class="text-xs">${errorInfo.action}</span>`;
         
-        if (error.message.includes('429')) {
-            errorHTML += '요청 한도를 초과했습니다.<br>잠시 후 다시 시도해주세요.';
-        } else if (!navigator.onLine) {
-            errorHTML += '인터넷 연결을 확인해주세요.';
-        } else {
-            errorHTML += `이미지 생성 중 오류가 발생했습니다.<br>${sanitizeHTML(error.message)}`;
+        if (errorInfo.isRetryable) {
+            errorHTML += `<br><button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick="window.feraApp.handleGenerateImage()">🔄 다시 시도</button>`;
         }
         
         errorHTML += '</div>';
@@ -639,6 +655,66 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 document.documentElement.style.setProperty('--keyboard-height', '0px');
             }
         });
+    }
+    
+    // Retry failed message
+    retryLastMessage() {
+        if (!this.lastFailedMessage) return;
+        
+        const { message, url, persona } = this.lastFailedMessage;
+        this.lastFailedMessage = null;
+        
+        // Remove the error message
+        const messages = this.chatMessages.querySelectorAll('.message-bubble');
+        if (messages.length > 0) {
+            messages[messages.length - 1].remove();
+        }
+        
+        // Retry sending the message
+        this.sendButton.disabled = true;
+        this.chatManager.toggleLoading(this.chatMessages, true);
+        
+        // Determine API URL based on environment
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+            ? 'https://fera-ai.vercel.app/api/chat-secure'
+            : '/api/chat-secure';
+        
+        // Retry with exponential backoff
+        setTimeout(() => {
+            this.chatManager.sendMessage(
+                apiUrl,
+                message,
+                url,
+                persona,
+                this.sessionId,
+                (botParts) => {
+                    this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
+                    this.chatManager.toggleLoading(this.chatMessages, false);
+                    this.sendButton.disabled = false;
+                    this.chatInput.focus();
+                },
+                (errorInfo) => {
+                    // Show error again
+                    let errorContent = errorInfo.fullMessage;
+                    if (errorInfo.isRetryable) {
+                        errorContent += `\n\n<button class="retry-button" onclick="window.feraApp.retryLastMessage()">🔄 다시 시도</button>`;
+                    }
+                    
+                    this.chatManager.addMessage(
+                        this.chatMessages, 
+                        'bot', 
+                        [{ text: errorContent }]
+                    );
+                    this.chatManager.toggleLoading(this.chatMessages, false);
+                    this.sendButton.disabled = false;
+                    this.chatInput.focus();
+                    
+                    if (errorInfo.isRetryable) {
+                        this.lastFailedMessage = { message, url, persona };
+                    }
+                }
+            );
+        }, 1000); // 1 second delay before retry
     }
 }
 
