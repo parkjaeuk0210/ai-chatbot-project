@@ -351,6 +351,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.currentPersona = sanitizeHTML(this.personaInput.value);
         localStorage.setItem('feraPersona', this.currentPersona);
         
+        // Update system instructions to reflect current language
+        this.systemInstructions = this.getSystemInstructions();
+        
         this.closeSettings();
         
         // Reset chat
