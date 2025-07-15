@@ -378,7 +378,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         this.chatManager.addMessage(
             this.chatMessages, 
-            'bot', 
+            'model', 
             [{text: window.i18n ? window.i18n.t('message.personaUpdated') : '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!'}]
         );
     }
@@ -428,7 +428,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             combinedPersona,
             this.sessionId,
             (botParts) => {
-                this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
+                this.chatManager.addMessage(this.chatMessages, 'model', botParts);
                 this.chatManager.toggleLoading(this.chatMessages, false);
                 this.sendButton.disabled = false;
                 this.chatInput.focus();
@@ -447,7 +447,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 
                 this.chatManager.addMessage(
                     this.chatMessages, 
-                    'bot', 
+                    'model', 
                     [{ text: errorContent }]
                 );
                 this.chatManager.toggleLoading(this.chatMessages, false);
@@ -614,7 +614,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 // Show success message
                 this.chatManager.addMessage(
                     this.chatMessages, 
-                    'bot', 
+                    'model', 
                     [{ text: '🎉 FERA AI가 성공적으로 설치되었습니다! 홈 화면에서 앱을 찾아보세요.' }]
                 );
                 
@@ -627,7 +627,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             // Already installed
             this.chatManager.addMessage(
                 this.chatMessages, 
-                'bot', 
+                'model', 
                 [{ text: '✅ FERA AI가 이미 설치되어 있습니다!' }]
             );
         } else {
@@ -663,7 +663,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         this.chatManager.addMessage(
             this.chatMessages, 
-            'bot', 
+            'model', 
             [{ text: guideMessage }]
         );
     }
@@ -757,7 +757,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 persona,
                 this.sessionId,
                 (botParts) => {
-                    this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
+                    this.chatManager.addMessage(this.chatMessages, 'model', botParts);
                     this.chatManager.toggleLoading(this.chatMessages, false);
                     this.sendButton.disabled = false;
                     this.chatInput.focus();
@@ -771,7 +771,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                     
                     this.chatManager.addMessage(
                         this.chatMessages, 
-                        'bot', 
+                        'model', 
                         [{ text: errorContent }]
                     );
                     this.chatManager.toggleLoading(this.chatMessages, false);

@@ -1,5 +1,4 @@
 // Toast Component - User-friendly notification system
-import { escapeHtml } from '../security.js';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 export type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';
@@ -207,7 +206,7 @@ export class ToastManager {
    * Dismiss all toasts
    */
   dismissAll(): void {
-    this.toasts.forEach((toast, id) => {
+    this.toasts.forEach((_, id) => {
       this.dismiss(id);
     });
   }

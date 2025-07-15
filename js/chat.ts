@@ -1,14 +1,13 @@
 // Chat management module
-import { generateSessionId, debounce, formatBytes } from './utils.js';
-import { escapeHtml, createSafeTextElement, setSafeHtml } from './security.js';
+import { formatBytes } from './utils.js';
+import { escapeHtml, setSafeHtml } from './security.js';
 import type { ChatMessage, UploadedFile, MessagePart } from '../types';
 
 export class ChatManager {
     chatHistory: ChatMessage[] = [];
-    uploadedFile: UploadedFile = { type: null, data: null, name: null, mimeType: null };
+    uploadedFile: UploadedFile = { type: null, data: null, name: null, mimeType: undefined };
     private virtualScroller: VirtualScroller | null = null;
     private maxChatHistory: number = 100;
-    private maxMessageLength: number = 50000;
 
     /**
      * Initialize virtual scrolling for performance
@@ -20,7 +19,7 @@ export class ChatManager {
     /**
      * Add a message to chat
      */
-    addMessage(container: HTMLElement, sender: 'user' | 'bot', parts: MessagePart[]): void {
+    addMessage(container: HTMLElement, sender: 'user' | 'model', parts: MessagePart[]): void {
         const wrapper = document.createElement('div');
         wrapper.className = 'flex items-start gap-3 message-bubble';
 
@@ -42,7 +41,7 @@ export class ChatManager {
         });
 
         // Add to history
-        this.chatHistory.push({ role: sender === 'bot' ? 'model' : 'user', parts });
+        this.chatHistory.push({ role: sender, parts });
         
         // Trim history if too long
         if (this.chatHistory.length > this.maxChatHistory) {
@@ -207,12 +206,19 @@ export class ChatManager {
         file: File,
         onPreview: (preview: { type: string; name: string; size: string }) => void
     ): Promise<void> {
-        this.uploadedFile = {
-            type: 'pdf',
-            data: file,
-            name: file.name,
-            mimeType: file.type
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target?.result as string;
+            const base64Data = base64.split(',')[1];
+            this.uploadedFile = {
+                type: 'pdf',
+                data: base64Data,
+                name: file.name,
+                mimeType: file.type
+            };
         };
+        reader.readAsDataURL(file);
+        
         onPreview({
             type: 'pdf',
             name: file.name,
@@ -290,7 +296,7 @@ export class ChatManager {
      * Clear uploaded file
      */
     clearUploadedFile(): void {
-        this.uploadedFile = { type: null, data: null, name: null, mimeType: null };
+        this.uploadedFile = { type: null, data: null, name: null, mimeType: undefined };
     }
 
     /**
@@ -337,7 +343,7 @@ export class ChatManager {
  * Virtual scroller for performance
  */
 class VirtualScroller {
-    constructor(private container: HTMLElement) {
+    constructor(_container: HTMLElement) {
         // Implementation would go here for virtual scrolling
         // For now, this is a placeholder
     }

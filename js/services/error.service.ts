@@ -1,5 +1,4 @@
 // Error Service - Centralized error handling and logging
-import type { ErrorInfo } from '../../types';
 
 export interface ErrorLog {
   timestamp: string;

@@ -92,6 +92,13 @@ export function formatRelativeTime(date: Date | string | number): string {
 }
 
 /**
+ * Get timestamp string
+ */
+export function getTimestamp(): string {
+    return new Date().toISOString();
+}
+
+/**
  * Deep clone object
  */
 export function deepClone<T>(obj: T): T {

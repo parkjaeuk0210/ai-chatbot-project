@@ -50,6 +50,7 @@ export interface UploadedFile {
   data: string | null;
   name: string | null;
   size?: number;
+  mimeType?: string;
 }
 
 export interface FilePreview {

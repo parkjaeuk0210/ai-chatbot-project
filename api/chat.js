@@ -233,7 +233,7 @@ export default async function handler(request, response) {
             .from('chat_logs')
             .insert({
                 session_id: sessionId,
-                sender: 'bot',
+                sender: 'model',
                 message: botResponse.parts.map(part => part.text || '').join(' '),
                 raw_data: botResponse
             });

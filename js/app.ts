@@ -2,18 +2,16 @@
 import { ChatManager } from './chat.js';
 import { apiService } from './services/api.service.js';
 import { storageService } from './services/storage.service.js';
-import { generateSessionId, throttle, debounce } from './utils.js';
-import { createSafeErrorMessage, escapeHtml } from './security.js';
+import { generateSessionId, throttle } from './utils.js';
 import type { AppSettings, BeforeInstallPromptEvent, ChatMessage } from '../types';
 
 export class FeraApp {
   private chatManager: ChatManager;
   private sessionId: string;
   private currentLanguage: string = 'ko';
-  private isInitialized: boolean = false;
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private resizeHandler: (() => void) | null = null;
-  private lastFailedMessage: any = null;
+  private lastMessage: { text: string; file: any } | null = null;
 
   // DOM elements
   private chatMessages!: HTMLElement;
@@ -26,13 +24,13 @@ export class FeraApp {
   private filePreviewContainer!: HTMLElement;
   private previewImage!: HTMLImageElement;
   private removeFileButton!: HTMLElement;
-  private loadingIndicator!: HTMLElement;
 
   constructor() {
     this.chatManager = new ChatManager();
     this.sessionId = this.initializeSession();
     this.initializeApp();
   }
+
 
   /**
    * Initialize session
@@ -89,7 +87,6 @@ export class FeraApp {
         window.i18n.setLanguage(this.currentLanguage);
       }
       
-      this.isInitialized = true;
       console.log('FeraApp initialized successfully');
       
     } catch (error) {
@@ -109,7 +106,6 @@ export class FeraApp {
       sendButton: document.getElementById('sendButton') as HTMLButtonElement,
       fileInput: document.getElementById('fileInput') as HTMLInputElement,
       newChatButton: document.getElementById('newChatButton'),
-      loadingIndicator: document.getElementById('loadingIndicator'),
     };
 
     // Check all required elements exist
@@ -125,7 +121,6 @@ export class FeraApp {
     this.sendButton = requiredElements.sendButton!;
     this.fileInput = requiredElements.fileInput!;
     this.newChatButton = requiredElements.newChatButton!;
-    this.loadingIndicator = requiredElements.loadingIndicator!;
 
     // Optional elements
     this.installButton = document.getElementById('installButton') || document.createElement('div');
@@ -187,6 +182,12 @@ export class FeraApp {
     const message = this.chatInput.value.trim();
     if (!message && !this.chatManager.uploadedFile.data) return;
     
+    // Save last message for retry
+    this.lastMessage = {
+      text: message,
+      file: this.chatManager.uploadedFile
+    };
+    
     this.chatInput.value = '';
     this.adjustTextareaHeight();
     this.sendButton.disabled = true;
@@ -215,7 +216,7 @@ export class FeraApp {
       // Handle response
       if (response.candidates && response.candidates.length > 0) {
         const botMessage = response.candidates[0].content;
-        this.chatManager.addMessage(this.chatMessages, 'bot', botMessage.parts);
+        this.chatManager.addMessage(this.chatMessages, 'model', botMessage.parts);
       } else {
         throw new Error('No response from AI');
       }
@@ -228,6 +229,17 @@ export class FeraApp {
       this.chatInput.focus();
       this.removePreview();
       this.saveState();
+    }
+  }
+
+  /**
+   * Retry last message
+   */
+  retryLastMessage(): void {
+    if (this.lastMessage) {
+      this.chatInput.value = this.lastMessage.text;
+      this.chatManager.uploadedFile = this.lastMessage.file;
+      this.sendMessage();
     }
   }
 
@@ -354,7 +366,7 @@ Be concise, helpful, and friendly.`;
     const errorMessage = typeof error === 'string' ? error : error.message || 'Unknown error';
     this.chatManager.addMessage(
       this.chatMessages,
-      'bot',
+      'model',
       [{ text: `Error: ${errorMessage}` }]
     );
   }

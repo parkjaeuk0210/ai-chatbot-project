@@ -1,5 +1,5 @@
 // API Service - Handles all API communications
-import type { ChatRequest, ChatResponse, ErrorInfo } from '../../types';
+import type { ChatRequest, ChatResponse } from '../../types';
 import { formatErrorMessage } from '../utils.js';
 import { errorService } from './error.service.js';
 import { apiCircuitBreaker } from './circuit-breaker.js';
