@@ -24,6 +24,13 @@ const copyStaticFiles = () => ({
       
       // Copy a11y.css
       copyFileSync('./css/a11y.css', './dist/css/a11y.css');
+      
+      // Copy styles.css
+      try {
+        copyFileSync('./css/styles.css', './dist/css/styles.css');
+      } catch (e) {
+        console.warn('styles.css not found');
+      }
     } catch (err) {
       console.warn('Warning: Could not copy some static files:', err.message);
     }
