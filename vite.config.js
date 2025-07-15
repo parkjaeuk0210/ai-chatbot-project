@@ -74,7 +74,11 @@ export default defineConfig({
           'utils': [
             './js/utils.js',
             './js/security.js',
-            './js/utils/lazyLoader.js'
+            './js/utils/lazyLoader.js',
+            './js/utils/offlineQueue.js'
+          ],
+          'components': [
+            './js/components/typingIndicator.js'
           ],
           'chat': [
             './js/chat.js'

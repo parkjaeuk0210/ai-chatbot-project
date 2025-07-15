@@ -2,6 +2,8 @@
 import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput, errorHandler } from './utils.js';
 import { domBatcher, performanceMonitor } from './performance.js';
 import { escapeHtml, setSafeHtml, createSafeTextElement } from './security.js';
+import { offlineQueue } from './utils/offlineQueue.js';
+import TypingIndicator from './components/typingIndicator.js';
 
 export class ChatManager {
     constructor() {
@@ -17,6 +19,7 @@ export class ChatManager {
         this.cleanupHandlers = [];
         this.maxCacheSize = 100; // Maximum messages to cache
         this.cacheCleanupThreshold = 120; // Trigger cleanup when cache exceeds this
+        this.typingIndicator = null;
     }
     
     // Cleanup method to prevent memory leaks
@@ -228,24 +231,15 @@ export class ChatManager {
     toggleLoading(container, show) {
         let loadingEl = document.getElementById('loading-indicator');
         if (show) {
-            if (!loadingEl) {
-                loadingEl = document.createElement('div');
-                loadingEl.id = 'loading-indicator';
-                loadingEl.className = 'flex items-start gap-3 max-w-lg message-bubble';
-                loadingEl.innerHTML = `
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
-                    <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                        <span class="loading-dot"></span>
-                        <span class="loading-dot"></span>
-                        <span class="loading-dot"></span>
-                        <span class="sr-only" role="status" aria-live="polite">AI가 응답을 생성하고 있습니다</span>
-                    </div>
-                `;
-                container.appendChild(loadingEl);
-                this.scrollToBottom(container);
+            // Use typing indicator component
+            if (!this.typingIndicator) {
+                this.typingIndicator = new TypingIndicator(container);
             }
+            this.typingIndicator.show('bounce');
         } else {
-            if (loadingEl) {
+            if (this.typingIndicator) {
+                this.typingIndicator.hide();
+            } else if (loadingEl) {
                 loadingEl.remove();
             }
         }
@@ -318,6 +312,25 @@ export class ChatManager {
         // Get context window for API request
         const contextHistory = this.getContextWindow();
 
+        // Check if offline
+        if (!navigator.onLine) {
+            // Queue message for offline sync
+            await offlineQueue.addMessage({
+                data: {
+                    chatHistory: contextHistory,
+                    model: 'gemini',
+                    persona: enhancedPersona,
+                    sessionId: sessionId,
+                    url: url
+                }
+            });
+            
+            onSuccess([{ 
+                text: '📡 오프라인 상태입니다. 메시지가 저장되었으며 온라인 상태가 되면 자동으로 전송됩니다.' 
+            }]);
+            return;
+        }
+        
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
