@@ -1397,6 +1397,77 @@
                 window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
             }
         });
+        
+        // Emergency button fix - add click handlers directly
+        window.addEventListener('load', () => {
+            console.log('Adding emergency click handlers...');
+            
+            // Settings button
+            const settingsBtn = document.getElementById('settings-button');
+            if (settingsBtn && !settingsBtn.hasAttribute('data-listener-added')) {
+                settingsBtn.addEventListener('click', () => {
+                    console.log('Settings clicked!');
+                    if (window.feraApp && window.feraApp.openSettings) {
+                        window.feraApp.openSettings();
+                    }
+                });
+                settingsBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn && !themeBtn.hasAttribute('data-listener-added')) {
+                themeBtn.addEventListener('click', () => {
+                    console.log('Theme clicked!');
+                    if (window.feraApp && window.feraApp.toggleTheme) {
+                        window.feraApp.toggleTheme();
+                    }
+                });
+                themeBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            // Download button
+            const downloadBtn = document.getElementById('download-button');
+            if (downloadBtn && !downloadBtn.hasAttribute('data-listener-added')) {
+                downloadBtn.addEventListener('click', () => {
+                    console.log('Download clicked!');
+                    if (window.feraApp && window.feraApp.handleDownload) {
+                        window.feraApp.handleDownload();
+                    }
+                });
+                downloadBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            // Tab buttons
+            const chatTab = document.getElementById('chat-tab-button');
+            const imageTab = document.getElementById('image-tab-button');
+            
+            if (chatTab && !chatTab.hasAttribute('data-listener-added')) {
+                chatTab.addEventListener('click', () => {
+                    console.log('Chat tab clicked!');
+                    if (window.feraApp && window.feraApp.switchTabs) {
+                        window.feraApp.switchTabs('chat');
+                    } else {
+                        // Fallback to inline function
+                        switchTabs('chat');
+                    }
+                });
+                chatTab.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (imageTab && !imageTab.hasAttribute('data-listener-added')) {
+                imageTab.addEventListener('click', () => {
+                    console.log('Image tab clicked!');
+                    if (window.feraApp && window.feraApp.switchTabs) {
+                        window.feraApp.switchTabs('image');
+                    } else {
+                        // Fallback to inline function
+                        switchTabs('image');
+                    }
+                });
+                imageTab.setAttribute('data-listener-added', 'true');
+            }
+        });
     </script>
     <script type="module" src="/js/main.js"></script>
 </body>

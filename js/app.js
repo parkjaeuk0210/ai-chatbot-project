@@ -101,6 +101,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.downloadButton = document.getElementById('download-button');
         this.themeToggle = document.getElementById('theme-toggle');
         
+        // Debug logging
+        console.log('Settings button:', this.settingsButton);
+        console.log('Download button:', this.downloadButton);
+        console.log('Theme toggle:', this.themeToggle);
+        
         // Modal elements
         this.settingsModal = document.getElementById('settings-modal');
         this.personaInput = document.getElementById('persona-input');
@@ -150,13 +155,38 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     }
 
     initializeEventListeners() {
+        console.log('Initializing event listeners...');
+        
         // Settings
-        this.settingsButton.addEventListener('click', () => this.openSettings());
+        if (this.settingsButton) {
+            this.settingsButton.addEventListener('click', () => this.openSettings());
+            console.log('Settings button listener added');
+        } else {
+            console.error('Settings button not found!');
+        }
+        
         // Download button for PWA installation
-        this.downloadButton.addEventListener('click', () => this.handleDownload());
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-        this.closePersonaButton.addEventListener('click', () => this.closeSettings());
-        this.savePersonaButton.addEventListener('click', () => this.saveSettings());
+        if (this.downloadButton) {
+            this.downloadButton.addEventListener('click', () => this.handleDownload());
+            console.log('Download button listener added');
+        } else {
+            console.error('Download button not found!');
+        }
+        
+        if (this.themeToggle) {
+            this.themeToggle.addEventListener('click', () => this.toggleTheme());
+            console.log('Theme toggle listener added');
+        } else {
+            console.error('Theme toggle not found!');
+        }
+        
+        if (this.closePersonaButton) {
+            this.closePersonaButton.addEventListener('click', () => this.closeSettings());
+        }
+        
+        if (this.savePersonaButton) {
+            this.savePersonaButton.addEventListener('click', () => this.saveSettings());
+        }
         
         // Tabs
         this.chatTabButton.addEventListener('click', () => this.switchTabs('chat'));
@@ -838,10 +868,13 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     }
 }
 
-// Initialize PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+// Initialize PDF.js when available
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+}
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.feraApp = new FeraApp();
-});
+// Export FeraApp class
+export { FeraApp };
+
+// For debugging
+window.FeraApp = FeraApp;
