@@ -1,4 +1,4 @@
-# AI Chatbot Project
+# AI Chatbot Project - FERA AI
 
 ## 로컬 실행 방법 (Vercel과 동일한 환경)
 
