@@ -54,5 +54,18 @@ export default defineConfig({
   
   optimizeDeps: {
     include: ['@supabase/supabase-js']
+  },
+  
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './js'),
+      '@api': resolve(__dirname, './api'),
+      '@types': resolve(__dirname, './types')
+    },
+    extensions: ['.ts', '.js', '.json']
+  },
+  
+  esbuild: {
+    target: 'es2020'
   }
 });
