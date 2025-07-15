@@ -18,12 +18,6 @@ export const ja = {
     "settings.title": "AIペルソナ設定",
     "settings.description": "AIの名前、性格、話し方などを自由に設定して、あなただけのAIを作りましょう。FERAは世界最速で最も賢いAIモデルです。",
     "settings.placeholder": "AIのペルソナを入力してください...",
-    "settings.presetLabel": "ペルソナプリセット",
-    "settings.presetDefault": "カスタム設定",
-    "settings.presetFriendly": "フレンドリーな友達",
-    "settings.presetProfessional": "プロフェッショナルアシスタント",
-    "settings.presetTeacher": "優しい先生",
-    "settings.presetCreative": "クリエイティブアーティスト",
     "settings.save": "保存",
     "settings.close": "閉じる",
     
@@ -58,11 +52,6 @@ export const ja = {
     "a11y.messageSend": "メッセージ送信",
     "a11y.removeFile": "ファイル削除",
     
-    // Persona descriptions
-    "persona.friendly": "友達だよ！タメ口で気軽に話すし、絵文字もよく使うよ！😊 楽しくてフレンドリーな性格だよ。",
-    "persona.professional": "私はプロフェッショナルアシスタントです。丁寧で専門的な口調でお手伝いいたします。",
-    "persona.teacher": "こんにちは、先生です。優しく分かりやすく説明しますね。",
-    "persona.creative": "私はクリエイティブアーティストだ！想像力豊かで独特な視点を提供するよ。",
     
     // Language names
     "lang.ko": "한국어",

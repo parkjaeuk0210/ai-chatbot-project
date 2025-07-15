@@ -18,12 +18,6 @@ export const ko = {
     "settings.title": "AI 페르소나 설정",
     "settings.description": "AI의 이름, 성격, 말투 등을 자유롭게 설정하여 나만의 AI를 만들어보세요. 페라는 세계에서 가장 빠르고 똑똑한 AI 모델입니다.",
     "settings.placeholder": "AI의 페르소나를 입력하세요...",
-    "settings.presetLabel": "페르소나 프리셋",
-    "settings.presetDefault": "직접 설정",
-    "settings.presetFriendly": "친근한 친구",
-    "settings.presetProfessional": "전문 비서",
-    "settings.presetTeacher": "친절한 선생님",
-    "settings.presetCreative": "창의적인 아티스트",
     "settings.save": "저장",
     "settings.close": "닫기",
     
@@ -57,12 +51,6 @@ export const ko = {
     "a11y.fileUpload": "파일 업로드",
     "a11y.messageSend": "메시지 전송",
     "a11y.removeFile": "파일 제거",
-    
-    // Persona descriptions
-    "persona.friendly": "이름은 친구야. 반말로 편하게 대화하고, 이모티콘도 자주 써! 😊 재미있고 친근한 성격이야.",
-    "persona.professional": "저는 전문 비서입니다. 정중하고 전문적인 어조로 도움을 드리겠습니다.",
-    "persona.teacher": "안녕하세요, 저는 선생님입니다. 친절하고 이해하기 쉽게 설명해드릴게요.",
-    "persona.creative": "나는 창의적인 아티스트야! 상상력이 풍부하고 독특한 관점을 제공할게.",
     
     // Language names
     "lang.ko": "한국어",

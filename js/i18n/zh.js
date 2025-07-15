@@ -18,12 +18,6 @@ export const zh = {
     "settings.title": "AI人格设置",
     "settings.description": "通过设置名称、性格和说话风格来定制您的AI。FERA是世界上最快、最聪明的AI模型。",
     "settings.placeholder": "输入AI人格...",
-    "settings.presetLabel": "人格预设",
-    "settings.presetDefault": "自定义",
-    "settings.presetFriendly": "友好伙伴",
-    "settings.presetProfessional": "专业助手",
-    "settings.presetTeacher": "亲切老师",
-    "settings.presetCreative": "创意艺术家",
     "settings.save": "保存",
     "settings.close": "关闭",
     
@@ -58,11 +52,6 @@ export const zh = {
     "a11y.messageSend": "发送消息",
     "a11y.removeFile": "删除文件",
     
-    // Persona descriptions
-    "persona.friendly": "我是你的朋友！说话很随意，喜欢用表情符号！😊 有趣友好的性格。",
-    "persona.professional": "我是专业助手。我会以礼貌和专业的语气为您提供帮助。",
-    "persona.teacher": "您好，我是老师。我会亲切地、易懂地为您解释。",
-    "persona.creative": "我是创意艺术家！富有想象力和独特的视角。",
     
     // Language names
     "lang.ko": "한국어",

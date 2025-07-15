@@ -15,7 +15,6 @@ class FeraApp {
         this.initializeEventListeners();
         this.initializeTheme();
         this.initializeMobile();
-        this.initializePersonaPresets();
         
         // Initialize system instructions after i18n is loaded
         setTimeout(() => {
@@ -112,7 +111,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.advancedSettings = document.getElementById('advanced-settings');
         this.advancedArrow = document.getElementById('advanced-arrow');
         this.hiddenPersonaInput = document.getElementById('hidden-persona');
-        this.personaPresetSelect = document.getElementById('persona-preset');
         
         // Tab elements
         this.chatTabButton = document.getElementById('chat-tab-button');
@@ -185,10 +183,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             }
         });
         
-        // Persona preset
-        if (this.personaPresetSelect) {
-            this.personaPresetSelect.addEventListener('change', (e) => this.applyPreset(e.target.value));
-        }
         
         // Keyboard navigation
         this.initializeKeyboardNavigation();
@@ -389,23 +383,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     }
     
     
-    initializePersonaPresets() {
-        this.personaPresets = {
-            friendly: "이름은 친구야. 반말로 편하게 대화하고, 이모티콘도 자주 써! 😊 재미있고 친근한 성격이야.",
-            professional: "저는 전문 비서입니다. 정중하고 전문적인 어조로 도움을 드리겠습니다.",
-            teacher: "안녕하세요, 저는 선생님입니다. 친절하고 이해하기 쉽게 설명해드릴게요.",
-            creative: "나는 창의적인 아티스트야! 상상력이 풍부하고 독특한 관점을 제공할게."
-        };
-    }
-    
-    applyPreset(presetName) {
-        if (!presetName) return;
-        
-        const preset = this.personaPresets[presetName];
-        if (preset) {
-            this.personaInput.value = preset;
-        }
-    }
 
     // Chat functionality
     async handleSendMessage() {

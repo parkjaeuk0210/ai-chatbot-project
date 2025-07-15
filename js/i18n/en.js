@@ -18,12 +18,6 @@ export const en = {
     "settings.title": "AI Persona Settings",
     "settings.description": "Customize your AI by setting its name, personality, and speaking style. FERA is the world's fastest and smartest AI model.",
     "settings.placeholder": "Enter AI persona...",
-    "settings.presetLabel": "Persona Presets",
-    "settings.presetDefault": "Custom",
-    "settings.presetFriendly": "Friendly Buddy",
-    "settings.presetProfessional": "Professional Assistant",
-    "settings.presetTeacher": "Kind Teacher",
-    "settings.presetCreative": "Creative Artist",
     "settings.save": "Save",
     "settings.close": "Close",
     
@@ -57,12 +51,6 @@ export const en = {
     "a11y.fileUpload": "Upload file",
     "a11y.messageSend": "Send message",
     "a11y.removeFile": "Remove file",
-    
-    // Persona descriptions
-    "persona.friendly": "Hey, I'm your buddy! I speak casually and love using emojis! 😊 Fun and friendly personality.",
-    "persona.professional": "I am a professional assistant. I will help you with a polite and professional tone.",
-    "persona.teacher": "Hello, I'm your teacher. I'll explain things kindly and in an easy-to-understand way.",
-    "persona.creative": "I'm a creative artist! Rich imagination and unique perspectives.",
     
     // Language names
     "lang.ko": "한국어",

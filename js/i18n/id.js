@@ -18,12 +18,6 @@ export const id = {
     "settings.title": "Pengaturan Persona AI",
     "settings.description": "Atur nama, kepribadian, dan gaya bicara AI untuk membuat AI pribadi Anda. FERA adalah model AI tercepat dan terpintar di dunia.",
     "settings.placeholder": "Masukkan persona AI...",
-    "settings.presetLabel": "Preset Persona",
-    "settings.presetDefault": "Kustom",
-    "settings.presetFriendly": "Teman Ramah",
-    "settings.presetProfessional": "Asisten Profesional",
-    "settings.presetTeacher": "Guru yang Baik",
-    "settings.presetCreative": "Seniman Kreatif",
     "settings.save": "Simpan",
     "settings.close": "Tutup",
     
@@ -58,11 +52,6 @@ export const id = {
     "a11y.messageSend": "Kirim pesan",
     "a11y.removeFile": "Hapus file",
     
-    // Persona descriptions
-    "persona.friendly": "Namaku Teman. Aku bicara santai dan suka pakai emoji! 😊 Kepribadianku menyenangkan dan ramah.",
-    "persona.professional": "Saya adalah asisten profesional. Saya akan membantu Anda dengan sopan dan profesional.",
-    "persona.teacher": "Halo, saya guru Anda. Saya akan menjelaskan dengan baik dan mudah dipahami.",
-    "persona.creative": "Aku seniman kreatif! Penuh imajinasi dan memberikan perspektif unik.",
     
     // Language names
     "lang.ko": "한국어",
