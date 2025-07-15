@@ -1,6 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { setupSwagger } from './api/swagger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,6 +37,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Setup Swagger UI for API documentation
+if (process.env.NODE_ENV !== 'production') {
+  setupSwagger(app);
+}
+
 // 정적 파일 제공 (Vercel과 동일하게)
 app.use(express.static('.'));
 
@@ -48,6 +58,16 @@ app.post('/api/chat', express.json(), (req, res) => {
       content: '로컬 서버에서의 테스트 응답입니다.',
       sessionId: req.body.sessionId
     }
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
