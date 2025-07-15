@@ -101,6 +101,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.downloadButton = document.getElementById('download-button');
         this.themeToggle = document.getElementById('theme-toggle');
         
+        // Check if download button exists
+        if (!this.downloadButton) {
+            console.error('Download button not found in DOM');
+        }
+        
         // Modal elements
         this.settingsModal = document.getElementById('settings-modal');
         this.personaInput = document.getElementById('persona-input');
@@ -154,7 +159,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         // Settings
         this.settingsButton.addEventListener('click', () => this.openSettings());
         // Download button for PWA installation
-        this.downloadButton.addEventListener('click', () => this.handleDownload());
+        if (this.downloadButton) {
+            this.downloadButton.addEventListener('click', () => this.handleDownload());
+        } else {
+            console.error('Cannot add event listener: Download button not found');
+        }
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
         this.closePersonaButton.addEventListener('click', () => this.closeSettings());
         this.savePersonaButton.addEventListener('click', () => this.saveSettings());
@@ -599,24 +608,33 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
                 .then(registration => {
-                    console.log('ServiceWorker registration successful');
+                    console.log('ServiceWorker registration successful:', registration);
                 })
                 .catch(err => {
-                    console.log('ServiceWorker registration failed: ', err);
+                    console.error('ServiceWorker registration failed: ', err);
                 });
+        } else {
+            console.warn('ServiceWorker not supported in this browser');
         }
         
         // Handle install prompt
         window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt event fired');
             e.preventDefault();
             this.deferredPrompt = e;
             console.log('PWA installation available');
+            
+            // Update download button to show it's available
+            if (this.downloadButton) {
+                this.downloadButton.classList.add('pulse-animation');
+            }
         });
         
         // Detect if already installed
         window.addEventListener('appinstalled', () => {
             console.log('FERA AI installed as PWA');
             this.isPWAInstalled = true;
+            this.deferredPrompt = null;
         });
         
         // Check if running as installed PWA
@@ -628,6 +646,10 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     }
     
     async handleDownload() {
+        console.log('Download button clicked');
+        console.log('Deferred prompt:', this.deferredPrompt);
+        console.log('Is PWA installed:', this.isPWAInstalled);
+        
         // Check if PWA can be installed
         if (this.deferredPrompt) {
             // Show PWA install prompt
@@ -664,6 +686,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     showInstallGuide() {
         const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
         const isAndroid = /android/.test(navigator.userAgent.toLowerCase());
+        const isSafari = /safari/.test(navigator.userAgent.toLowerCase()) && !/chrome/.test(navigator.userAgent.toLowerCase());
         
         let guideMessage = '📱 FERA AI 앱 설치 방법\n\n';
         

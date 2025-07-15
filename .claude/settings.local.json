@@ -14,7 +14,10 @@
       "Bash(python:*)",
       "Bash(node:*)",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm start)",
+      "Bash(taskkill:*)",
+      "Bash(PORT=3001 npm start)"
     ],
     "deny": []
   }

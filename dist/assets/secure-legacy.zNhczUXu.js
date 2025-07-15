@@ -1,0 +1,1 @@
+System.register(["./app-legacy.CPZ41faU.js","./monitoring-legacy.ChuxmaGz.js","./chat-legacy.UFBmbOhI.js","./utils-legacy.CqSv3Ac1.js","./components-legacy.CoT3yofy.js"],function(e,l){"use strict";return{setters:[null,null,null,null,null],execute:function(){}}});

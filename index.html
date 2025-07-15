@@ -153,6 +153,20 @@
             animation: spin 1s ease infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* PWA 설치 가능 시 다운로드 버튼 애니메이션 */
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
         .content-pane, #settings-modal {
             transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
         }
