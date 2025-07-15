@@ -1,6 +1,34 @@
 import { defineConfig } from 'vite';
 import legacy from '@vitejs/plugin-legacy';
-import { resolve } from 'path';
+import { fileURLToPath, URL } from 'node:url';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+
+// Custom plugin to copy static files
+const copyStaticFiles = () => ({
+  name: 'copy-static-files',
+  closeBundle() {
+    try {
+      // Copy manifest.json
+      copyFileSync('./manifest.json', './dist/manifest.json');
+      
+      // Copy sw.js
+      copyFileSync('./sw.js', './dist/sw.js');
+      
+      // Create directories if they don't exist
+      mkdirSync('./dist/icons', { recursive: true });
+      mkdirSync('./dist/css', { recursive: true });
+      
+      // Copy icon
+      copyFileSync('./icons/icon.svg', './dist/icons/icon.svg');
+      
+      // Copy a11y.css
+      copyFileSync('./css/a11y.css', './dist/css/a11y.css');
+    } catch (err) {
+      console.warn('Warning: Could not copy some static files:', err.message);
+    }
+  }
+});
 
 export default defineConfig({
   root: './',
@@ -19,8 +47,8 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        secure: resolve(__dirname, 'index-secure.html')
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        secure: fileURLToPath(new URL('./index-secure.html', import.meta.url))
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',
@@ -44,7 +72,8 @@ export default defineConfig({
   plugins: [
     legacy({
       targets: ['defaults', 'not IE 11']
-    })
+    }),
+    copyStaticFiles()
   ],
   
   server: {
@@ -58,9 +87,9 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@': resolve(__dirname, './js'),
-      '@api': resolve(__dirname, './api'),
-      '@types': resolve(__dirname, './types')
+      '@': fileURLToPath(new URL('./js', import.meta.url)),
+      '@api': fileURLToPath(new URL('./api', import.meta.url)),
+      '@types': fileURLToPath(new URL('./types', import.meta.url))
     },
     extensions: ['.ts', '.js', '.json']
   },
