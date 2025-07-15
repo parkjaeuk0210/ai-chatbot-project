@@ -1,6 +1,9 @@
 // Chat functionality module
 import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput, errorHandler } from './utils.js';
 import { domBatcher, performanceMonitor } from './performance.js';
+import { escapeHtml, setSafeHtml, createSafeTextElement } from './security.js';
+import { offlineQueue } from './utils/offlineQueue.js';
+import TypingIndicator from './components/typingIndicator.js';
 
 export class ChatManager {
     constructor() {
@@ -13,10 +16,48 @@ export class ChatManager {
         this.identityReinforcementInterval = 10; // Reinforce identity every 10 messages
         this.maxHistoryLength = 20; // Maximum messages to keep in history
         this.contextWindowSize = 10; // Messages to send to API
+        this.cleanupHandlers = [];
+        this.maxCacheSize = 100; // Maximum messages to cache
+        this.cacheCleanupThreshold = 120; // Trigger cleanup when cache exceeds this
+        this.typingIndicator = null;
+    }
+    
+    // Cleanup method to prevent memory leaks
+    cleanupVirtualization() {
+        if (this.messageObserver) {
+            this.messageObserver.disconnect();
+            this.messageObserver = null;
+        }
+    }
+    
+    // Complete cleanup method
+    destroy() {
+        this.cleanupVirtualization();
+        this.cleanupHandlers.forEach(handler => handler());
+        this.cleanupHandlers = [];
+        this.messageCache.clear();
+        this.chatHistory = [];
+    }
+    
+    // Clean up old cache entries to prevent memory bloat
+    cleanupMessageCache() {
+        if (this.messageCache.size <= this.maxCacheSize) return;
+        
+        // Convert to array and sort by key (assuming keys are timestamps or incrementing)
+        const entries = Array.from(this.messageCache.entries());
+        const toRemove = entries.slice(0, entries.length - this.maxCacheSize);
+        
+        // Remove old entries
+        toRemove.forEach(([key]) => {
+            this.messageCache.delete(key);
+        });
     }
 
     // Initialize message virtualization for performance
     initializeVirtualization(container) {
+        // Clean up existing observer if any
+        this.cleanupVirtualization();
+        
         this.messageObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -30,6 +71,8 @@ export class ChatManager {
             rootMargin: '100px',
             threshold: 0.1
         });
+        
+        this.messageContainer = container;
     }
 
     // Load message content when visible
@@ -40,7 +83,7 @@ export class ChatManager {
         const cachedContent = this.messageCache.get(messageId);
         const contentDiv = element.querySelector('.message-content');
         if (contentDiv && contentDiv.dataset.virtualized === 'true') {
-            contentDiv.innerHTML = cachedContent;
+            setSafeHtml(contentDiv, cachedContent);
             contentDiv.dataset.virtualized = 'false';
         }
     }
@@ -56,7 +99,7 @@ export class ChatManager {
             this.messageCache.set(messageId, contentDiv.innerHTML);
             
             // Replace with placeholder
-            contentDiv.innerHTML = '<div class="text-gray-400">...</div>';
+            setSafeHtml(contentDiv, '<div class="text-gray-400">...</div>');
             contentDiv.dataset.virtualized = 'true';
         }
     }
@@ -72,7 +115,7 @@ export class ChatManager {
             let textContent = '';
 
             parts.forEach(part => {
-                if (part.inlineData) {
+                if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
                     imageHtml = this.createImageElement(part.inlineData);
                 }
                 if (part.text) {
@@ -90,7 +133,7 @@ export class ChatManager {
             const bubbleContent = textContent + imageHtml;
             const messageHtml = this.createMessageHtml(sender, bubbleContent);
             
-            wrapper.innerHTML = messageHtml;
+            setSafeHtml(wrapper, messageHtml);
             
             // Batch DOM updates
             domBatcher.addUpdate((fragment) => {
@@ -99,6 +142,12 @@ export class ChatManager {
                 // Observe for virtualization
                 if (this.messageObserver) {
                     this.messageObserver.observe(wrapper);
+                }
+                
+                // Lazy load images in the message
+                const lazyImages = wrapper.querySelectorAll('img[data-src]');
+                if (window.lazyLoader && lazyImages.length > 0) {
+                    lazyImages.forEach(img => window.lazyLoader.observe(img));
                 }
                 
                 // Limit visible messages for performance
@@ -111,15 +160,21 @@ export class ChatManager {
     }
 
     createImageElement(inlineData) {
-        // Use data-src for lazy loading optimization
+        // Create image element with lazy loading
+        const img = document.createElement('img');
         const altText = this.uploadedFile.name ? `업로드된 이미지: ${this.uploadedFile.name}` : '업로드된 이미지';
-        return `<img 
-            data-src="data:${inlineData.mimeType};base64,${inlineData.data}"
-            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3C/svg%3E"
-            class="rounded-lg mt-2 w-full h-auto lazy-image"
-            loading="lazy"
-            alt="${altText}"
-        />`;
+        
+        // Use placeholder for lazy loading
+        const placeholder = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e0e0e0'/%3E%3C/svg%3E`;
+        img.src = placeholder;
+        img.dataset.src = `data:${inlineData.mimeType};base64,${inlineData.data}`;
+        img.className = 'max-w-full rounded-lg my-2 lazy-loading';
+        img.alt = altText;
+        img.style.filter = 'blur(10px)';
+        img.loading = 'lazy';
+        
+        // Return as HTML string
+        return img.outerHTML;
     }
 
     createPdfPreview(text) {
@@ -176,24 +231,15 @@ export class ChatManager {
     toggleLoading(container, show) {
         let loadingEl = document.getElementById('loading-indicator');
         if (show) {
-            if (!loadingEl) {
-                loadingEl = document.createElement('div');
-                loadingEl.id = 'loading-indicator';
-                loadingEl.className = 'flex items-start gap-3 max-w-lg message-bubble';
-                loadingEl.innerHTML = `
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
-                    <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                        <span class="loading-dot"></span>
-                        <span class="loading-dot"></span>
-                        <span class="loading-dot"></span>
-                        <span class="sr-only" role="status" aria-live="polite">AI가 응답을 생성하고 있습니다</span>
-                    </div>
-                `;
-                container.appendChild(loadingEl);
-                this.scrollToBottom(container);
+            // Use typing indicator component
+            if (!this.typingIndicator) {
+                this.typingIndicator = new TypingIndicator(container);
             }
+            this.typingIndicator.show('bounce');
         } else {
-            if (loadingEl) {
+            if (this.typingIndicator) {
+                this.typingIndicator.hide();
+            } else if (loadingEl) {
                 loadingEl.remove();
             }
         }
@@ -266,6 +312,25 @@ export class ChatManager {
         // Get context window for API request
         const contextHistory = this.getContextWindow();
 
+        // Check if offline
+        if (!navigator.onLine) {
+            // Queue message for offline sync
+            await offlineQueue.addMessage({
+                data: {
+                    chatHistory: contextHistory,
+                    model: 'gemini',
+                    persona: enhancedPersona,
+                    sessionId: sessionId,
+                    url: url
+                }
+            });
+            
+            onSuccess([{ 
+                text: '📡 오프라인 상태입니다. 메시지가 저장되었으며 온라인 상태가 되면 자동으로 전송됩니다.' 
+            }]);
+            return;
+        }
+        
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',

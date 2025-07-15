@@ -6,6 +6,7 @@ import { track } from "@vercel/analytics";
 import { rateLimit } from './middleware/rateLimit.js';
 import { getCache, setCache, shouldCache, generateCacheKey } from './middleware/cache.js';
 import { filterGeminiResponse, logFilteredContent } from './middleware/responseFilter.js';
+import { validateChatInput, sanitizeInput, checkRequestSize } from './middleware/validation.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -14,19 +15,21 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default async function handler(request, response) {
   // --- CORS 설정 시작 ---
-  const allowedOrigins = [
-    'http://127.0.0.1:5500',
-    'http://localhost:3000',
-    process.env.PRODUCTION_URL // Vercel 환경변수에 프로덕션 URL 추가 필요
-  ].filter(Boolean);
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [process.env.PRODUCTION_URL || 'https://fera-ai.vercel.app'].filter(Boolean)
+    : ['http://127.0.0.1:5500', 'http://localhost:3000'];
   
   const origin = request.headers.get('origin');
   if (allowedOrigins.includes(origin)) {
     response.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'production') {
+    // 프로덕션에서는 허용되지 않은 origin에 대해 403 반환
+    return response.status(403).json({ message: 'Forbidden: Invalid origin' });
   }
   
   response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.setHeader('Access-Control-Max-Age', '86400'); // 24시간 preflight 캐시
 
   if (request.method === 'OPTIONS') {
     return response.status(200).end();
@@ -50,14 +53,37 @@ export default async function handler(request, response) {
     return response.status(405).json({ message: '허용되지 않은 메서드입니다.' });
   }
 
+  // Check request size
+  if (!checkRequestSize(request)) {
+    return response.status(413).json({ 
+      message: '요청 크기가 너무 큽니다. 1MB 이하로 줄여주세요.' 
+    });
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("Vercel 환경 변수에 'GEMINI_API_KEY'가 설정되지 않았습니다.");
-    return response.status(500).json({ message: '서버에 API 키가 설정되지 않았습니다.' });
+    return response.status(500).json({ message: '서버 구성 오류가 발생했습니다.' });
   }
 
   try {
-    const { chatHistory, model, persona, sessionId, url } = request.body;
+    const requestData = request.body;
+    
+    // Validate input
+    const validationErrors = validateChatInput(requestData);
+    if (validationErrors.length > 0) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Validation errors:', validationErrors);
+      }
+      return response.status(400).json({ 
+        message: '잘못된 요청입니다.', 
+        errors: process.env.NODE_ENV !== 'production' ? validationErrors : undefined 
+      });
+    }
+    
+    // Sanitize input
+    const sanitizedData = sanitizeInput(requestData);
+    const { chatHistory, model, persona, sessionId, url } = sanitizedData;
     if (process.env.NODE_ENV !== 'production') {
       console.log("사용자 요청:", JSON.stringify(chatHistory, null, 2));
     }
@@ -192,7 +218,7 @@ export default async function handler(request, response) {
       if (process.env.NODE_ENV !== 'production') {
         console.error("Google API 에러 응답:", errorText);
       }
-      return response.status(googleResponse.status).json({ message: `Google API 에러: ${errorText}` });
+      return response.status(googleResponse.status).json({ message: '일시적인 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
     }
 
     const data = await googleResponse.json();
@@ -207,7 +233,7 @@ export default async function handler(request, response) {
             .from('chat_logs')
             .insert({
                 session_id: sessionId,
-                sender: 'bot',
+                sender: 'model',
                 message: botResponse.parts.map(part => part.text || '').join(' '),
                 raw_data: botResponse
             });
@@ -243,6 +269,6 @@ export default async function handler(request, response) {
     if (process.env.NODE_ENV !== 'production') {
       console.error("서버 내부 오류 발생:", error);
     }
-    response.status(500).json({ message: `서버 내부 오류가 발생했습니다: ${error.message}` });
+    response.status(500).json({ message: '서버 내부 오류가 발생했습니다.' });
   }
 }

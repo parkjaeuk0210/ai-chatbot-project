@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: FERA AI API
+  description: |
+    FERA AI is an advanced chatbot platform powered by Google's Gemini AI.
+    This API provides endpoints for chat interactions, image generation, and more.
+  version: 1.0.0
+  contact:
+    name: FERA AI Support
+    url: https://github.com/parkjaeuk0210/ai-chatbot-project
+    email: support@fera-ai.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://fera-ai.vercel.app/api
+    description: Production server
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Chat
+    description: Chat completion and conversation management
+  - name: Image
+    description: AI image generation
+  - name: Health
+    description: System health and status
+
+paths:
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Send a chat message
+      description: Send a message to the AI and receive a response
+      operationId: sendChatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              simple:
+                summary: Simple text message
+                value:
+                  chatHistory:
+                    - role: user
+                      parts:
+                        - text: "Hello, how are you?"
+                  sessionId: "session-123456789"
+              withImage:
+                summary: Message with image
+                value:
+                  chatHistory:
+                    - role: user
+                      parts:
+                        - text: "What's in this image?"
+                        - inlineData:
+                            mimeType: "image/jpeg"
+                            data: "base64encodeddata..."
+                  sessionId: "session-123456789"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /chat-simple:
+    post:
+      tags:
+        - Chat
+      summary: Simple chat endpoint
+      description: Simplified chat endpoint without history management
+      operationId: sendSimpleMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: The message to send
+                  example: "What's the weather like today?"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    description: AI response
+                  sessionId:
+                    type: string
+                    description: Session identifier
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /chat-secure:
+    post:
+      tags:
+        - Chat
+      summary: Secure chat endpoint
+      description: Chat endpoint with enhanced security and authentication
+      operationId: sendSecureMessage
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/ChatRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check the health status of the API
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
+                  uptime:
+                    type: number
+                    description: Uptime in seconds
+                    example: 3600
+                  environment:
+                    type: string
+                    example: production
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: 'Use format: Bearer YOUR_API_KEY'
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - chatHistory
+      properties:
+        chatHistory:
+          type: array
+          description: Conversation history
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          minItems: 1
+          maxItems: 100
+        sessionId:
+          type: string
+          description: Unique session identifier
+          pattern: '^session-[a-zA-Z0-9-]+$'
+          example: "session-123456789-abcdef"
+        model:
+          type: string
+          description: AI model to use
+          enum: [gemini, imagen]
+          default: gemini
+        persona:
+          type: string
+          description: Custom AI personality instructions
+          maxLength: 1000
+          example: "You are a helpful assistant specialized in technology"
+        temperature:
+          type: number
+          description: Controls randomness (0-1)
+          minimum: 0
+          maximum: 1
+          default: 0.7
+        maxTokens:
+          type: integer
+          description: Maximum response length
+          minimum: 1
+          maximum: 8192
+          default: 2048
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - parts
+      properties:
+        role:
+          type: string
+          enum: [user, model, system]
+          description: Message sender role
+        parts:
+          type: array
+          description: Message content parts
+          items:
+            $ref: '#/components/schemas/MessagePart'
+          minItems: 1
+        timestamp:
+          type: string
+          format: date-time
+          description: Message timestamp
+
+    MessagePart:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text content
+          maxLength: 50000
+        inlineData:
+          type: object
+          description: Inline media data
+          properties:
+            mimeType:
+              type: string
+              description: MIME type of the data
+              enum: 
+                - image/jpeg
+                - image/png
+                - image/gif
+                - image/webp
+                - application/pdf
+            data:
+              type: string
+              description: Base64 encoded data
+              format: byte
+
+    ChatResponse:
+      type: object
+      properties:
+        candidates:
+          type: array
+          description: Response candidates
+          items:
+            type: object
+            properties:
+              content:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    enum: [model]
+                  parts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MessagePart'
+              finishReason:
+                type: string
+                enum: [STOP, MAX_TOKENS, SAFETY, OTHER]
+              safetyRatings:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    category:
+                      type: string
+                    probability:
+                      type: string
+                      enum: [NEGLIGIBLE, LOW, MEDIUM, HIGH]
+        error:
+          $ref: '#/components/schemas/Error'
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: Error message
+          example: "입력 데이터가 올바르지 않습니다."
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "VALIDATION_ERROR"
+            message: "입력 데이터가 올바르지 않습니다."
+            details:
+              - field: "chatHistory"
+                message: "chatHistory must be an array"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "UNAUTHORIZED"
+            message: "인증이 필요합니다."
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "FORBIDDEN"
+            message: "접근 권한이 없습니다."
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          description: Request limit per window
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          description: Remaining requests in window
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          description: Time when the rate limit resets
+          schema:
+            type: string
+            format: date-time
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "RATE_LIMIT_EXCEEDED"
+            message: "너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요."
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "INTERNAL_ERROR"
+            message: "서버 내부 오류가 발생했습니다."
+
+    ChatResponse:
+      description: Successful chat response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ChatResponse'
+
+  requestBodies:
+    ChatRequest:
+      description: Chat request body
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ChatRequest'

@@ -1,18 +1,26 @@
-<title>페라 – 무료 AI 채팅앱</title>
 <!DOCTYPE html>
 <html lang="ko" dir="ltr">
 <head>
+    <title>페라 – 무료 AI 채팅앱</title>
     <meta name="description" content="페라는 최신 AI 모델을 이용한 내맘대로 만드는 실시간 챗봇 서비스입니다.">
     <meta name="google-site-verification" content="69vBy7QiAiBCp1GXYwYh3Ia5c7Hk0wl113WbW2xjzOg" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FERA - AI Platform</title>
+    <!-- Remove Tailwind CDN for production build -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PDF.js 라이브러리 추가 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/js/main.js" as="script" type="module">
+    <link rel="preload" href="/js/app.js" as="script" type="module">
+    <link rel="preload" href="/js/utils/lazyLoader.js" as="script" type="module">
+    <!-- PDF.js will be lazy loaded when needed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Performance CSS -->
+    <link rel="preload" href="/css/performance.css" as="style">
+    <link rel="stylesheet" href="/css/performance.css">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
@@ -415,6 +423,8 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/a11y.css">
 </head>
 <body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
     <!-- Skip Links for Accessibility -->
@@ -431,20 +441,6 @@
                 페라는 세계에서 가장 빠르고 똑똑한 ai 모델입니다.
             </p>
             <textarea id="persona-input" class="w-full h-40 p-3 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm" placeholder="AI의 페르소나를 입력하세요..." aria-label="AI 페르소나 입력란" aria-describedby="persona-description" data-i18n="settings.placeholder"></textarea>
-            
-            <!-- 페르소나 프리셋 -->
-            <div class="mt-4">
-                <label for="persona-preset" class="block text-sm font-medium text-slate-700 mb-1" data-i18n="settings.presetLabel">
-                    페르소나 프리셋
-                </label>
-                <select id="persona-preset" class="w-full p-2 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm cursor-pointer hover:bg-white/80 text-slate-700">
-                    <option value="" data-i18n="settings.presetDefault">직접 설정</option>
-                    <option value="friendly" data-i18n="settings.presetFriendly">친근한 친구</option>
-                    <option value="professional" data-i18n="settings.presetProfessional">전문 비서</option>
-                    <option value="teacher" data-i18n="settings.presetTeacher">친절한 선생님</option>
-                    <option value="creative" data-i18n="settings.presetCreative">창의적인 아티스트</option>
-                </select>
-            </div>
             
             <!-- 숨겨진 시스템 설정 (사용자에게 보이지 않음) -->
             <input type="hidden" id="hidden-persona" value="" />
@@ -1410,6 +1406,78 @@
                 window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
             }
         });
+        
+        // Emergency button fix - add click handlers directly
+        window.addEventListener('load', () => {
+            console.log('Adding emergency click handlers...');
+            
+            // Settings button
+            const settingsBtn = document.getElementById('settings-button');
+            if (settingsBtn && !settingsBtn.hasAttribute('data-listener-added')) {
+                settingsBtn.addEventListener('click', () => {
+                    console.log('Settings clicked!');
+                    if (window.feraApp && window.feraApp.openSettings) {
+                        window.feraApp.openSettings();
+                    }
+                });
+                settingsBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn && !themeBtn.hasAttribute('data-listener-added')) {
+                themeBtn.addEventListener('click', () => {
+                    console.log('Theme clicked!');
+                    if (window.feraApp && window.feraApp.toggleTheme) {
+                        window.feraApp.toggleTheme();
+                    }
+                });
+                themeBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            // Download button
+            const downloadBtn = document.getElementById('download-button');
+            if (downloadBtn && !downloadBtn.hasAttribute('data-listener-added')) {
+                downloadBtn.addEventListener('click', () => {
+                    console.log('Download clicked!');
+                    if (window.feraApp && window.feraApp.handleDownload) {
+                        window.feraApp.handleDownload();
+                    }
+                });
+                downloadBtn.setAttribute('data-listener-added', 'true');
+            }
+            
+            // Tab buttons
+            const chatTab = document.getElementById('chat-tab-button');
+            const imageTab = document.getElementById('image-tab-button');
+            
+            if (chatTab && !chatTab.hasAttribute('data-listener-added')) {
+                chatTab.addEventListener('click', () => {
+                    console.log('Chat tab clicked!');
+                    if (window.feraApp && window.feraApp.switchTabs) {
+                        window.feraApp.switchTabs('chat');
+                    } else {
+                        // Fallback to inline function
+                        switchTabs('chat');
+                    }
+                });
+                chatTab.setAttribute('data-listener-added', 'true');
+            }
+            
+            if (imageTab && !imageTab.hasAttribute('data-listener-added')) {
+                imageTab.addEventListener('click', () => {
+                    console.log('Image tab clicked!');
+                    if (window.feraApp && window.feraApp.switchTabs) {
+                        window.feraApp.switchTabs('image');
+                    } else {
+                        // Fallback to inline function
+                        switchTabs('image');
+                    }
+                });
+                imageTab.setAttribute('data-listener-added', 'true');
+            }
+        });
     </script>
+    <script type="module" src="/js/main.js"></script>
 </body>
 </html>

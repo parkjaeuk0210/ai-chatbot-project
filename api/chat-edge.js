@@ -6,10 +6,24 @@ export const config = {
 
 export default async function handler(request) {
   // CORS 헤더 설정
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [process.env.PRODUCTION_URL || 'https://fera-ai.vercel.app'].filter(Boolean)
+    : ['http://127.0.0.1:5500', 'http://localhost:3000'];
+  
+  const origin = request.headers.get('origin');
+  
+  if (!allowedOrigins.includes(origin) && process.env.NODE_ENV === 'production') {
+    return new Response(
+      JSON.stringify({ message: 'Forbidden: Invalid origin' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
   };
 
   // OPTIONS 요청 처리

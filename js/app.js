@@ -1,6 +1,16 @@
 // Main application module
 import { ChatManager } from './chat.js';
-import { generateSessionId, sanitizeHTML, errorHandler } from './utils.js';
+import { generateSessionId, sanitizeHTML, errorHandler, throttle, debounce } from './utils.js';
+import { createSafeErrorMessage, escapeHtml, setSafeHtml, rateLimiter } from './security.js';
+import { lazyLoader } from './utils/lazyLoader.js';
+// Lazy load monitoring modules
+let analytics, sentryMonitor;
+
+// Load monitoring modules if available
+Promise.all([
+    import('./monitoring/analytics.js').then(m => analytics = m.analytics).catch(() => {}),
+    import('./monitoring/sentry.js').then(m => sentryMonitor = m.sentryMonitor).catch(() => {})
+]);
 
 class FeraApp {
     constructor() {
@@ -15,7 +25,6 @@ class FeraApp {
         this.initializeEventListeners();
         this.initializeTheme();
         this.initializeMobile();
-        this.initializePersonaPresets();
         
         // Initialize system instructions after i18n is loaded
         setTimeout(() => {
@@ -101,6 +110,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.downloadButton = document.getElementById('download-button');
         this.themeToggle = document.getElementById('theme-toggle');
         
+        // Debug logging
+        console.log('Settings button:', this.settingsButton);
+        console.log('Download button:', this.downloadButton);
+        console.log('Theme toggle:', this.themeToggle);
+        
         // Modal elements
         this.settingsModal = document.getElementById('settings-modal');
         this.personaInput = document.getElementById('persona-input');
@@ -112,7 +126,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.advancedSettings = document.getElementById('advanced-settings');
         this.advancedArrow = document.getElementById('advanced-arrow');
         this.hiddenPersonaInput = document.getElementById('hidden-persona');
-        this.personaPresetSelect = document.getElementById('persona-preset');
         
         // Tab elements
         this.chatTabButton = document.getElementById('chat-tab-button');
@@ -148,16 +161,47 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         // Initialize chat virtualization
         this.chatManager.initializeVirtualization(this.chatMessages);
+        
+        // Initialize lazy loading for images
+        this.initializeLazyLoading();
+        
+        // Track app usage
+        this.trackUsage();
     }
 
     initializeEventListeners() {
+        console.log('Initializing event listeners...');
+        
         // Settings
-        this.settingsButton.addEventListener('click', () => this.openSettings());
+        if (this.settingsButton) {
+            this.settingsButton.addEventListener('click', () => this.openSettings());
+            console.log('Settings button listener added');
+        } else {
+            console.error('Settings button not found!');
+        }
+        
         // Download button for PWA installation
-        this.downloadButton.addEventListener('click', () => this.handleDownload());
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-        this.closePersonaButton.addEventListener('click', () => this.closeSettings());
-        this.savePersonaButton.addEventListener('click', () => this.saveSettings());
+        if (this.downloadButton) {
+            this.downloadButton.addEventListener('click', () => this.handleDownload());
+            console.log('Download button listener added');
+        } else {
+            console.error('Download button not found!');
+        }
+        
+        if (this.themeToggle) {
+            this.themeToggle.addEventListener('click', () => this.toggleTheme());
+            console.log('Theme toggle listener added');
+        } else {
+            console.error('Theme toggle not found!');
+        }
+        
+        if (this.closePersonaButton) {
+            this.closePersonaButton.addEventListener('click', () => this.closeSettings());
+        }
+        
+        if (this.savePersonaButton) {
+            this.savePersonaButton.addEventListener('click', () => this.saveSettings());
+        }
         
         // Tabs
         this.chatTabButton.addEventListener('click', () => this.switchTabs('chat'));
@@ -185,10 +229,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             }
         });
         
-        // Persona preset
-        if (this.personaPresetSelect) {
-            this.personaPresetSelect.addEventListener('change', (e) => this.applyPreset(e.target.value));
-        }
         
         // Keyboard navigation
         this.initializeKeyboardNavigation();
@@ -302,6 +342,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         this.updateThemeIcon(newTheme);
+        
+        // Track theme change
+        if (analytics) {
+            analytics.trackUserAction('theme_changed', 'settings', newTheme);
+        }
     }
 
     updateThemeIcon(theme) {
@@ -321,6 +366,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     switchTabs(targetTab) {
         const panes = { chat: this.chatUi, image: this.imageUi };
         const buttons = { chat: this.chatTabButton, image: this.imageTabButton };
+        
+        // Track tab switch
+        if (analytics) {
+            analytics.trackUserAction('tab_switched', 'navigation', targetTab);
+        }
 
         for (const tabName in buttons) {
             if (tabName === targetTab) {
@@ -360,6 +410,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         setTimeout(() => {
             this.personaInput.focus();
         }, 100);
+        
+        // Track feature usage
+        if (analytics) {
+            analytics.trackFeatureUsage('settings_opened');
+        }
     }
 
     closeSettings() {
@@ -383,29 +438,12 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         this.chatManager.addMessage(
             this.chatMessages, 
-            'bot', 
+            'model', 
             [{text: window.i18n ? window.i18n.t('message.personaUpdated') : '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!'}]
         );
     }
     
     
-    initializePersonaPresets() {
-        this.personaPresets = {
-            friendly: "이름은 친구야. 반말로 편하게 대화하고, 이모티콘도 자주 써! 😊 재미있고 친근한 성격이야.",
-            professional: "저는 전문 비서입니다. 정중하고 전문적인 어조로 도움을 드리겠습니다.",
-            teacher: "안녕하세요, 저는 선생님입니다. 친절하고 이해하기 쉽게 설명해드릴게요.",
-            creative: "나는 창의적인 아티스트야! 상상력이 풍부하고 독특한 관점을 제공할게."
-        };
-    }
-    
-    applyPreset(presetName) {
-        if (!presetName) return;
-        
-        const preset = this.personaPresets[presetName];
-        if (preset) {
-            this.personaInput.value = preset;
-        }
-    }
 
     // Chat functionality
     async handleSendMessage() {
@@ -413,6 +451,17 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         const url = this.urlInput.value.trim();
         
         if (!message && !this.chatManager.uploadedFile.type && !url) return;
+        
+        // Check rate limit
+        const rateLimitCheck = rateLimiter.check('chat', this.sessionId);
+        if (!rateLimitCheck.allowed) {
+            this.chatManager.addMessage(
+                this.chatMessages, 
+                'model', 
+                [{ text: `너무 많은 메시지를 보내고 있습니다. ${rateLimitCheck.retryAfter}초 후에 다시 시도해주세요.` }]
+            );
+            return;
+        }
 
         this.sendButton.disabled = true;
         this.chatManager.toggleLoading(this.chatMessages, true);
@@ -424,6 +473,11 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         // Add user message
         const userParts = await this.chatManager.prepareUserMessage(message, url);
         this.chatManager.addMessage(this.chatMessages, 'user', userParts);
+        
+        // Track message sent
+        if (analytics) {
+            analytics.trackChatMessage('user', message.length, !!this.chatManager.uploadedFile.type);
+        }
         
         this.chatInput.value = '';
         this.urlInput.value = '';
@@ -450,22 +504,26 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             combinedPersona,
             this.sessionId,
             (botParts) => {
-                this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
+                this.chatManager.addMessage(this.chatMessages, 'model', botParts);
                 this.chatManager.toggleLoading(this.chatMessages, false);
                 this.sendButton.disabled = false;
                 this.chatInput.focus();
             },
             (errorInfo) => {
-                // Create error message with action button if retryable
+                // Create safe error message
                 let errorContent = errorInfo.fullMessage;
                 
+                // Add retry button safely if retryable
                 if (errorInfo.isRetryable) {
-                    errorContent += `\n\n<button class="retry-button" onclick="window.feraApp.retryLastMessage()">🔄 다시 시도</button>`;
+                    // Store retry function in window for safe access
+                    window.feraAppRetry = () => this.retryLastMessage();
+                    errorContent = escapeHtml(errorInfo.fullMessage) + 
+                        '<br><br><button class="retry-button px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick="window.feraAppRetry()">🔄 다시 시도</button>';
                 }
                 
                 this.chatManager.addMessage(
                     this.chatMessages, 
-                    'bot', 
+                    'model', 
                     [{ text: errorContent }]
                 );
                 this.chatManager.toggleLoading(this.chatMessages, false);
@@ -521,6 +579,18 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     async handleGenerateImage() {
         const prompt = this.imagePrompt.value.trim();
         if (!prompt) return;
+        
+        // Check rate limit
+        const rateLimitCheck = rateLimiter.check('image', this.sessionId);
+        if (!rateLimitCheck.allowed) {
+            this.showImageError({
+                title: '요청 제한',
+                message: `이미지 생성 요청이 너무 많습니다. ${rateLimitCheck.retryAfter}초 후에 다시 시도해주세요.`,
+                action: 'rate_limit',
+                isRetryable: true
+            });
+            return;
+        }
 
         this.generateImageButton.disabled = true;
         this.imagePlaceholder.classList.add('opacity-0');
@@ -556,6 +626,14 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             } else {
                 throw new Error('이미지 데이터를 찾을 수 없습니다.');
             }
+            
+            // Track success
+            if (analytics) {
+                analytics.trackFeatureUsage('image_generation', {
+                    prompt_length: prompt.length,
+                    success: true
+                });
+            }
 
         } catch (error) {
             const errorInfo = errorHandler.handle(error, {
@@ -563,6 +641,22 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 prompt: prompt.substring(0, 50) + '...'
             });
             this.showImageError(errorInfo);
+            
+            // Track error
+            if (sentryMonitor) {
+                sentryMonitor.trackAPIError('/api/chat-secure', error, {
+                    model: 'imagen',
+                    prompt_length: prompt.length
+                });
+            }
+            
+            if (analytics) {
+                analytics.trackFeatureUsage('image_generation', {
+                    prompt_length: prompt.length,
+                    success: false,
+                    error: error.message
+                });
+            }
         } finally {
             this.imageLoader.classList.add('hidden');
             this.generateImageButton.disabled = false;
@@ -632,7 +726,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 // Show success message
                 this.chatManager.addMessage(
                     this.chatMessages, 
-                    'bot', 
+                    'model', 
                     [{ text: '🎉 FERA AI가 성공적으로 설치되었습니다! 홈 화면에서 앱을 찾아보세요.' }]
                 );
                 
@@ -645,7 +739,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             // Already installed
             this.chatManager.addMessage(
                 this.chatMessages, 
-                'bot', 
+                'model', 
                 [{ text: '✅ FERA AI가 이미 설치되어 있습니다!' }]
             );
         } else {
@@ -681,7 +775,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         this.chatManager.addMessage(
             this.chatMessages, 
-            'bot', 
+            'model', 
             [{ text: guideMessage }]
         );
     }
@@ -726,7 +820,8 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     detectVirtualKeyboard() {
         const initialHeight = window.innerHeight;
         
-        window.addEventListener('resize', () => {
+        // Throttle resize event to improve performance
+        const handleResize = throttle(() => {
             const currentHeight = window.innerHeight;
             const keyboardHeight = initialHeight - currentHeight;
             
@@ -735,7 +830,12 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             } else {
                 document.documentElement.style.setProperty('--keyboard-height', '0px');
             }
-        });
+        }, 100);
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Store handler for cleanup
+        this.resizeHandler = handleResize;
     }
     
     // Retry failed message
@@ -769,7 +869,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 persona,
                 this.sessionId,
                 (botParts) => {
-                    this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
+                    this.chatManager.addMessage(this.chatMessages, 'model', botParts);
                     this.chatManager.toggleLoading(this.chatMessages, false);
                     this.sendButton.disabled = false;
                     this.chatInput.focus();
@@ -783,7 +883,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                     
                     this.chatManager.addMessage(
                         this.chatMessages, 
-                        'bot', 
+                        'model', 
                         [{ text: errorContent }]
                     );
                     this.chatManager.toggleLoading(this.chatMessages, false);
@@ -809,6 +909,57 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         setTimeout(() => {
             announcement.remove();
         }, 1000);
+    }
+    
+    trackUsage() {
+        // Track basic usage metrics
+        if (analytics) {
+            analytics.setUserProperties({
+                language: window.i18n ? window.i18n.getCurrentLanguage() : 'ko',
+                theme: localStorage.getItem('theme') || 'light',
+                has_persona: !!this.currentPersona
+            });
+            
+            // Track session start
+            analytics.track('session_start', {
+                session_id: this.sessionId
+            });
+        }
+        
+        // Track errors
+        if (sentryMonitor) {
+            window.addEventListener('error', (event) => {
+                sentryMonitor.captureException(event.error, {
+                    source: event.filename,
+                    line: event.lineno,
+                    column: event.colno
+                });
+            });
+        }
+    }
+    
+    initializeLazyLoading() {
+        // Observe chat messages for lazy loading images
+        const messageObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Element node
+                        const lazyImages = node.querySelectorAll('img[data-src]');
+                        lazyImages.forEach(img => lazyLoader.observe(img));
+                    }
+                });
+            });
+        });
+        
+        if (this.chatMessages) {
+            messageObserver.observe(this.chatMessages, { 
+                childList: true, 
+                subtree: true 
+            });
+        }
+        
+        // Store observer for cleanup
+        this.lazyLoadObserver = messageObserver;
     }
     
     initializeMessageNavigation() {
@@ -850,10 +1001,13 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     }
 }
 
-// Initialize PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+// Initialize PDF.js when available
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+}
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.feraApp = new FeraApp();
-});
+// Export FeraApp class
+export { FeraApp };
+
+// For debugging
+window.FeraApp = FeraApp;

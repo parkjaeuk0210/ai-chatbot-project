@@ -14,7 +14,15 @@
       "Bash(python:*)",
       "Bash(node:*)",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(git reset:*)",
+      "Bash(rm:*)",
+      "Bash(touch:*)",
+      "Bash(npm run copy-files:*)"
     ],
     "deny": []
   }

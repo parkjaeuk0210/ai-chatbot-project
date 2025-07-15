@@ -1,5 +1,8 @@
 // Utility functions for the chat application
 
+// Import validator for enhanced security
+import { validator } from './security/validator.js';
+
 // Security: Sanitize HTML to prevent XSS attacks
 export function sanitizeHTML(str) {
     const temp = document.createElement('div');
@@ -63,20 +66,31 @@ export async function compressImage(file, maxWidth = 1920, maxHeight = 1080, qua
     });
 }
 
-// Extract text from PDF using PDF.js
+// Extract text from PDF using PDF.js (with lazy loading)
 export async function extractTextFromPdf(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        fullText += pageText + '\n\n';
+    try {
+        // Lazy load PDF.js if not already loaded
+        if (!window.pdfjsLib) {
+            const { lazyLoadPdfJs } = await import('./lazyLoader.js');
+            await lazyLoadPdfJs();
+        }
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n\n';
+        }
+        
+        return fullText;
+    } catch (error) {
+        console.error('PDF extraction error:', error);
+        throw new Error('PDF 파일을 읽을 수 없습니다.');
     }
-    
-    return fullText;
 }
 
 // Debounce function to limit API calls
@@ -92,27 +106,34 @@ export function debounce(func, wait) {
     };
 }
 
+// Throttle function to limit event firing rate
+export function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
 // Generate unique session ID
 export function generateSessionId() {
     return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
 // Validate input to prevent injection attacks
-export function validateInput(input) {
+export function validateInput(input, type = 'message') {
     if (typeof input !== 'string') return false;
     
-    // Check for common injection patterns
-    const dangerousPatterns = [
-        /<script/i,
-        /javascript:/i,
-        /on\w+\s*=/i,
-        /<iframe/i,
-        /<object/i,
-        /<embed/i
-    ];
-    
-    return !dangerousPatterns.some(pattern => pattern.test(input));
+    // Use enhanced validator
+    const validation = validator.validate(input, type);
+    return validation.valid;
 }
+
+// Export validator for use in other modules
+export { validator };
 
 // Error message formatter
 export function formatErrorMessage(error) {
@@ -228,3 +249,26 @@ export class ErrorHandler {
 
 // Global error handler instance
 export const errorHandler = new ErrorHandler();
+
+// API response validation
+export function validateApiResponse(response) {
+    if (!response || typeof response !== 'object') {
+        return false;
+    }
+    
+    // Check for expected structure
+    if (response.candidates && Array.isArray(response.candidates)) {
+        return response.candidates.every(candidate => 
+            candidate.content && 
+            candidate.content.parts && 
+            Array.isArray(candidate.content.parts)
+        );
+    }
+    
+    // Check for error structure
+    if (response.error) {
+        return true; // Valid error response
+    }
+    
+    return false;
+}
