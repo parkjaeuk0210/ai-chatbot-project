@@ -146,9 +146,59 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* 로고 다크모드 스타일 */
-        [data-theme="dark"] #logo-symbol {
-            filter: brightness(1.2) contrast(1.1);
+        /* 로고 텍스트 스타일 */
+        .logo-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            position: relative;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        }
+        
+        .logo-text::after {
+            content: 'FERA';
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: -1;
+            background: linear-gradient(135deg, #60a5fa 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            filter: blur(8px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .logo-text:hover {
+            transform: translateY(-1px);
+            text-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+        }
+        
+        .logo-text:hover::after {
+            opacity: 0.5;
+        }
+        
+        /* 다크모드 로고 스타일 */
+        [data-theme="dark"] .logo-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(96, 165, 250, 0.5);
+        }
+        
+        [data-theme="dark"] .logo-text::after {
+            background: linear-gradient(135deg, #93c5fd 0%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
         }
         
         .content-pane, #settings-modal {
@@ -442,47 +492,8 @@
     <div class="w-full max-w-4xl h-[95vh] md:h-[85vh] glass-effect rounded-3xl shadow-2xl shadow-blue-100/50 flex flex-col">
         <!-- Header -->
         <header id="main-header" class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center transition-transform duration-300" role="banner">
-            <a href="./" style="text-decoration: none; color: inherit;" class="flex items-center gap-2">
-                <svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="transition-all duration-300 hover:filter hover:drop-shadow-lg">
-                    <!-- Logo Symbol -->
-                    <g id="logo-symbol">
-                        <!-- Gradient definitions -->
-                        <defs>
-                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-                            </linearGradient>
-                            <filter id="glow">
-                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur"/>
-                                    <feMergeNode in="SourceGraphic"/>
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        
-                        <!-- Background circle -->
-                        <circle cx="16" cy="16" r="14" fill="url(#logoGradient)" opacity="0.1"/>
-                        
-                        <!-- Main symbol - interconnected nodes representing AI -->
-                        <g filter="url(#glow)">
-                            <!-- Central node -->
-                            <circle cx="16" cy="16" r="4" fill="url(#logoGradient)"/>
-                            
-                            <!-- Connecting lines -->
-                            <path d="M16 12 L16 8 M16 20 L16 24 M12 16 L8 16 M20 16 L24 16" stroke="url(#logoGradient)" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
-                            
-                            <!-- Orbital nodes -->
-                            <circle cx="16" cy="8" r="2.5" fill="url(#logoGradient)" opacity="0.8"/>
-                            <circle cx="16" cy="24" r="2.5" fill="url(#logoGradient)" opacity="0.8"/>
-                            <circle cx="8" cy="16" r="2.5" fill="url(#logoGradient)" opacity="0.8"/>
-                            <circle cx="24" cy="16" r="2.5" fill="url(#logoGradient)" opacity="0.8"/>
-                        </g>
-                    </g>
-                    
-                    <!-- Logo Text -->
-                    <text x="40" y="22" font-family="Inter, sans-serif" font-size="20" font-weight="600" fill="currentColor" class="select-none">FERA</text>
-                </svg>
+            <a href="./" style="text-decoration: none; color: inherit;">
+                <h1 class="logo-text text-3xl font-black tracking-wider select-none" style="font-family: 'Inter', sans-serif;">FERA</h1>
             </a>
             <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1" role="tablist" aria-label="탭 선택">
                 <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0" data-i18n="tab.chat">채팅</button>
