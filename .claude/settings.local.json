@@ -15,7 +15,8 @@
       "Bash(node:*)",
       "Bash(mkdir:*)",
       "Bash(find:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tailwindcss:*)"
     ],
     "deny": []
   }

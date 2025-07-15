@@ -1,6 +1,6 @@
 // Main application module
 import { ChatManager } from './chat.js';
-import { generateSessionId, sanitizeHTML, errorHandler } from './utils.js';
+import { generateSessionId, sanitizeHTML, errorHandler, throttle, debounce } from './utils.js';
 import { createSafeErrorMessage, escapeHtml, setSafeHtml } from './security.js';
 
 class FeraApp {
@@ -708,7 +708,8 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     detectVirtualKeyboard() {
         const initialHeight = window.innerHeight;
         
-        window.addEventListener('resize', () => {
+        // Throttle resize event to improve performance
+        const handleResize = throttle(() => {
             const currentHeight = window.innerHeight;
             const keyboardHeight = initialHeight - currentHeight;
             
@@ -717,7 +718,12 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             } else {
                 document.documentElement.style.setProperty('--keyboard-height', '0px');
             }
-        });
+        }, 100);
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Store handler for cleanup
+        this.resizeHandler = handleResize;
     }
     
     // Retry failed message
