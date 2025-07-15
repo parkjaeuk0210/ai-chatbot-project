@@ -13,14 +13,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="FERA">
-    <link rel="apple-touch-icon" href="/icons/icon.svg">
-    <meta name="theme-color" content="#3b82f6">
     <style>
         :root {
             --bg-gradient-start: #f0f9ff;
@@ -153,20 +145,6 @@
             animation: spin 1s ease infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* PWA 설치 가능 시 다운로드 버튼 애니메이션 */
-        .pulse-animation {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: .5;
-            }
-        }
         .content-pane, #settings-modal {
             transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
         }
@@ -462,14 +440,6 @@
             <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1" role="tablist" aria-label="탭 선택">
                 <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0" data-i18n="tab.chat">채팅</button>
                 <button id="image-tab-button" class="tab-button text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300" role="tab" aria-selected="false" aria-controls="image-ui" tabindex="0" data-i18n="tab.image">이미지 생성</button>
-                <div class="w-px h-5 bg-slate-300/70 mx-1"></div>
-                <button id="download-button" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="앱 다운로드" aria-label="앱 다운로드" tabindex="0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                </button>
                 <button id="theme-toggle" class="text-slate-600 hover:text-slate-800 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/50" title="테마 변경" aria-label="테마 변경" tabindex="0">
                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>

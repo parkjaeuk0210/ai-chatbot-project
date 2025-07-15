@@ -20,9 +20,6 @@ class FeraApp {
         setTimeout(() => {
             this.systemInstructions = this.getSystemInstructions();
         }, 100);
-        
-        // Initialize PWA
-        this.initializePWA();
     }
 
     get defaultPersona() {
@@ -97,13 +94,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     initializeElements() {
         // Header buttons
         this.settingsButton = document.getElementById('settings-button');
-        this.downloadButton = document.getElementById('download-button');
         this.themeToggle = document.getElementById('theme-toggle');
-        
-        // Check if download button exists
-        if (!this.downloadButton) {
-            console.error('Download button not found in DOM');
-        }
         
         // Modal elements
         this.settingsModal = document.getElementById('settings-modal');
@@ -156,12 +147,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     initializeEventListeners() {
         // Settings
         this.settingsButton.addEventListener('click', () => this.openSettings());
-        // Download button for PWA installation
-        if (this.downloadButton) {
-            this.downloadButton.addEventListener('click', () => this.handleDownload());
-        } else {
-            console.error('Cannot add event listener: Download button not found');
-        }
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
         this.closePersonaButton.addEventListener('click', () => this.closeSettings());
         this.savePersonaButton.addEventListener('click', () => this.saveSettings());
@@ -574,121 +559,6 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         this.imagePlaceholder.classList.remove('opacity-0');
     }
 
-    // PWA Installation
-    initializePWA() {
-        this.deferredPrompt = null;
-        
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('ServiceWorker registration successful:', registration);
-                })
-                .catch(err => {
-                    console.error('ServiceWorker registration failed: ', err);
-                });
-        } else {
-            console.warn('ServiceWorker not supported in this browser');
-        }
-        
-        // Handle install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('beforeinstallprompt event fired');
-            e.preventDefault();
-            this.deferredPrompt = e;
-            console.log('PWA installation available');
-            
-            // Update download button to show it's available
-            if (this.downloadButton) {
-                this.downloadButton.classList.add('pulse-animation');
-            }
-        });
-        
-        // Detect if already installed
-        window.addEventListener('appinstalled', () => {
-            console.log('FERA AI installed as PWA');
-            this.isPWAInstalled = true;
-            this.deferredPrompt = null;
-        });
-        
-        // Check if running as installed PWA
-        if (window.matchMedia('(display-mode: standalone)').matches || 
-            window.navigator.standalone === true) {
-            console.log('Running as installed PWA');
-            this.isPWAInstalled = true;
-        }
-    }
-    
-    async handleDownload() {
-        console.log('Download button clicked');
-        console.log('Deferred prompt:', this.deferredPrompt);
-        console.log('Is PWA installed:', this.isPWAInstalled);
-        
-        // Check if PWA can be installed
-        if (this.deferredPrompt) {
-            // Show PWA install prompt
-            this.deferredPrompt.prompt();
-            const { outcome } = await this.deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
-            
-            if (outcome === 'accepted') {
-                // Show success message
-                this.chatManager.addMessage(
-                    this.chatMessages, 
-                    'bot', 
-                    [{ text: '🎉 FERA AI가 성공적으로 설치되었습니다! 홈 화면에서 앱을 찾아보세요.' }]
-                );
-                
-                // Announce to screen readers
-                this.announceToScreenReader('FERA AI가 설치되었습니다');
-            }
-            
-            this.deferredPrompt = null;
-        } else if (this.isPWAInstalled) {
-            // Already installed
-            this.chatManager.addMessage(
-                this.chatMessages, 
-                'bot', 
-                [{ text: '✅ FERA AI가 이미 설치되어 있습니다!' }]
-            );
-        } else {
-            // Show installation guide
-            this.showInstallGuide();
-        }
-    }
-    
-    showInstallGuide() {
-        const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-        const isAndroid = /android/.test(navigator.userAgent.toLowerCase());
-        const isSafari = /safari/.test(navigator.userAgent.toLowerCase()) && !/chrome/.test(navigator.userAgent.toLowerCase());
-        
-        let guideMessage = '📱 FERA AI 앱 설치 방법\n\n';
-        
-        if (isIOS) {
-            guideMessage += '🍎 iOS (Safari):\n';
-            guideMessage += '1. 하단의 공유 버튼 탭\n';
-            guideMessage += '2. "홈 화면에 추가" 선택\n';
-            guideMessage += '3. "추가" 탭\n\n';
-            guideMessage += '설치하면 일반 앱처럼 사용할 수 있습니다!';
-        } else if (isAndroid) {
-            guideMessage += '🤖 Android (Chrome):\n';
-            guideMessage += '1. 브라우저 메뉴(⋮) 탭\n';
-            guideMessage += '2. "홈 화면에 추가" 선택\n';
-            guideMessage += '3. "추가" 탭\n\n';
-            guideMessage += '또는 주소창 오른쪽의 설치 아이콘을 탭하세요!';
-        } else {
-            guideMessage += '💻 데스크톱 (Chrome/Edge):\n';
-            guideMessage += '1. 주소창 오른쪽의 설치 아이콘 클릭\n';
-            guideMessage += '2. "설치" 클릭\n\n';
-            guideMessage += '또는 브라우저 메뉴 > "앱 설치"를 선택하세요!';
-        }
-        
-        this.chatManager.addMessage(
-            this.chatMessages, 
-            'bot', 
-            [{ text: guideMessage }]
-        );
-    }
 
     // Mobile support
     handleSwipe() {
