@@ -3,6 +3,8 @@ import { ChatManager } from './chat.js';
 import { generateSessionId, sanitizeHTML, errorHandler, throttle, debounce } from './utils.js';
 import { createSafeErrorMessage, escapeHtml, setSafeHtml, rateLimiter } from './security.js';
 import { lazyLoader } from './utils/lazyLoader.js';
+import { analytics } from './monitoring/analytics.js';
+import { sentryMonitor } from './monitoring/sentry.js';
 
 class FeraApp {
     constructor() {
@@ -156,6 +158,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         // Initialize lazy loading for images
         this.initializeLazyLoading();
+        
+        // Track app usage
+        this.trackUsage();
     }
 
     initializeEventListeners() {
@@ -331,6 +336,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         this.updateThemeIcon(newTheme);
+        
+        // Track theme change
+        analytics.trackUserAction('theme_changed', 'settings', newTheme);
     }
 
     updateThemeIcon(theme) {
@@ -350,6 +358,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     switchTabs(targetTab) {
         const panes = { chat: this.chatUi, image: this.imageUi };
         const buttons = { chat: this.chatTabButton, image: this.imageTabButton };
+        
+        // Track tab switch
+        analytics.trackUserAction('tab_switched', 'navigation', targetTab);
 
         for (const tabName in buttons) {
             if (tabName === targetTab) {
@@ -389,6 +400,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         setTimeout(() => {
             this.personaInput.focus();
         }, 100);
+        
+        // Track feature usage
+        analytics.trackFeatureUsage('settings_opened');
     }
 
     closeSettings() {
@@ -447,6 +461,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         // Add user message
         const userParts = await this.chatManager.prepareUserMessage(message, url);
         this.chatManager.addMessage(this.chatMessages, 'user', userParts);
+        
+        // Track message sent
+        analytics.trackChatMessage('user', message.length, !!this.chatManager.uploadedFile.type);
         
         this.chatInput.value = '';
         this.urlInput.value = '';
@@ -595,6 +612,12 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             } else {
                 throw new Error('이미지 데이터를 찾을 수 없습니다.');
             }
+            
+            // Track success
+            analytics.trackFeatureUsage('image_generation', {
+                prompt_length: prompt.length,
+                success: true
+            });
 
         } catch (error) {
             const errorInfo = errorHandler.handle(error, {
@@ -602,6 +625,18 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 prompt: prompt.substring(0, 50) + '...'
             });
             this.showImageError(errorInfo);
+            
+            // Track error
+            sentryMonitor.trackAPIError('/api/chat-secure', error, {
+                model: 'imagen',
+                prompt_length: prompt.length
+            });
+            
+            analytics.trackFeatureUsage('image_generation', {
+                prompt_length: prompt.length,
+                success: false,
+                error: error.message
+            });
         } finally {
             this.imageLoader.classList.add('hidden');
             this.generateImageButton.disabled = false;
@@ -854,6 +889,29 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         setTimeout(() => {
             announcement.remove();
         }, 1000);
+    }
+    
+    trackUsage() {
+        // Track basic usage metrics
+        analytics.setUserProperties({
+            language: window.i18n ? window.i18n.getCurrentLanguage() : 'ko',
+            theme: localStorage.getItem('theme') || 'light',
+            has_persona: !!this.currentPersona
+        });
+        
+        // Track session start
+        analytics.track('session_start', {
+            session_id: this.sessionId
+        });
+        
+        // Track errors
+        window.addEventListener('error', (event) => {
+            sentryMonitor.captureException(event.error, {
+                source: event.filename,
+                line: event.lineno,
+                column: event.colno
+            });
+        });
     }
     
     initializeLazyLoading() {

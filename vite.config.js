@@ -80,6 +80,16 @@ export default defineConfig({
           'components': [
             './js/components/typingIndicator.js'
           ],
+          'features': [
+            './js/features/exportChat.js',
+            './js/features/multiSession.js',
+            './js/features/chatSearch.js'
+          ],
+          'monitoring': [
+            './js/monitoring/analytics.js',
+            './js/monitoring/sentry.js',
+            './js/monitoring/webVitals.js'
+          ]
           'chat': [
             './js/chat.js'
           ]
