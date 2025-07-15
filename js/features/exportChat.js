@@ -165,7 +165,13 @@ export class ChatExporter {
 
     async exportToPDF(chatHistory, options) {
         // Dynamic import for PDF generation
-        const { jsPDF } = await import('jspdf');
+        const jsPDFModule = await import(/* @vite-ignore */ 'jspdf').catch(() => null);
+        
+        if (!jsPDFModule) {
+            throw new Error('PDF export is not available. Please install jsPDF.');
+        }
+        
+        const { jsPDF } = jsPDFModule;
         
         const doc = new jsPDF({
             orientation: 'portrait',

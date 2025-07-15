@@ -23,7 +23,13 @@ export class WebVitalsMonitor {
     async init() {
         try {
             // Dynamically import web-vitals library
-            const webVitals = await import('web-vitals');
+            const webVitals = await import(/* @vite-ignore */ 'web-vitals').catch(() => null);
+            
+            if (!webVitals) {
+                console.warn('web-vitals library not available, using fallback');
+                this.setupManualTracking();
+                return;
+            }
             
             // Set up Core Web Vitals tracking
             webVitals.onFCP(metric => this.handleMetric('FCP', metric));

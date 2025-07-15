@@ -61,38 +61,38 @@ export default defineConfig({
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
-        manualChunks: {
-          'vendor': ['@supabase/supabase-js'],
-          'i18n': [
-            './js/i18n/i18n.js',
-            './js/i18n/ko.js',
-            './js/i18n/en.js',
-            './js/i18n/zh.js',
-            './js/i18n/ja.js',
-            './js/i18n/id.js'
-          ],
-          'utils': [
-            './js/utils.js',
-            './js/security.js',
-            './js/utils/lazyLoader.js',
-            './js/utils/offlineQueue.js'
-          ],
-          'components': [
-            './js/components/typingIndicator.js'
-          ],
-          'features': [
-            './js/features/exportChat.js',
-            './js/features/multiSession.js',
-            './js/features/chatSearch.js'
-          ],
-          'monitoring': [
-            './js/monitoring/analytics.js',
-            './js/monitoring/sentry.js',
-            './js/monitoring/webVitals.js'
-          ]
-          'chat': [
-            './js/chat.js'
-          ]
+        manualChunks(id) {
+          // Vendor dependencies
+          if (id.includes('node_modules/@supabase')) {
+            return 'vendor';
+          }
+          
+          // External monitoring dependencies (loaded dynamically)
+          if (id.includes('node_modules/@sentry') || 
+              id.includes('node_modules/web-vitals') ||
+              id.includes('node_modules/jspdf')) {
+            return 'external';
+          }
+          
+          // Internal chunks
+          if (id.includes('/js/i18n/')) {
+            return 'i18n';
+          }
+          if (id.includes('/js/utils/') || id.includes('/js/utils.js') || id.includes('/js/security.js')) {
+            return 'utils';
+          }
+          if (id.includes('/js/components/')) {
+            return 'components';
+          }
+          if (id.includes('/js/features/')) {
+            return 'features';
+          }
+          if (id.includes('/js/monitoring/')) {
+            return 'monitoring';
+          }
+          if (id.includes('/js/chat.js')) {
+            return 'chat';
+          }
         }
       }
     }
@@ -111,7 +111,13 @@ export default defineConfig({
   },
   
   optimizeDeps: {
-    include: ['@supabase/supabase-js']
+    include: [
+      '@supabase/supabase-js',
+      '@sentry/browser',
+      '@sentry/tracing',
+      'web-vitals',
+      'jspdf'
+    ]
   },
   
   resolve: {

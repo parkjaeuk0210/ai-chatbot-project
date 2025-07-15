@@ -2,27 +2,38 @@
 import { FeraApp } from './app.js';
 import './i18n/i18n.js';
 import { performanceMonitor, addResourceHints } from './utils/performance.js';
-import { analytics } from './monitoring/analytics.js';
-import { sentryMonitor } from './monitoring/sentry.js';
-import { webVitalsMonitor } from './monitoring/webVitals.js';
+// Conditionally import monitoring modules
+let analytics, sentryMonitor, webVitalsMonitor;
+
+// These modules will be lazy-loaded only if needed
+if (import.meta.env.VITE_ENABLE_ANALYTICS === 'true' || import.meta.env.VITE_ENABLE_SENTRY === 'true') {
+    // Import monitoring modules dynamically to avoid build errors
+    Promise.all([
+        import('./monitoring/analytics.js').then(m => analytics = m.analytics).catch(() => {}),
+        import('./monitoring/sentry.js').then(m => sentryMonitor = m.sentryMonitor).catch(() => {}),
+        import('./monitoring/webVitals.js').then(m => webVitalsMonitor = m.webVitalsMonitor).catch(() => {})
+    ]);
+}
 
 // Add resource hints for better performance
 addResourceHints();
 
 // Initialize monitoring if enabled
-if (import.meta.env.VITE_ENABLE_ANALYTICS === 'true') {
-    analytics.track('app_start', {
-        version: import.meta.env.VITE_APP_VERSION || 'unknown'
-    });
-}
+setTimeout(() => {
+    if (import.meta.env.VITE_ENABLE_ANALYTICS === 'true' && analytics) {
+        analytics.track('app_start', {
+            version: import.meta.env.VITE_APP_VERSION || 'unknown'
+        });
+    }
 
-if (import.meta.env.VITE_ENABLE_SENTRY === 'true') {
-    sentryMonitor.addBreadcrumb({
-        category: 'app',
-        message: 'App initialization started',
-        level: 'info'
-    });
-}
+    if (import.meta.env.VITE_ENABLE_SENTRY === 'true' && sentryMonitor) {
+        sentryMonitor.addBreadcrumb({
+            category: 'app',
+            message: 'App initialization started',
+            level: 'info'
+        });
+    }
+}, 1000);
 
 // Initialize app when DOM is ready
 function initializeApp() {
@@ -50,7 +61,7 @@ function initializeApp() {
                 console.log('Web Vitals:', metrics);
                 
                 // Track app initialization complete
-                if (import.meta.env.VITE_ENABLE_ANALYTICS === 'true') {
+                if (import.meta.env.VITE_ENABLE_ANALYTICS === 'true' && analytics) {
                     analytics.track('app_initialized', {
                         initialization_time: Date.now() - window.analyticsPageLoadTime
                     });
@@ -59,9 +70,13 @@ function initializeApp() {
         }
         
         // Set up Web Vitals reporting
-        webVitalsMonitor.onReport((name, metric) => {
-            analytics.trackPerformance(name, metric.value);
-        });
+        if (webVitalsMonitor) {
+            webVitalsMonitor.onReport((name, metric) => {
+                if (analytics) {
+                    analytics.trackPerformance(name, metric.value);
+                }
+            });
+        }
     } catch (error) {
         console.error('Failed to initialize FeraApp:', error);
     }

@@ -21,8 +21,16 @@ export class SentryMonitor {
 
         try {
             // Dynamically import Sentry to reduce initial bundle size
-            const SentryModule = await import('@sentry/browser');
-            const { BrowserTracing } = await import('@sentry/tracing');
+            // These will only be loaded if Sentry is configured
+            const SentryModule = await import(/* @vite-ignore */ '@sentry/browser').catch(() => null);
+            const TracingModule = await import(/* @vite-ignore */ '@sentry/tracing').catch(() => null);
+            
+            if (!SentryModule || !TracingModule) {
+                console.warn('Sentry modules not available');
+                return;
+            }
+            
+            const { BrowserTracing } = TracingModule;
             
             this.Sentry = SentryModule;
             
