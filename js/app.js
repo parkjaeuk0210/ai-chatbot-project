@@ -1,7 +1,8 @@
 // Main application module
 import { ChatManager } from './chat.js';
 import { generateSessionId, sanitizeHTML, errorHandler, throttle, debounce } from './utils.js';
-import { createSafeErrorMessage, escapeHtml, setSafeHtml } from './security.js';
+import { createSafeErrorMessage, escapeHtml, setSafeHtml, rateLimiter } from './security.js';
+import { lazyLoader } from './utils/lazyLoader.js';
 
 class FeraApp {
     constructor() {
@@ -152,6 +153,9 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         // Initialize chat virtualization
         this.chatManager.initializeVirtualization(this.chatMessages);
+        
+        // Initialize lazy loading for images
+        this.initializeLazyLoading();
     }
 
     initializeEventListeners() {
@@ -421,6 +425,17 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         const url = this.urlInput.value.trim();
         
         if (!message && !this.chatManager.uploadedFile.type && !url) return;
+        
+        // Check rate limit
+        const rateLimitCheck = rateLimiter.check('chat', this.sessionId);
+        if (!rateLimitCheck.allowed) {
+            this.chatManager.addMessage(
+                this.chatMessages, 
+                'model', 
+                [{ text: `너무 많은 메시지를 보내고 있습니다. ${rateLimitCheck.retryAfter}초 후에 다시 시도해주세요.` }]
+            );
+            return;
+        }
 
         this.sendButton.disabled = true;
         this.chatManager.toggleLoading(this.chatMessages, true);
@@ -533,6 +548,18 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
     async handleGenerateImage() {
         const prompt = this.imagePrompt.value.trim();
         if (!prompt) return;
+        
+        // Check rate limit
+        const rateLimitCheck = rateLimiter.check('image', this.sessionId);
+        if (!rateLimitCheck.allowed) {
+            this.showImageError({
+                title: '요청 제한',
+                message: `이미지 생성 요청이 너무 많습니다. ${rateLimitCheck.retryAfter}초 후에 다시 시도해주세요.`,
+                action: 'rate_limit',
+                isRetryable: true
+            });
+            return;
+        }
 
         this.generateImageButton.disabled = true;
         this.imagePlaceholder.classList.add('opacity-0');
@@ -827,6 +854,30 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         setTimeout(() => {
             announcement.remove();
         }, 1000);
+    }
+    
+    initializeLazyLoading() {
+        // Observe chat messages for lazy loading images
+        const messageObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Element node
+                        const lazyImages = node.querySelectorAll('img[data-src]');
+                        lazyImages.forEach(img => lazyLoader.observe(img));
+                    }
+                });
+            });
+        });
+        
+        if (this.chatMessages) {
+            messageObserver.observe(this.chatMessages, { 
+                childList: true, 
+                subtree: true 
+            });
+        }
+        
+        // Store observer for cleanup
+        this.lazyLoadObserver = messageObserver;
     }
     
     initializeMessageNavigation() {

@@ -70,6 +70,14 @@ export default defineConfig({
             './js/i18n/zh.js',
             './js/i18n/ja.js',
             './js/i18n/id.js'
+          ],
+          'utils': [
+            './js/utils.js',
+            './js/security.js',
+            './js/utils/lazyLoader.js'
+          ],
+          'chat': [
+            './js/chat.js'
           ]
         }
       }

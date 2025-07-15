@@ -8,10 +8,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- Remove Tailwind CDN for production build -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/js/main.js" as="script" type="module">
+    <link rel="preload" href="/js/app.js" as="script" type="module">
+    <link rel="preload" href="/js/utils/lazyLoader.js" as="script" type="module">
     <!-- PDF.js will be lazy loaded when needed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Performance CSS -->
+    <link rel="preload" href="/css/performance.css" as="style">
+    <link rel="stylesheet" href="/css/performance.css">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">

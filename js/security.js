@@ -1,5 +1,8 @@
 // Security utilities for safe HTML rendering
 
+import { cspManager } from './security/csp.js';
+import { rateLimiter } from './security/rateLimit.js';
+
 // Safe text encoder to prevent XSS
 export function escapeHtml(text) {
     const div = document.createElement('div');
@@ -72,7 +75,21 @@ export function createSafeImage(src, alt = '') {
 
 // Safe innerHTML setter with basic sanitization
 export function setSafeHtml(element, html) {
+    // Use CSP manager for trusted HTML if available
+    if (cspManager && cspManager.createTrustedHTML) {
+        try {
+            const trustedHTML = cspManager.createTrustedHTML(html);
+            element.innerHTML = trustedHTML;
+            return element;
+        } catch (e) {
+            // Fallback to basic sanitization
+        }
+    }
+    
     const sanitized = sanitizeHtml(html);
     element.innerHTML = sanitized;
     return element;
 }
+
+// Export security managers
+export { cspManager, rateLimiter };

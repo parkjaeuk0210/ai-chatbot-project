@@ -112,7 +112,7 @@ export class ChatManager {
             let textContent = '';
 
             parts.forEach(part => {
-                if (part.inlineData) {
+                if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
                     imageHtml = this.createImageElement(part.inlineData);
                 }
                 if (part.text) {
@@ -141,6 +141,12 @@ export class ChatManager {
                     this.messageObserver.observe(wrapper);
                 }
                 
+                // Lazy load images in the message
+                const lazyImages = wrapper.querySelectorAll('img[data-src]');
+                if (window.lazyLoader && lazyImages.length > 0) {
+                    lazyImages.forEach(img => window.lazyLoader.observe(img));
+                }
+                
                 // Limit visible messages for performance
                 this.limitVisibleMessages(container);
                 
@@ -151,15 +157,21 @@ export class ChatManager {
     }
 
     createImageElement(inlineData) {
-        // Use data-src for lazy loading optimization
+        // Create image element with lazy loading
+        const img = document.createElement('img');
         const altText = this.uploadedFile.name ? `업로드된 이미지: ${this.uploadedFile.name}` : '업로드된 이미지';
-        return `<img 
-            data-src="data:${inlineData.mimeType};base64,${inlineData.data}"
-            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3C/svg%3E"
-            class="rounded-lg mt-2 w-full h-auto lazy-image"
-            loading="lazy"
-            alt="${altText}"
-        />`;
+        
+        // Use placeholder for lazy loading
+        const placeholder = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e0e0e0'/%3E%3C/svg%3E`;
+        img.src = placeholder;
+        img.dataset.src = `data:${inlineData.mimeType};base64,${inlineData.data}`;
+        img.className = 'max-w-full rounded-lg my-2 lazy-loading';
+        img.alt = altText;
+        img.style.filter = 'blur(10px)';
+        img.loading = 'lazy';
+        
+        // Return as HTML string
+        return img.outerHTML;
     }
 
     createPdfPreview(text) {

@@ -1,6 +1,10 @@
 // Main entry point for Vite
 import { FeraApp } from './app.js';
 import './i18n/i18n.js';
+import { performanceMonitor, addResourceHints } from './utils/performance.js';
+
+// Add resource hints for better performance
+addResourceHints();
 
 // Initialize app when DOM is ready
 function initializeApp() {
@@ -20,6 +24,14 @@ function initializeApp() {
         window.dispatchEvent(new CustomEvent('feraAppInitialized', { 
             detail: { app: window.feraApp } 
         }));
+        
+        // Report performance metrics
+        if (import.meta.env.PROD) {
+            setTimeout(() => {
+                const metrics = performanceMonitor.getMetrics();
+                console.log('Web Vitals:', metrics);
+            }, 5000);
+        }
     } catch (error) {
         console.error('Failed to initialize FeraApp:', error);
     }

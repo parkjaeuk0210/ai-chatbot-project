@@ -1,0 +1,146 @@
+/* Performance optimizations CSS */
+
+/* Lazy loading styles */
+.lazy-loading {
+    filter: blur(10px);
+    transition: filter 0.3s ease-in-out;
+}
+
+.lazy-loaded {
+    filter: none !important;
+}
+
+.lazy-error {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.lazy-error::after {
+    content: "Failed to load image";
+    font-size: 14px;
+}
+
+/* Component loading states */
+.component-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.component-loaded {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.component-error {
+    border: 2px dashed #ef4444;
+    padding: 1rem;
+    text-align: center;
+    color: #ef4444;
+}
+
+/* Virtual scrolling optimization */
+.message-virtualized {
+    height: 60px;
+    overflow: hidden;
+}
+
+.message-virtualized .message-content {
+    opacity: 0.3;
+}
+
+/* Performance animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .lazy-loading {
+        filter: none;
+    }
+    
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* GPU acceleration for smooth scrolling */
+.chat-messages {
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Optimize text rendering */
+body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce paint areas */
+.message-bubble {
+    contain: layout style paint;
+}
+
+/* Loading skeleton for better perceived performance */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Optimize image rendering */
+img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Prevent layout shifts */
+img[data-src] {
+    aspect-ratio: 4/3;
+    object-fit: cover;
+}
+
+/* Optimize shadows for performance */
+.shadow-optimized {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Use CSS containment for better performance */
+.content-pane {
+    contain: layout style;
+}
+
+/* Optimize backdrop filters */
+@supports (backdrop-filter: blur(10px)) {
+    .glass-effect {
+        backdrop-filter: blur(10px);
+    }
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.95);
+    }
+}

@@ -1,302 +1,132 @@
-// Performance optimization utilities
+/**
+ * Performance utilities for DOM batching and optimization
+ */
 
-// Request debouncing for API calls
-export class RequestManager {
-    constructor() {
-        this.pendingRequests = new Map();
-        this.cache = new Map();
-        this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
-    }
-    
-    async makeRequest(key, requestFn, options = {}) {
-        // Check if request is already pending
-        if (this.pendingRequests.has(key)) {
-            return this.pendingRequests.get(key);
-        }
-        
-        // Check cache
-        if (options.useCache && this.cache.has(key)) {
-            const cached = this.cache.get(key);
-            if (Date.now() - cached.timestamp < this.cacheTimeout) {
-                return Promise.resolve(cached.data);
-            }
-        }
-        
-        // Create new request
-        const promise = requestFn().then(data => {
-            this.pendingRequests.delete(key);
-            
-            // Cache successful responses
-            if (options.useCache) {
-                this.cache.set(key, {
-                    data,
-                    timestamp: Date.now()
-                });
-            }
-            
-            return data;
-        }).catch(error => {
-            this.pendingRequests.delete(key);
-            throw error;
-        });
-        
-        this.pendingRequests.set(key, promise);
-        return promise;
-    }
-    
-    clearCache() {
-        this.cache.clear();
-    }
-}
-
-// DOM batch updates
 export class DOMBatcher {
     constructor() {
-        this.updates = [];
-        this.scheduled = false;
+        this.pendingUpdates = [];
+        this.rafId = null;
     }
-    
+
     addUpdate(updateFn) {
-        this.updates.push(updateFn);
+        this.pendingUpdates.push(updateFn);
         
-        if (!this.scheduled) {
-            this.scheduled = true;
-            requestAnimationFrame(() => {
+        if (!this.rafId) {
+            this.rafId = requestAnimationFrame(() => {
                 this.flush();
             });
         }
     }
-    
+
     flush() {
         const fragment = document.createDocumentFragment();
-        
-        this.updates.forEach(update => {
-            update(fragment);
-        });
-        
-        this.updates = [];
-        this.scheduled = false;
-        
-        return fragment;
-    }
-}
+        const updates = [...this.pendingUpdates];
+        this.pendingUpdates = [];
+        this.rafId = null;
 
-// Image lazy loading with IntersectionObserver
-export class ImageLoader {
-    constructor() {
-        this.observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    this.loadImage(entry.target);
-                }
-            });
-        }, {
-            rootMargin: '50px'
+        updates.forEach(update => {
+            try {
+                update(fragment);
+            } catch (error) {
+                console.error('DOM batch update error:', error);
+            }
         });
     }
-    
-    observe(img) {
-        if (img.dataset.src) {
-            this.observer.observe(img);
+
+    cancel() {
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
         }
-    }
-    
-    loadImage(img) {
-        const src = img.dataset.src;
-        if (!src) return;
-        
-        // Create a new image to preload
-        const newImg = new Image();
-        newImg.onload = () => {
-            img.src = src;
-            img.classList.add('loaded');
-            delete img.dataset.src;
-            this.observer.unobserve(img);
-        };
-        newImg.src = src;
-    }
-    
-    disconnect() {
-        this.observer.disconnect();
+        this.pendingUpdates = [];
     }
 }
 
-// Memory management
-export class MemoryManager {
-    constructor() {
-        this.listeners = new Map();
-        this.intervals = new Set();
-        this.timeouts = new Set();
-    }
-    
-    addEventListener(element, event, handler, options) {
-        const key = `${element.id || 'anonymous'}_${event}`;
-        
-        // Remove existing listener if any
-        if (this.listeners.has(key)) {
-            const { element: el, event: ev, handler: h } = this.listeners.get(key);
-            el.removeEventListener(ev, h);
-        }
-        
-        element.addEventListener(event, handler, options);
-        this.listeners.set(key, { element, event, handler });
-    }
-    
-    setInterval(callback, delay) {
-        const id = setInterval(callback, delay);
-        this.intervals.add(id);
-        return id;
-    }
-    
-    clearInterval(id) {
-        clearInterval(id);
-        this.intervals.delete(id);
-    }
-    
-    setTimeout(callback, delay) {
-        const id = setTimeout(() => {
-            callback();
-            this.timeouts.delete(id);
-        }, delay);
-        this.timeouts.add(id);
-        return id;
-    }
-    
-    clearTimeout(id) {
-        clearTimeout(id);
-        this.timeouts.delete(id);
-    }
-    
-    cleanup() {
-        // Remove all event listeners
-        this.listeners.forEach(({ element, event, handler }) => {
-            element.removeEventListener(event, handler);
-        });
-        this.listeners.clear();
-        
-        // Clear all intervals
-        this.intervals.forEach(id => clearInterval(id));
-        this.intervals.clear();
-        
-        // Clear all timeouts
-        this.timeouts.forEach(id => clearTimeout(id));
-        this.timeouts.clear();
-    }
-}
-
-// Performance monitoring
 export class PerformanceMonitor {
     constructor() {
-        this.metrics = {
-            renderTime: [],
-            apiCallTime: [],
-            memoryUsage: []
-        };
-        this.maxMetrics = 100;
+        this.measurements = new Map();
     }
-    
-    measureRender(operation, callback) {
-        const start = performance.now();
-        const result = callback();
-        const duration = performance.now() - start;
+
+    measureRender(name, fn) {
+        const startTime = performance.now();
         
-        this.addMetric('renderTime', {
-            operation,
-            duration,
-            timestamp: Date.now()
-        });
-        
-        if (duration > 16.67) { // More than one frame (60fps)
-            console.warn(`Slow render operation: ${operation} took ${duration.toFixed(2)}ms`);
-        }
-        
-        return result;
-    }
-    
-    async measureAPI(endpoint, callback) {
-        const start = performance.now();
         try {
-            const result = await callback();
-            const duration = performance.now() - start;
+            const result = fn();
             
-            this.addMetric('apiCallTime', {
-                endpoint,
-                duration,
-                status: 'success',
-                timestamp: Date.now()
-            });
+            // Handle both sync and async functions
+            if (result instanceof Promise) {
+                return result.finally(() => {
+                    this.recordMeasurement(name, startTime);
+                });
+            }
             
+            this.recordMeasurement(name, startTime);
             return result;
         } catch (error) {
-            const duration = performance.now() - start;
-            
-            this.addMetric('apiCallTime', {
-                endpoint,
-                duration,
-                status: 'error',
-                timestamp: Date.now()
-            });
-            
+            this.recordMeasurement(name, startTime);
             throw error;
         }
     }
-    
-    measureMemory() {
-        if (performance.memory) {
-            this.addMetric('memoryUsage', {
-                usedJSHeapSize: performance.memory.usedJSHeapSize,
-                totalJSHeapSize: performance.memory.totalJSHeapSize,
-                jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
-                timestamp: Date.now()
-            });
+
+    recordMeasurement(name, startTime) {
+        const duration = performance.now() - startTime;
+        
+        if (!this.measurements.has(name)) {
+            this.measurements.set(name, []);
+        }
+        
+        const measurements = this.measurements.get(name);
+        measurements.push(duration);
+        
+        // Keep only last 100 measurements
+        if (measurements.length > 100) {
+            measurements.shift();
+        }
+        
+        // Log slow operations in development
+        if (duration > 50 && import.meta.env.DEV) {
+            console.warn(`Slow operation detected: ${name} took ${duration.toFixed(2)}ms`);
         }
     }
-    
-    addMetric(type, data) {
-        this.metrics[type].push(data);
-        
-        // Keep only recent metrics
-        if (this.metrics[type].length > this.maxMetrics) {
-            this.metrics[type] = this.metrics[type].slice(-this.maxMetrics);
+
+    getStats(name) {
+        const measurements = this.measurements.get(name);
+        if (!measurements || measurements.length === 0) {
+            return null;
         }
+
+        const sorted = [...measurements].sort((a, b) => a - b);
+        const sum = sorted.reduce((a, b) => a + b, 0);
+
+        return {
+            count: sorted.length,
+            mean: sum / sorted.length,
+            median: sorted[Math.floor(sorted.length / 2)],
+            p95: sorted[Math.floor(sorted.length * 0.95)],
+            p99: sorted[Math.floor(sorted.length * 0.99)],
+            min: sorted[0],
+            max: sorted[sorted.length - 1]
+        };
     }
-    
-    getMetrics() {
-        return this.metrics;
+
+    getAllStats() {
+        const stats = {};
+        for (const [name, _] of this.measurements) {
+            stats[name] = this.getStats(name);
+        }
+        return stats;
     }
-    
-    getAverages() {
-        const averages = {};
-        
-        Object.keys(this.metrics).forEach(type => {
-            const data = this.metrics[type];
-            if (data.length === 0) {
-                averages[type] = 0;
-                return;
-            }
-            
-            if (type === 'memoryUsage') {
-                const latest = data[data.length - 1];
-                averages[type] = latest ? latest.usedJSHeapSize : 0;
-            } else {
-                const sum = data.reduce((acc, item) => acc + item.duration, 0);
-                averages[type] = sum / data.length;
-            }
-        });
-        
-        return averages;
+
+    clear() {
+        this.measurements.clear();
     }
 }
 
-// Singleton instances
-export const requestManager = new RequestManager();
+// Create singleton instances
 export const domBatcher = new DOMBatcher();
-export const imageLoader = new ImageLoader();
-export const memoryManager = new MemoryManager();
 export const performanceMonitor = new PerformanceMonitor();
 
-// Auto cleanup on page unload
+// Auto-cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    memoryManager.cleanup();
-    imageLoader.disconnect();
+    domBatcher.cancel();
 });
