@@ -1,6 +1,10 @@
 // API Service - Handles all API communications
 import type { ChatRequest, ChatResponse, ErrorInfo } from '../../types';
 import { formatErrorMessage } from '../utils.js';
+import { errorService } from './error.service.js';
+import { apiCircuitBreaker } from './circuit-breaker.js';
+import { retryService } from './retry.service.js';
+import { toastManager } from '../components/ToastComponent.js';
 
 export class ApiService {
   private baseUrl: string;
@@ -16,6 +20,43 @@ export class ApiService {
    * Send chat request to API
    */
   async sendChatRequest(request: ChatRequest): Promise<ChatResponse> {
+    try {
+      // Use circuit breaker and retry logic
+      const response = await apiCircuitBreaker.execute(() => 
+        retryService.executeWithTimeout(
+          () => this.performChatRequest(request),
+          25000, // 25 second timeout
+        )
+      );
+      
+      return response;
+    } catch (error: any) {
+      // Log error
+      errorService.logError('Chat request failed', error, {
+        request: { sessionId: request.sessionId, model: request.model },
+      });
+      
+      // Show user-friendly error
+      const errorInfo = formatErrorMessage(error);
+      if (errorInfo.isRetryable) {
+        toastManager.error(errorInfo.message, {
+          action: {
+            label: 'Retry',
+            handler: () => window.feraApp?.retryLastMessage?.(),
+          },
+        });
+      } else {
+        toastManager.error(errorInfo.message);
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Perform the actual chat request
+   */
+  private async performChatRequest(request: ChatRequest): Promise<ChatResponse> {
     // Cancel any pending request
     this.cancelPendingRequest();
 
@@ -31,6 +72,11 @@ export class ApiService {
         headers['Authorization'] = `Bearer ${this.apiKey}`;
       }
 
+      errorService.logDebug('Sending chat request', {
+        url: `${this.baseUrl}/api/chat`,
+        model: request.model,
+      });
+
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers,
@@ -40,10 +86,13 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        const error: any = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
 
       const data = await response.json();
+      errorService.logDebug('Chat request successful');
       return data as ChatResponse;
     } catch (error: any) {
       if (error.name === 'AbortError') {

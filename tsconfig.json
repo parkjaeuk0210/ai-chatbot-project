@@ -38,5 +38,10 @@
     }
   },
   "include": ["js/**/*.ts", "js/**/*.js", "api/**/*.ts", "api/**/*.js", "types/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
 }
