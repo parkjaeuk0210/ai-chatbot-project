@@ -1,6 +1,7 @@
 // Main application module
 import { ChatManager } from './chat.js';
 import { generateSessionId, sanitizeHTML, errorHandler } from './utils.js';
+import { createSafeErrorMessage, escapeHtml, setSafeHtml } from './security.js';
 
 class FeraApp {
     constructor() {
@@ -433,11 +434,15 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 this.chatInput.focus();
             },
             (errorInfo) => {
-                // Create error message with action button if retryable
+                // Create safe error message
                 let errorContent = errorInfo.fullMessage;
                 
+                // Add retry button safely if retryable
                 if (errorInfo.isRetryable) {
-                    errorContent += `\n\n<button class="retry-button" onclick="window.feraApp.retryLastMessage()">🔄 다시 시도</button>`;
+                    // Store retry function in window for safe access
+                    window.feraAppRetry = () => this.retryLastMessage();
+                    errorContent = escapeHtml(errorInfo.fullMessage) + 
+                        '<br><br><button class="retry-button px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick="window.feraAppRetry()">🔄 다시 시도</button>';
                 }
                 
                 this.chatManager.addMessage(

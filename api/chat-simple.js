@@ -38,9 +38,20 @@ function checkRateLimit(key) {
 
 export default async function handler(request, response) {
   // CORS 설정
-  response.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [process.env.PRODUCTION_URL || 'https://fera-ai.vercel.app'].filter(Boolean)
+    : ['http://127.0.0.1:5500', 'http://localhost:3000'];
+  
+  const origin = request.headers.origin || request.headers.Origin;
+  if (allowedOrigins.includes(origin)) {
+    response.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'production') {
+    return response.status(403).json({ message: 'Forbidden: Invalid origin' });
+  }
+  
   response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.setHeader('Access-Control-Max-Age', '86400');
 
   if (request.method === 'OPTIONS') {
     return response.status(200).end();
@@ -70,7 +81,7 @@ export default async function handler(request, response) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("Vercel 환경 변수에 'GEMINI_API_KEY'가 설정되지 않았습니다.");
-    return response.status(500).json({ message: '서버에 API 키가 설정되지 않았습니다.' });
+    return response.status(500).json({ message: '서버 구성 오류가 발생했습니다.' });
   }
 
   try {
@@ -154,7 +165,7 @@ export default async function handler(request, response) {
     if (!googleResponse.ok) {
       const errorText = await googleResponse.text();
       console.error("Google API 에러 응답:", errorText);
-      return response.status(googleResponse.status).json({ message: `Google API 에러: ${errorText}` });
+      return response.status(googleResponse.status).json({ message: '일시적인 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
     }
 
     const data = await googleResponse.json();

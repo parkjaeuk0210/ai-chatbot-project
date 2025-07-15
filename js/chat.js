@@ -1,6 +1,7 @@
 // Chat functionality module
 import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput, errorHandler } from './utils.js';
 import { domBatcher, performanceMonitor } from './performance.js';
+import { escapeHtml, setSafeHtml, createSafeTextElement } from './security.js';
 
 export class ChatManager {
     constructor() {
