@@ -1,4 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="100" fill="#3b82f6"/>
-  <text x="256" y="320" font-family="Arial, sans-serif" font-size="200" font-weight="bold" text-anchor="middle" fill="white">FERA</text>
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="symbolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#93c5fd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a5b4fc;stop-opacity:1" />
+    </linearGradient>
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="dropShadow">
+      <feDropShadow dx="0" dy="10" stdDeviation="20" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGradient)"/>
+  
+  <!-- Inner glow effect -->
+  <rect x="50" y="50" width="412" height="412" rx="75" fill="none" stroke="white" stroke-width="2" opacity="0.2" filter="url(#innerGlow)"/>
+  
+  <!-- Main symbol group -->
+  <g transform="translate(256, 256)" filter="url(#dropShadow)">
+    <!-- Background glow -->
+    <circle r="140" fill="white" opacity="0.1"/>
+    
+    <!-- Central core -->
+    <circle r="40" fill="white" opacity="0.9"/>
+    
+    <!-- Connecting beams -->
+    <g opacity="0.7">
+      <rect x="-3" y="-120" width="6" height="80" fill="white" rx="3"/>
+      <rect x="-3" y="40" width="6" height="80" fill="white" rx="3"/>
+      <rect x="-120" y="-3" width="80" height="6" fill="white" rx="3"/>
+      <rect x="40" y="-3" width="80" height="6" fill="white" rx="3"/>
+      
+      <!-- Diagonal beams -->
+      <rect x="-3" y="-3" width="6" height="90" fill="white" rx="3" transform="rotate(45)"/>
+      <rect x="-3" y="-3" width="6" height="90" fill="white" rx="3" transform="rotate(-45)"/>
+      <rect x="-3" y="-3" width="6" height="90" fill="white" rx="3" transform="rotate(135)"/>
+      <rect x="-3" y="-3" width="6" height="90" fill="white" rx="3" transform="rotate(-135)"/>
+    </g>
+    
+    <!-- Orbital nodes -->
+    <g>
+      <!-- Top -->
+      <circle cx="0" cy="-100" r="30" fill="white" opacity="0.8"/>
+      <!-- Bottom -->
+      <circle cx="0" cy="100" r="30" fill="white" opacity="0.8"/>
+      <!-- Left -->
+      <circle cx="-100" cy="0" r="30" fill="white" opacity="0.8"/>
+      <!-- Right -->
+      <circle cx="100" cy="0" r="30" fill="white" opacity="0.8"/>
+      
+      <!-- Diagonal nodes -->
+      <circle cx="70" cy="-70" r="20" fill="white" opacity="0.6"/>
+      <circle cx="-70" cy="-70" r="20" fill="white" opacity="0.6"/>
+      <circle cx="70" cy="70" r="20" fill="white" opacity="0.6"/>
+      <circle cx="-70" cy="70" r="20" fill="white" opacity="0.6"/>
+    </g>
+    
+    <!-- Inner details -->
+    <circle r="20" fill="url(#symbolGradient)"/>
+  </g>
 </svg>
