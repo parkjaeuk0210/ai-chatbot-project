@@ -1,5 +1,6 @@
 // Secure version of the chat API with input validation and rate limiting
 import { filterGeminiResponse, containsForbiddenTerms, logFilteredContent } from './middleware/responseFilter.js';
+import { authenticate } from './middleware/auth.js';
 
 // Simple in-memory rate limiter (for production, use Redis)
 const rateLimitStore = new Map();
@@ -140,9 +141,21 @@ export default async function handler(request, response) {
     response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     
     // CORS settings
-    response.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+        ? [process.env.PRODUCTION_URL || 'https://fera-ai.vercel.app'].filter(Boolean)
+        : ['http://127.0.0.1:5500', 'http://localhost:3000'];
+    
+    const origin = request.headers.origin || request.headers.Origin;
+    if (allowedOrigins.includes(origin)) {
+        response.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (process.env.NODE_ENV === 'production') {
+        // 프로덕션에서는 허용되지 않은 origin에 대해 403 반환
+        return response.status(403).json({ message: 'Forbidden: Invalid origin' });
+    }
+    
     response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.setHeader('Access-Control-Max-Age', '86400'); // 24시간 preflight 캐시
 
     if (request.method === 'OPTIONS') {
         return response.status(200).end();
@@ -153,6 +166,12 @@ export default async function handler(request, response) {
 
     if (request.method !== 'POST') {
         return response.status(405).json({ message: '허용되지 않은 메서드입니다.' });
+    }
+    
+    // Authenticate request
+    const isAuthenticated = await authenticate(request, response);
+    if (!isAuthenticated) {
+        return; // Response already sent by authenticate function
     }
 
     // Get client IP for rate limiting

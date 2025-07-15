@@ -4,7 +4,17 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "serve": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "type-check": "tsc --noEmit",
+    "watch": "tsc --watch",
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "format": "prettier --write \"**/*.{js,ts,json,md,html,css}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,json,md,html,css}\""
   },
   "repository": {
     "type": "git",
@@ -22,6 +32,25 @@
     "@supabase/supabase-js": "^2.50.4",
     "@vercel/analytics": "^1.5.0",
     "@vercel/kv": "^3.0.0",
-    "express": "^4.17.1"
+    "dompurify": "^3.2.6",
+    "express": "^4.17.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
+    "@vitejs/plugin-legacy": "^7.0.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.1",
+    "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.11",
+    "terser": "^5.43.1",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.4"
   }
 }

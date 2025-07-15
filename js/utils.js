@@ -63,20 +63,31 @@ export async function compressImage(file, maxWidth = 1920, maxHeight = 1080, qua
     });
 }
 
-// Extract text from PDF using PDF.js
+// Extract text from PDF using PDF.js (with lazy loading)
 export async function extractTextFromPdf(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        fullText += pageText + '\n\n';
+    try {
+        // Lazy load PDF.js if not already loaded
+        if (!window.pdfjsLib) {
+            const { lazyLoadPdfJs } = await import('./lazyLoader.js');
+            await lazyLoadPdfJs();
+        }
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n\n';
+        }
+        
+        return fullText;
+    } catch (error) {
+        console.error('PDF extraction error:', error);
+        throw new Error('PDF 파일을 읽을 수 없습니다.');
     }
-    
-    return fullText;
 }
 
 // Debounce function to limit API calls
@@ -89,6 +100,18 @@ export function debounce(func, wait) {
         };
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
+    };
+}
+
+// Throttle function to limit event firing rate
+export function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
     };
 }
 

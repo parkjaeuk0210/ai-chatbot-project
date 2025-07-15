@@ -1,6 +1,7 @@
 // Chat functionality module
 import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput, errorHandler } from './utils.js';
 import { domBatcher, performanceMonitor } from './performance.js';
+import { escapeHtml, setSafeHtml, createSafeTextElement } from './security.js';
 
 export class ChatManager {
     constructor() {
@@ -13,10 +14,47 @@ export class ChatManager {
         this.identityReinforcementInterval = 10; // Reinforce identity every 10 messages
         this.maxHistoryLength = 20; // Maximum messages to keep in history
         this.contextWindowSize = 10; // Messages to send to API
+        this.cleanupHandlers = [];
+        this.maxCacheSize = 100; // Maximum messages to cache
+        this.cacheCleanupThreshold = 120; // Trigger cleanup when cache exceeds this
+    }
+    
+    // Cleanup method to prevent memory leaks
+    cleanupVirtualization() {
+        if (this.messageObserver) {
+            this.messageObserver.disconnect();
+            this.messageObserver = null;
+        }
+    }
+    
+    // Complete cleanup method
+    destroy() {
+        this.cleanupVirtualization();
+        this.cleanupHandlers.forEach(handler => handler());
+        this.cleanupHandlers = [];
+        this.messageCache.clear();
+        this.chatHistory = [];
+    }
+    
+    // Clean up old cache entries to prevent memory bloat
+    cleanupMessageCache() {
+        if (this.messageCache.size <= this.maxCacheSize) return;
+        
+        // Convert to array and sort by key (assuming keys are timestamps or incrementing)
+        const entries = Array.from(this.messageCache.entries());
+        const toRemove = entries.slice(0, entries.length - this.maxCacheSize);
+        
+        // Remove old entries
+        toRemove.forEach(([key]) => {
+            this.messageCache.delete(key);
+        });
     }
 
     // Initialize message virtualization for performance
     initializeVirtualization(container) {
+        // Clean up existing observer if any
+        this.cleanupVirtualization();
+        
         this.messageObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -30,6 +68,8 @@ export class ChatManager {
             rootMargin: '100px',
             threshold: 0.1
         });
+        
+        this.messageContainer = container;
     }
 
     // Load message content when visible
@@ -40,7 +80,7 @@ export class ChatManager {
         const cachedContent = this.messageCache.get(messageId);
         const contentDiv = element.querySelector('.message-content');
         if (contentDiv && contentDiv.dataset.virtualized === 'true') {
-            contentDiv.innerHTML = cachedContent;
+            setSafeHtml(contentDiv, cachedContent);
             contentDiv.dataset.virtualized = 'false';
         }
     }
@@ -56,7 +96,7 @@ export class ChatManager {
             this.messageCache.set(messageId, contentDiv.innerHTML);
             
             // Replace with placeholder
-            contentDiv.innerHTML = '<div class="text-gray-400">...</div>';
+            setSafeHtml(contentDiv, '<div class="text-gray-400">...</div>');
             contentDiv.dataset.virtualized = 'true';
         }
     }
@@ -90,7 +130,7 @@ export class ChatManager {
             const bubbleContent = textContent + imageHtml;
             const messageHtml = this.createMessageHtml(sender, bubbleContent);
             
-            wrapper.innerHTML = messageHtml;
+            setSafeHtml(wrapper, messageHtml);
             
             // Batch DOM updates
             domBatcher.addUpdate((fragment) => {

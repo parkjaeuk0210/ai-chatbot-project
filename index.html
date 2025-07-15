@@ -1,15 +1,14 @@
-<title>페라 – 무료 AI 채팅앱</title>
 <!DOCTYPE html>
 <html lang="ko" dir="ltr">
 <head>
+    <title>페라 – 무료 AI 채팅앱</title>
     <meta name="description" content="페라는 최신 AI 모델을 이용한 내맘대로 만드는 실시간 챗봇 서비스입니다.">
     <meta name="google-site-verification" content="69vBy7QiAiBCp1GXYwYh3Ia5c7Hk0wl113WbW2xjzOg" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FERA - AI Platform</title>
+    <!-- Remove Tailwind CDN for production build -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PDF.js 라이브러리 추가 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- PDF.js will be lazy loaded when needed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -431,20 +430,6 @@
                 페라는 세계에서 가장 빠르고 똑똑한 ai 모델입니다.
             </p>
             <textarea id="persona-input" class="w-full h-40 p-3 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm" placeholder="AI의 페르소나를 입력하세요..." aria-label="AI 페르소나 입력란" aria-describedby="persona-description" data-i18n="settings.placeholder"></textarea>
-            
-            <!-- 페르소나 프리셋 -->
-            <div class="mt-4">
-                <label for="persona-preset" class="block text-sm font-medium text-slate-700 mb-1" data-i18n="settings.presetLabel">
-                    페르소나 프리셋
-                </label>
-                <select id="persona-preset" class="w-full p-2 bg-white/70 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm cursor-pointer hover:bg-white/80 text-slate-700">
-                    <option value="" data-i18n="settings.presetDefault">직접 설정</option>
-                    <option value="friendly" data-i18n="settings.presetFriendly">친근한 친구</option>
-                    <option value="professional" data-i18n="settings.presetProfessional">전문 비서</option>
-                    <option value="teacher" data-i18n="settings.presetTeacher">친절한 선생님</option>
-                    <option value="creative" data-i18n="settings.presetCreative">창의적인 아티스트</option>
-                </select>
-            </div>
             
             <!-- 숨겨진 시스템 설정 (사용자에게 보이지 않음) -->
             <input type="hidden" id="hidden-persona" value="" />

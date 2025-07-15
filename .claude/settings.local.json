@@ -14,7 +14,9 @@
       "Bash(python:*)",
       "Bash(node:*)",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tailwindcss:*)"
     ],
     "deny": []
   }
