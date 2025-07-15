@@ -190,6 +190,13 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             this.personaPresetSelect.addEventListener('change', (e) => this.applyPreset(e.target.value));
         }
         
+        // Click outside to close settings modal
+        this.settingsModal.addEventListener('click', (e) => {
+            if (e.target === this.settingsModal) {
+                this.closeSettings();
+            }
+        });
+        
         // Keyboard navigation
         this.initializeKeyboardNavigation();
         
