@@ -237,7 +237,7 @@ class I18n {
         });
 
         // Update document title
-        document.title = this.t('page.title', this.currentLang) || 'FERA - AI Platform';
+        document.title = this.t('page.title', this.currentLang) || 'PERA - AI Platform';
     }
 
     // Create language selector HTML

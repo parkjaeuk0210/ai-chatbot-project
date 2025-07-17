@@ -12,11 +12,11 @@ export const en = {
     "chat.placeholder": "Type a message",
     "chat.urlPlaceholder": "Enter URL (optional)",
     "chat.send": "Send",
-    "chat.initialMessage": "Hello, I'm FERA. Anything is possible.",
+    "chat.initialMessage": "Hello, I'm PERA. Anything is possible.",
     
     // Settings
     "settings.title": "AI Persona Settings",
-    "settings.description": "Customize your AI by setting its name, personality, and speaking style. FERA is the world's fastest and smartest AI model.",
+    "settings.description": "Customize your AI by setting its name, personality, and speaking style. PERA is the world's fastest and smartest AI model.",
     "settings.placeholder": "Enter AI persona...",
     "settings.presetLabel": "Persona Presets",
     "settings.presetDefault": "Custom",
@@ -71,7 +71,7 @@ export const en = {
     "lang.zh": "中文",
     
     // Page
-    "page.title": "FERA - Free AI Chat App",
+    "page.title": "PERA - Free AI Chat App",
     
     // Default persona
     "persona.default": ""

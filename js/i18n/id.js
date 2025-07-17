@@ -12,11 +12,11 @@ export const id = {
     "chat.placeholder": "Ketik pesan",
     "chat.urlPlaceholder": "Masukkan URL (opsional)",
     "chat.send": "Kirim",
-    "chat.initialMessage": "Halo, saya FERA. Semuanya mungkin.",
+    "chat.initialMessage": "Halo, saya PERA. Semuanya mungkin.",
     
     // Settings
     "settings.title": "Pengaturan Persona AI",
-    "settings.description": "Atur nama, kepribadian, dan gaya bicara AI untuk membuat AI pribadi Anda. FERA adalah model AI tercepat dan terpintar di dunia.",
+    "settings.description": "Atur nama, kepribadian, dan gaya bicara AI untuk membuat AI pribadi Anda. PERA adalah model AI tercepat dan terpintar di dunia.",
     "settings.placeholder": "Masukkan persona AI...",
     "settings.presetLabel": "Preset Persona",
     "settings.presetDefault": "Kustom",
@@ -72,7 +72,7 @@ export const id = {
     "lang.id": "Bahasa Indonesia",
     
     // Page
-    "page.title": "FERA - Aplikasi Chat AI Gratis",
+    "page.title": "PERA - Aplikasi Chat AI Gratis",
     
     // Default persona
     "persona.default": ""

@@ -12,11 +12,11 @@ export const ja = {
     "chat.placeholder": "メッセージを入力してください",
     "chat.urlPlaceholder": "URL入力（オプション）",
     "chat.send": "送信",
-    "chat.initialMessage": "こんにちは、FERAです。何でも可能です。",
+    "chat.initialMessage": "こんにちは、PERAです。何でも可能です。",
     
     // Settings
     "settings.title": "AIペルソナ設定",
-    "settings.description": "AIの名前、性格、話し方などを自由に設定して、あなただけのAIを作りましょう。FERAは世界最速で最も賢いAIモデルです。",
+    "settings.description": "AIの名前、性格、話し方などを自由に設定して、あなただけのAIを作りましょう。PERAは世界最速で最も賢いAIモデルです。",
     "settings.placeholder": "AIのペルソナを入力してください...",
     "settings.presetLabel": "ペルソナプリセット",
     "settings.presetDefault": "カスタム設定",
@@ -71,7 +71,7 @@ export const ja = {
     "lang.zh": "中文",
     
     // Page
-    "page.title": "FERA - 無料AIチャットアプリ",
+    "page.title": "PERA - 無料AIチャットアプリ",
     
     // Default persona
     "persona.default": ""

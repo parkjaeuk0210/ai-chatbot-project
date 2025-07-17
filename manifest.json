@@ -1,6 +1,6 @@
 {
-  "name": "FERA AI - 인공지능 어시스턴트",
-  "short_name": "FERA",
+  "name": "PERA AI - 인공지능 어시스턴트",
+  "short_name": "PERA",
   "description": "무엇이든 가능한 AI 챗봇 및 이미지 생성 플랫폼",
   "start_url": "/",
   "display": "standalone",

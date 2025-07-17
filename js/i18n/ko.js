@@ -12,7 +12,7 @@ export const ko = {
     "chat.placeholder": "메시지를 입력하세요",
     "chat.urlPlaceholder": "URL 입력 (선택사항)",
     "chat.send": "전송",
-    "chat.initialMessage": "안녕하세요, FERA입니다. 무엇이든 가능합니다.",
+    "chat.initialMessage": "안녕하세요, PERA입니다. 무엇이든 가능합니다.",
     
     // Settings
     "settings.title": "AI 페르소나 설정",

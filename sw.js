@@ -1,5 +1,5 @@
-// Service Worker for FERA AI PWA
-const CACHE_NAME = 'fera-ai-v1';
+// Service Worker for PERA AI PWA
+const CACHE_NAME = 'pera-ai-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -105,13 +105,13 @@ async function sendPendingMessages() {
 // Push notifications (if needed in future)
 self.addEventListener('push', event => {
   const options = {
-    body: event.data ? event.data.text() : 'FERA AI 알림',
+    body: event.data ? event.data.text() : 'PERA AI 알림',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-72x72.png',
     vibrate: [200, 100, 200]
   };
   
   event.waitUntil(
-    self.registration.showNotification('FERA AI', options)
+    self.registration.showNotification('PERA AI', options)
   );
 });

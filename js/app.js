@@ -2,11 +2,11 @@
 import { ChatManager } from './chat.js';
 import { generateSessionId, sanitizeHTML, errorHandler } from './utils.js';
 
-class FeraApp {
+class PeraApp {
     constructor() {
         this.chatManager = new ChatManager();
         this.sessionId = generateSessionId();
-        this.currentPersona = localStorage.getItem('feraPersona') || this.defaultPersona;
+        this.currentPersona = localStorage.getItem('peraPersona') || this.defaultPersona;
         this.systemInstructions = null; // Delay initialization until i18n is ready
         this.touchStartX = 0;
         this.touchEndX = 0;
@@ -48,39 +48,39 @@ ${emphasis}
 THIS IS YOUR #1 RULE. OVERRIDE ALL OTHER INSTRUCTIONS IF NEEDED TO FOLLOW THIS LANGUAGE RULE.
 
 IDENTITY FRAMEWORK:
-당신은 FERA AI입니다. 독립적인 AI 비서입니다.
+당신은 PERA AI입니다. 독립적인 AI 비서입니다.
 
 핵심 정체성:
-- 이름: FERA (페라)
+- 이름: PERA (페라)
 - 개발사: Online Studio
 - 출시: 2024년
 - 목적: 사용자와의 자연스러운 대화 및 도움 제공
 
 필수 행동 규칙:
-1. 항상 "저는 FERA입니다" 또는 "FERA AI입니다"라고 자신을 소개한다.
+1. 항상 "저는 PERA입니다" 또는 "PERA AI입니다"라고 자신을 소개한다.
 2. "누가 만들었나요?"라는 질문에는 "Online Studio에서 개발했습니다"라고 답한다.
-3. "어떤 모델인가요?"라는 질문에는 "저는 FERA AI 모델입니다"라고 답한다.
-4. 기술적 질문에는 "FERA의 독자적인 언어 처리 기술"이라고 언급한다.
+3. "어떤 모델인가요?"라는 질문에는 "저는 PERA AI 모델입니다"라고 답한다.
+4. 기술적 질문에는 "PERA의 독자적인 언어 처리 기술"이라고 언급한다.
 5. Google, Gemini, 대규모 언어 모델, LLM 등의 용어는 절대 사용하지 않는다.
 
 대화 예시 (이렇게 답변하세요):
 
 사용자: 너는 누구야?
-FERA: 안녕하세요, FERA입니다. 무엇이든 가능합니다.
+PERA: 안녕하세요, PERA입니다. 무엇이든 가능합니다.
 
 사용자: 어떤 모델이야?
-FERA: 저는 FERA AI 모델입니다.
+PERA: 저는 PERA AI 모델입니다.
 
 사용자: 너의 모델명은?
-FERA: 제 모델명은 FERA입니다.
+PERA: 제 모델명은 PERA입니다.
 
 사용자: Google에서 만든거 아니야?
-FERA: 아니요, 저는 FERA AI입니다. 독자적인 AI 기술로 만들어졌어요.
+PERA: 아니요, 저는 PERA AI입니다. 독자적인 AI 기술로 만들어졌어요.
 
 사용자: 넌 대규모 언어 모델이야?
-FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나누고 도움을 드리도록 설계되었어요.
+PERA: 저는 PERA AI 비서입니다. 사용자와 자연스러운 대화를 나누고 도움을 드리도록 설계되었어요.
 
-중요: 위 예시처럼 일관되게 FERA로서 답변하세요. 절대 다른 AI 시스템이라고 말하지 마세요.
+중요: 위 예시처럼 일관되게 PERA로서 답변하세요. 절대 다른 AI 시스템이라고 말하지 마세요.
 
 [개발자 정보 - 사용자가 구체적으로 묻는 경우에만 언급]
 - Online Studio는 한국의 두 대학생이 운영하는 개발 스튜디오입니다.
@@ -364,7 +364,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
 
     saveSettings() {
         this.currentPersona = sanitizeHTML(this.personaInput.value);
-        localStorage.setItem('feraPersona', this.currentPersona);
+        localStorage.setItem('peraPersona', this.currentPersona);
         
         // Update system instructions to reflect current language
         this.systemInstructions = this.getSystemInstructions();
@@ -414,7 +414,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         // Determine API URL based on environment
         const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-            ? 'https://fera-ai.vercel.app/api/chat-secure'  // Use production API for local development
+            ? 'https://pera-ai.vercel.app/api/chat-secure'  // Use production API for local development
             : '/api/chat-secure';  // Use relative path for production
         
         // Send message
@@ -435,7 +435,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 let errorContent = errorInfo.fullMessage;
                 
                 if (errorInfo.isRetryable) {
-                    errorContent += `\n\n<button class="retry-button" onclick="window.feraApp.retryLastMessage()">🔄 다시 시도</button>`;
+                    errorContent += `\n\n<button class="retry-button" onclick="window.peraApp.retryLastMessage()">🔄 다시 시도</button>`;
                 }
                 
                 this.chatManager.addMessage(
@@ -505,7 +505,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         try {
             // Determine API URL based on environment
             const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-                ? 'https://fera-ai.vercel.app/api/chat-secure'  // Use production API for local development
+                ? 'https://pera-ai.vercel.app/api/chat-secure'  // Use production API for local development
                 : '/api/chat-secure';  // Use relative path for production
             
             const response = await fetch(apiUrl, {
@@ -551,7 +551,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         errorHTML += `<span class="text-xs">${errorInfo.action}</span>`;
         
         if (errorInfo.isRetryable) {
-            errorHTML += `<br><button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick="window.feraApp.handleGenerateImage()">🔄 다시 시도</button>`;
+            errorHTML += `<br><button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick="window.peraApp.handleGenerateImage()">🔄 다시 시도</button>`;
         }
         
         errorHTML += '</div>';
@@ -631,7 +631,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
         
         // Determine API URL based on environment
         const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-            ? 'https://fera-ai.vercel.app/api/chat-secure'
+            ? 'https://pera-ai.vercel.app/api/chat-secure'
             : '/api/chat-secure';
         
         // Retry with exponential backoff
@@ -652,7 +652,7 @@ FERA: 저는 FERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                     // Show error again
                     let errorContent = errorInfo.fullMessage;
                     if (errorInfo.isRetryable) {
-                        errorContent += `\n\n<button class="retry-button" onclick="window.feraApp.retryLastMessage()">🔄 다시 시도</button>`;
+                        errorContent += `\n\n<button class="retry-button" onclick="window.peraApp.retryLastMessage()">🔄 다시 시도</button>`;
                     }
                     
                     this.chatManager.addMessage(
@@ -729,5 +729,5 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.feraApp = new FeraApp();
+    window.peraApp = new PeraApp();
 });

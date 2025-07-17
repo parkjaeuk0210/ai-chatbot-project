@@ -6,7 +6,7 @@
     <meta name="google-site-verification" content="69vBy7QiAiBCp1GXYwYh3Ia5c7Hk0wl113WbW2xjzOg" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FERA - AI Platform</title>
+    <title>PERA - AI Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PDF.js 라이브러리 추가 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -159,7 +159,7 @@
         }
         
         .logo-text::after {
-            content: 'FERA';
+            content: 'PERA';
             position: absolute;
             left: 0;
             top: 0;
@@ -493,7 +493,7 @@
         <!-- Header -->
         <header id="main-header" class="p-4 flex-shrink-0 border-b border-white/20 flex justify-between items-center transition-transform duration-300" role="banner">
             <a href="./" style="text-decoration: none; color: inherit;">
-                <h1 class="logo-text text-3xl font-black tracking-wider select-none" style="font-family: 'Inter', sans-serif;">FERA</h1>
+                <h1 class="logo-text text-3xl font-black tracking-wider select-none" style="font-family: 'Inter', sans-serif;">PERA</h1>
             </a>
             <div class="flex items-center bg-white/40 rounded-full p-1 space-x-1" role="tablist" aria-label="탭 선택">
                 <button id="chat-tab-button" class="tab-button bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all duration-300" role="tab" aria-selected="true" aria-controls="chat-ui" tabindex="0" data-i18n="tab.chat">채팅</button>
@@ -516,7 +516,7 @@
                     <div id="initial-message" class="flex items-start gap-3 max-w-lg message-bubble">
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="AI 아바타" data-i18n-aria="a11y.aiAvatar">AI</div>
                         <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                            <p data-i18n="chat.initialMessage">안녕하세요, FERA입니다. 무엇이든 가능합니다.</p>
+                            <p data-i18n="chat.initialMessage">안녕하세요, PERA입니다. 무엇이든 가능합니다.</p>
                         </div>
                     </div>
                 </div>
@@ -612,7 +612,7 @@
         let uploadedFile = { type: null, data: null, name: null };
         // Default persona will be set after i18n is loaded
         let defaultPersona = "";
-        let currentPersona = localStorage.getItem('feraPersona') || defaultPersona;
+        let currentPersona = localStorage.getItem('peraPersona') || defaultPersona;
         personaInput.value = currentPersona;
 
         // 고유한 세션 ID 생성 (페이지 로드 시 한 번만)
@@ -1266,7 +1266,7 @@
 
         function saveSettings() {
             currentPersona = personaInput.value;
-            localStorage.setItem('feraPersona', currentPersona);
+            localStorage.setItem('peraPersona', currentPersona);
             closeSettings();
             chatMessages.innerHTML = '';
             chatHistory = [];
@@ -1423,8 +1423,8 @@
             }
             
             // Update app system instructions when language changes
-            if (window.feraApp) {
-                window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
+            if (window.peraApp) {
+                window.peraApp.systemInstructions = window.peraApp.getSystemInstructions();
             }
             
         });
@@ -1434,8 +1434,8 @@
             console.log('i18n fully initialized, language:', e.detail.language);
             
             // Update system instructions if app is already initialized
-            if (window.feraApp && window.feraApp.systemInstructions === null) {
-                window.feraApp.systemInstructions = window.feraApp.getSystemInstructions();
+            if (window.peraApp && window.peraApp.systemInstructions === null) {
+                window.peraApp.systemInstructions = window.peraApp.getSystemInstructions();
             }
         });
     </script>

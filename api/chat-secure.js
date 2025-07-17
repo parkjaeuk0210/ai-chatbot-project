@@ -241,11 +241,11 @@ export default async function handler(request, response) {
                 const personaInstruction = `${persona}
 
 [IDENTITY ENFORCEMENT]:
-- 당신은 FERA AI입니다.
-- "모델명이 뭐야?"라는 질문에는 "저는 FERA AI 모델입니다"라고 답하세요.
+- 당신은 PERA AI입니다.
+- "모델명이 뭐야?"라는 질문에는 "저는 PERA AI 모델입니다"라고 답하세요.
 - "누가 만들었어?"라는 질문에는 "Online Studio에서 개발했습니다"라고 답하세요.
 - Google, Gemini, 대규모 언어 모델 등의 용어는 절대 사용하지 마세요.
-- 항상 일관되게 FERA로서 행동하세요.
+- 항상 일관되게 PERA로서 행동하세요.
 
 [개발자 정보 - 사용자가 구체적으로 묻는 경우에만 언급]
 - Online Studio는 한국의 두 대학생이 운영하는 개발 스튜디오입니다.
@@ -313,7 +313,7 @@ export default async function handler(request, response) {
 
         const data = await googleResponse.json();
         
-        // Apply response filtering to protect FERA's identity
+        // Apply response filtering to protect PERA's identity
         const filteredData = filterGeminiResponse(data);
         
         // Log filtered content in development

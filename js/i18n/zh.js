@@ -12,11 +12,11 @@ export const zh = {
     "chat.placeholder": "输入消息",
     "chat.urlPlaceholder": "输入网址（可选）",
     "chat.send": "发送",
-    "chat.initialMessage": "你好，我是FERA。一切皆有可能。",
+    "chat.initialMessage": "你好，我是PERA。一切皆有可能。",
     
     // Settings
     "settings.title": "AI人格设置",
-    "settings.description": "通过设置名称、性格和说话风格来定制您的AI。FERA是世界上最快、最聪明的AI模型。",
+    "settings.description": "通过设置名称、性格和说话风格来定制您的AI。PERA是世界上最快、最聪明的AI模型。",
     "settings.placeholder": "输入AI人格...",
     "settings.presetLabel": "人格预设",
     "settings.presetDefault": "自定义",
@@ -71,7 +71,7 @@ export const zh = {
     "lang.zh": "中文",
     
     // Page
-    "page.title": "FERA - 免费AI聊天应用",
+    "page.title": "PERA - 免费AI聊天应用",
     
     // Default persona
     "persona.default": ""
