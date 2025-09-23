@@ -1123,7 +1123,7 @@
                 const response = await fetch('/api/chat-simple', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatHistory: prompt, model: 'imagen' })
+                    body: JSON.stringify({ chatHistory: prompt, model: 'gemini-image' })
                 });
     
                 if (!response.ok) {
@@ -1137,9 +1137,14 @@
                 }
     
                 const result = await response.json();
-                
-                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+
+                const candidate = result?.candidates?.[0];
+                const imagePart = candidate?.content?.parts?.find(part => part.inlineData);
+                const imageData = imagePart?.inlineData?.data;
+                const mimeType = imagePart?.inlineData?.mimeType || 'image/png';
+
+                if (imageData) {
+                    const imageUrl = `data:${mimeType};base64,${imageData}`;
                     generatedImage.src = imageUrl;
                     generatedImage.classList.remove('hidden');
                 } else {

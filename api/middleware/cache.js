@@ -2,6 +2,7 @@ import { kv } from '@vercel/kv';
 import crypto from 'crypto';
 
 const CACHE_TTL = 3600; // 1시간 캐시
+const IMAGE_MODEL_ALIASES = new Set(['imagen', 'gemini-image']);
 
 // 캐시 키 생성 함수
 function generateCacheKey(model, content, persona) {
@@ -35,7 +36,7 @@ export async function setCache(key, data, ttl = CACHE_TTL) {
 
 // 이미지 생성은 캐싱하면 안 되므로 제외
 export function shouldCache(model) {
-  return model !== 'imagen';
+  return !IMAGE_MODEL_ALIASES.has(model);
 }
 
 export { generateCacheKey };

@@ -4,6 +4,8 @@ export const config = {
   regions: ['icn1'], // 서울 리전
 };
 
+const IMAGE_MODEL_ALIASES = new Set(['imagen', 'gemini-image']);
+
 export default async function handler(request) {
   // CORS 헤더 설정
   const corsHeaders = {
@@ -42,20 +44,31 @@ export default async function handler(request) {
   try {
     const { chatHistory, model, persona, sessionId, url } = await request.json();
     
-    const isImagen = model === 'imagen';
-    const modelName = isImagen 
-      ? 'imagen-4.0-ultra-generate-preview-06-06' 
-      : 'gemini-2.5-flash-lite-preview-06-17';
+    const isImageModel = IMAGE_MODEL_ALIASES.has(model);
+    const imageModelName = 'gemini-2.5-flash-image-preview';
+    const chatModelName = 'gemini-2.5-flash-lite-preview-06-17';
+    const modelName = isImageModel ? imageModelName : chatModelName;
     
-    const apiUrl = isImagen
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`
-      : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     let payload;
-    if (isImagen) {
-      payload = { 
-        instances: [{ prompt: chatHistory }], 
-        parameters: { sampleCount: 1, aspectRatio: "16:9" } 
+    if (isImageModel) {
+      if (typeof chatHistory !== 'string' || !chatHistory.trim()) {
+        return new Response(
+          JSON.stringify({ message: '이미지 생성 프롬프트가 비어 있습니다.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      payload = {
+        contents: [{
+          role: 'user',
+          parts: [{ text: chatHistory.trim() }]
+        }],
+        generationConfig: {
+          // Google 이미지 모델은 텍스트 기반 MIME 타입만 허용함
+          responseMimeType: 'application/json'
+        }
       };
     } else {
       const contentsForApi = JSON.parse(JSON.stringify(chatHistory));

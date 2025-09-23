@@ -45,3 +45,4 @@ logs/
 
 # Optional eslint cache
 .eslintcache
+.vercel

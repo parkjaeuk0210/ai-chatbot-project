@@ -1,6 +1,8 @@
 // Secure version of the chat API with input validation and rate limiting
 import { filterGeminiResponse, containsForbiddenTerms, logFilteredContent } from './middleware/responseFilter.js';
 
+const IMAGE_MODEL_ALIASES = new Set(['imagen', 'gemini-image']);
+
 // Simple in-memory rate limiter (for production, use Redis)
 const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -39,57 +41,66 @@ function checkRateLimit(key) {
 // Input validation
 function validateChatInput(data) {
     const errors = [];
-    
-    // Check required fields
-    if (!data.chatHistory || !Array.isArray(data.chatHistory)) {
-        errors.push('chatHistory must be an array');
+    const modelKey = data.model || 'gemini';
+    const isImageModel = IMAGE_MODEL_ALIASES.has(modelKey);
+
+    if (isImageModel) {
+        if (!data.chatHistory || typeof data.chatHistory !== 'string') {
+            errors.push('chatHistory must be a string for image generation');
+        } else {
+            const prompt = data.chatHistory.trim();
+            if (prompt.length === 0) {
+                errors.push('chatHistory cannot be empty for image generation');
+            }
+            if (prompt.length > 1000) {
+                errors.push('chatHistory is too long for image generation (max 1000 characters)');
+            }
+        }
+    } else {
+        if (!data.chatHistory || !Array.isArray(data.chatHistory)) {
+            errors.push('chatHistory must be an array');
+        } else {
+            if (data.chatHistory.length > 100) {
+                errors.push('chatHistory is too long (max 100 messages)');
+            }
+
+            data.chatHistory.forEach((msg, index) => {
+                if (!msg.role || !['user', 'assistant'].includes(msg.role)) {
+                    errors.push(`Invalid role at index ${index}`);
+                }
+
+                if (!msg.parts || !Array.isArray(msg.parts)) {
+                    errors.push(`Invalid parts at index ${index}`);
+                }
+
+                const messageSize = JSON.stringify(msg).length;
+                if (messageSize > 100000) { // 100KB per message
+                    errors.push(`Message at index ${index} is too large`);
+                }
+            });
+        }
     }
-    
+
     if (!data.sessionId || typeof data.sessionId !== 'string') {
         errors.push('sessionId is required and must be a string');
     }
-    
-    // Validate chat history structure
-    if (data.chatHistory && Array.isArray(data.chatHistory)) {
-        if (data.chatHistory.length > 100) {
-            errors.push('chatHistory is too long (max 100 messages)');
-        }
-        
-        data.chatHistory.forEach((msg, index) => {
-            if (!msg.role || !['user', 'assistant'].includes(msg.role)) {
-                errors.push(`Invalid role at index ${index}`);
-            }
-            
-            if (!msg.parts || !Array.isArray(msg.parts)) {
-                errors.push(`Invalid parts at index ${index}`);
-            }
-            
-            // Check message size
-            const messageSize = JSON.stringify(msg).length;
-            if (messageSize > 100000) { // 100KB per message
-                errors.push(`Message at index ${index} is too large`);
-            }
-        });
-    }
-    
-    // Validate optional fields
-    if (data.model && !['gemini', 'imagen'].includes(data.model)) {
+
+    if (data.model && !IMAGE_MODEL_ALIASES.has(data.model) && data.model !== 'gemini') {
         errors.push('Invalid model specified');
     }
-    
+
     if (data.persona && typeof data.persona !== 'string') {
         errors.push('persona must be a string');
     }
-    
+
     if (data.persona && data.persona.length > 1000) {
         errors.push('persona is too long (max 1000 characters)');
     }
-    
+
     if (data.url && typeof data.url !== 'string') {
         errors.push('url must be a string');
     }
-    
-    // Basic URL validation
+
     if (data.url) {
         try {
             new URL(data.url);
@@ -97,7 +108,7 @@ function validateChatInput(data) {
             errors.push('Invalid URL format');
         }
     }
-    
+
     return errors;
 }
 
@@ -195,26 +206,26 @@ export default async function handler(request, response) {
         }
 
         const { chatHistory, model, persona, sessionId, url } = sanitizedData;
-        console.log(`Processing request for session: ${sessionId}, model: ${model || 'gemini'}`);
+        const resolvedModel = model || 'gemini';
+        console.log(`Processing request for session: ${sessionId}, model: ${resolvedModel}`);
 
-        const isImagen = model === 'imagen';
-        const modelName = isImagen ? 'imagen-4.0-ultra-generate-preview-06-06' : 'gemini-2.5-flash-lite-preview-06-17';
-        const apiUrl = isImagen
-            ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`
-            : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-        
+        const isImageModel = IMAGE_MODEL_ALIASES.has(resolvedModel);
+        const imageModelName = 'gemini-2.5-flash-image-preview';
+        const chatModelName = 'gemini-2.5-flash-lite-preview-06-17';
+        const modelName = isImageModel ? imageModelName : chatModelName;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
         let payload;
-        if (isImagen) {
-            // For image generation, validate prompt
-            if (typeof chatHistory !== 'string' || chatHistory.length > 1000) {
-                return response.status(400).json({ 
-                    message: '이미지 생성 프롬프트가 너무 깁니다.' 
-                });
-            }
-            
-            payload = { 
-                instances: [{ prompt: chatHistory }], 
-                parameters: { sampleCount: 1, aspectRatio: "16:9" } 
+        if (isImageModel) {
+            payload = {
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: chatHistory.trim() }]
+                }],
+                generationConfig: {
+                    // Google 이미지 모델은 텍스트/JSON MIME 타입만 지원
+                    responseMimeType: 'application/json'
+                }
             };
         } else {
             const contentsForApi = JSON.parse(JSON.stringify(chatHistory));

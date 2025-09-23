@@ -1,6 +1,8 @@
 // 간단한 버전 - Supabase 없이 작동 테스트용
 import { filterGeminiResponse, logFilteredContent } from './middleware/responseFilter.js';
 
+const IMAGE_MODEL_ALIASES = new Set(['imagen', 'gemini-image']);
+
 // Simple in-memory rate limiter
 const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -86,19 +88,29 @@ export default async function handler(request, response) {
     }
     console.log("요청 받은 모델:", model);
 
-    const isImagen = model === 'imagen';
-    const modelName = isImagen ? 'imagen-4.0-ultra-generate-preview-06-06' : 'gemini-2.5-flash-lite-preview-06-17';
-    const apiUrl = isImagen
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`
-      : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const isImageModel = IMAGE_MODEL_ALIASES.has(model);
+    const imageModelName = 'gemini-2.5-flash-image-preview';
+    const chatModelName = 'gemini-2.5-flash-lite-preview-06-17';
+    const modelName = isImageModel ? imageModelName : chatModelName;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
     
     console.log("요청할 Google API URL:", apiUrl);
 
     let payload;
-    if (isImagen) {
-      payload = { 
-        instances: [{ prompt: chatHistory }], 
-        parameters: { sampleCount: 1, aspectRatio: "16:9" } 
+    if (isImageModel) {
+      if (typeof chatHistory !== 'string' || !chatHistory.trim()) {
+        return response.status(400).json({ message: '이미지 생성 프롬프트가 비어 있습니다.' });
+      }
+
+      payload = {
+        contents: [{
+          role: 'user',
+          parts: [{ text: chatHistory.trim() }]
+        }],
+        generationConfig: {
+          // Google 이미지 생성은 JSON 응답으로만 허용되므로 inlineData를 수신하도록 요청
+          responseMimeType: 'application/json'
+        }
       };
     } else {
       const contentsForApi = JSON.parse(JSON.stringify(chatHistory));

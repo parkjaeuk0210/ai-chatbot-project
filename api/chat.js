@@ -7,6 +7,8 @@ import { rateLimit } from './middleware/rateLimit.js';
 import { getCache, setCache, shouldCache, generateCacheKey } from './middleware/cache.js';
 import { filterGeminiResponse, logFilteredContent } from './middleware/responseFilter.js';
 
+const IMAGE_MODEL_ALIASES = new Set(['imagen', 'gemini-image']);
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
@@ -72,7 +74,7 @@ export default async function handler(request, response) {
     }
 
     // Supabase에 사용자 메시지 저장
-    if (sessionId && chatHistory && chatHistory.length > 0) {
+    if (!IMAGE_MODEL_ALIASES.has(model) && Array.isArray(chatHistory) && sessionId && chatHistory.length > 0) {
         const lastUserMessage = chatHistory[chatHistory.length - 1];
         if (lastUserMessage.role === 'user') {
             const { error: userInsertError } = await supabase
@@ -87,18 +89,18 @@ export default async function handler(request, response) {
                 console.error('Supabase 사용자 메시지 저장 오류:', userInsertError);
             }
         }
-    } else if (process.env.NODE_ENV !== 'production') {
+    } else if (process.env.NODE_ENV !== 'production' && !IMAGE_MODEL_ALIASES.has(model)) {
         console.warn('sessionId 또는 chatHistory가 없어 사용자 메시지를 저장할 수 없습니다.');
     }
     if (process.env.NODE_ENV !== 'production') {
       console.log("요청 받은 모델:", model);
     }
 
-    const isImagen = model === 'imagen';
+    const isImageModel = IMAGE_MODEL_ALIASES.has(model);
     
     // 캐싱 체크 (이미지 생성은 제외)
     let cacheKey = null;
-    if (shouldCache(model)) {
+    if (!isImageModel && shouldCache(model) && Array.isArray(chatHistory)) {
       // 마지막 사용자 메시지만 캐시 키에 사용
       const lastUserMessage = chatHistory[chatHistory.length - 1];
       if (lastUserMessage && lastUserMessage.role === 'user') {
@@ -114,20 +116,30 @@ export default async function handler(request, response) {
       }
     }
     
-    const modelName = isImagen ? 'imagen-4.0-ultra-generate-preview-06-06' : 'gemini-2.5-flash-lite-preview-06-17';
-    const apiUrl = isImagen
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`
-      : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const imageModelName = 'gemini-2.5-flash-image-preview';
+    const chatModelName = 'gemini-2.5-flash-lite-preview-06-17';
+    const modelName = isImageModel ? imageModelName : chatModelName;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
     
     if (process.env.NODE_ENV !== 'production') {
       console.log("요청할 Google API URL:", apiUrl);
     }
 
     let payload;
-    if (isImagen) {
-      payload = { 
-        instances: [{ prompt: chatHistory }], 
-        parameters: { sampleCount: 1, aspectRatio: "16:9" } 
+    if (isImageModel) {
+      if (typeof chatHistory !== 'string' || !chatHistory.trim()) {
+        return response.status(400).json({ message: '이미지 생성 프롬프트가 비어 있습니다.' });
+      }
+
+      payload = {
+        contents: [{
+          role: 'user',
+          parts: [{ text: chatHistory.trim() }]
+        }],
+        generationConfig: {
+          // Google API only allows textual response MIME types; request JSON and decode inlineData
+          responseMimeType: 'application/json'
+        }
       };
     } else {
       const contentsForApi = JSON.parse(JSON.stringify(chatHistory));
@@ -201,7 +213,7 @@ export default async function handler(request, response) {
     }
 
     // Supabase에 AI 응답 저장
-    if (sessionId && data.candidates && data.candidates.length > 0) {
+    if (!isImageModel && sessionId && Array.isArray(chatHistory) && data.candidates && data.candidates.length > 0) {
         const botResponse = data.candidates[0].content;
         const { error: botInsertError } = await supabase
             .from('chat_logs')

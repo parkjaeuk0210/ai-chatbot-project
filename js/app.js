@@ -513,7 +513,7 @@ PERA: 저는 PERA AI 비서입니다. 사용자와 자연스러운 대화를 나
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     chatHistory: prompt, 
-                    model: 'imagen',
+                    model: 'gemini-image',
                     sessionId: this.sessionId
                 })
             });
@@ -523,9 +523,14 @@ PERA: 저는 PERA AI 비서입니다. 사용자와 자연스러운 대화를 나
             }
 
             const result = await response.json();
-            
-            if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-                const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+
+            const candidate = result?.candidates?.[0];
+            const imagePart = candidate?.content?.parts?.find(part => part.inlineData);
+            const imageData = imagePart?.inlineData?.data;
+            const mimeType = imagePart?.inlineData?.mimeType || 'image/png';
+
+            if (imageData) {
+                const imageUrl = `data:${mimeType};base64,${imageData}`;
                 this.generatedImage.src = imageUrl;
                 this.generatedImage.classList.remove('hidden');
             } else {
