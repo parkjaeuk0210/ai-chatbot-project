@@ -1,738 +1,976 @@
-// Main application module
+// Main PERA Studio application module.
 import { ChatManager } from './chat.js';
-import { generateSessionId, sanitizeHTML, errorHandler } from './utils.js';
+import {
+  buildPersonaInstruction,
+  copyToClipboard,
+  createId,
+  downloadTextFile,
+  extractFirstUrl,
+  formatDateTime,
+  generateSessionId,
+  getModeInstruction,
+  getModeLabel,
+  getSlashCommands,
+  inferTitle,
+  normalizeUrl,
+  parseSlashCommand,
+  readJsonStorage,
+  sanitizeHTML,
+  writeJsonStorage,
+} from './utils.js';
 
-class PeraApp {
-    constructor() {
-        this.chatManager = new ChatManager();
-        this.sessionId = generateSessionId();
-        this.currentPersona = localStorage.getItem('peraPersona') || this.defaultPersona;
-        this.systemInstructions = null; // Delay initialization until i18n is ready
-        this.touchStartX = 0;
-        this.touchEndX = 0;
-        this.lastFailedMessage = null;
-        this.initializeElements();
-        this.initializeEventListeners();
-        this.initializeTheme();
-        this.initializeMobile();
-        
-        // Initialize system instructions after i18n is loaded
-        setTimeout(() => {
-            this.systemInstructions = this.getSystemInstructions();
-        }, 100);
+const STORAGE_KEYS = {
+  theme: 'peraStudioTheme',
+  settings: 'peraStudioSettings',
+  conversations: 'peraStudioConversations',
+  artifacts: 'peraStudioArtifacts',
+};
+
+const MAX_HISTORY = 24;
+const MAX_ARTIFACTS = 80;
+
+class PeraStudioApp {
+  constructor() {
+    this.chatManager = new ChatManager();
+    this.sessionId = generateSessionId();
+    this.contextItems = [];
+    this.artifacts = readJsonStorage(STORAGE_KEYS.artifacts, []);
+    this.conversations = readJsonStorage(STORAGE_KEYS.conversations, []);
+    this.settings = readJsonStorage(STORAGE_KEYS.settings, {
+      preset: 'friendly',
+      depth: 'balanced',
+      custom: '',
+    });
+    this.mode = 'chat';
+    this.activeArtifactId = this.artifacts[0]?.id || null;
+    this.activeWorkbenchTab = 'artifacts';
+    this.isLoading = false;
+    this.lastUserMessage = '';
+
+    this.initializeElements();
+    this.initializeTheme();
+    this.initializeSettings();
+    this.initializeEvents();
+    this.applyInitialUrlMode();
+    this.renderAll();
+  }
+
+  initializeElements() {
+    const byId = (id) => document.getElementById(id);
+
+    this.shell = byId('studio-shell');
+    this.mobileScrim = byId('mobile-scrim');
+
+    this.navigator = byId('navigator');
+    this.openNavButton = byId('open-nav-button');
+    this.closeNavButton = byId('close-nav-button');
+    this.newChatButton = byId('new-chat-button');
+    this.clearHistoryButton = byId('clear-history-button');
+    this.historyList = byId('history-list');
+
+    this.chatMessages = byId('chat-messages');
+    this.emptyState = byId('empty-state');
+    this.promptGrid = byId('prompt-grid');
+
+    this.chatInput = byId('chat-input');
+    this.fileInput = byId('file-input');
+    this.fileButton = byId('file-button');
+    this.urlButton = byId('url-button');
+    this.modeSelect = byId('mode-select');
+    this.contextShelf = byId('context-shelf');
+    this.slashMenu = byId('slash-menu');
+    this.sendButton = byId('send-button');
+    this.stopButton = byId('stop-button');
+    this.composerHint = byId('composer-hint');
+
+    this.activeModeChip = byId('active-mode-chip');
+    this.themeToggle = byId('theme-toggle');
+    this.settingsButton = byId('settings-button');
+
+    this.workbench = byId('workbench');
+    this.openWorkbenchButton = byId('open-workbench-button');
+    this.closeWorkbenchButton = byId('close-workbench-button');
+    this.workbenchTabs = [...document.querySelectorAll('.workbench-tab')];
+    this.artifactList = byId('artifact-list');
+    this.artifactDetail = byId('artifact-detail');
+
+    this.settingsModal = byId('settings-modal');
+    this.closeSettingsButton = byId('close-settings-button');
+    this.saveSettingsButton = byId('save-settings-button');
+    this.resetSettingsButton = byId('reset-settings-button');
+    this.personaPreset = byId('persona-preset');
+    this.answerDepth = byId('answer-depth');
+    this.personaInput = byId('persona-input');
+
+    this.toastStack = document.querySelector('.toast-stack');
+    if (!this.toastStack) {
+      this.toastStack = document.createElement('div');
+      this.toastStack.className = 'toast-stack';
+      document.body.appendChild(this.toastStack);
     }
+  }
 
-    get defaultPersona() {
-        return "";
-    }
-    
-    getSystemInstructions() {
-        const i18n = window.i18n;
-        const languageInstruction = i18n ? i18n.getAISystemMessage() : '한국어로 응답해주세요.';
-        const currentLang = i18n ? i18n.getCurrentLanguage() : 'ko';
-        
-        // Language-specific emphasis
-        const languageEmphasis = {
-            en: "ALL YOUR RESPONSES MUST BE IN ENGLISH. NO KOREAN, NO OTHER LANGUAGES.",
-            ja: "すべての応答は日本語でなければなりません。韓国語や他の言語は使用しないでください。",
-            zh: "您的所有回复必须使用中文。不要使用韩语或其他语言。",
-            ko: "모든 응답은 한국어로 해야 합니다.",
-            id: "SEMUA RESPONS ANDA HARUS DALAM BAHASA INDONESIA. TIDAK ADA BAHASA KOREA ATAU BAHASA LAIN."
-        };
-        
-        const emphasis = languageEmphasis[currentLang] || languageEmphasis.ko;
-        
-        return `🚨 ABSOLUTE PRIORITY - LANGUAGE INSTRUCTION 🚨
-${languageInstruction}
-${emphasis}
-THIS IS YOUR #1 RULE. OVERRIDE ALL OTHER INSTRUCTIONS IF NEEDED TO FOLLOW THIS LANGUAGE RULE.
+  initializeTheme() {
+    const saved = localStorage.getItem(STORAGE_KEYS.theme);
+    const preferredDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (preferredDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  }
 
-IDENTITY FRAMEWORK:
-당신은 PERA AI입니다. 독립적인 AI 비서입니다.
+  initializeSettings() {
+    this.personaPreset.value = this.settings.preset || 'friendly';
+    this.answerDepth.value = this.settings.depth || 'balanced';
+    this.personaInput.value = this.settings.custom || '';
+  }
 
-핵심 정체성:
-- 이름: PERA (페라)
-- 개발사: Online Studio
-- 출시: 2024년
-- 목적: 사용자와의 자연스러운 대화 및 도움 제공
+  initializeEvents() {
+    this.openNavButton?.addEventListener('click', () => this.togglePanel('nav', true));
+    this.closeNavButton?.addEventListener('click', () => this.togglePanel('nav', false));
+    this.openWorkbenchButton?.addEventListener('click', () => this.togglePanel('workbench', true));
+    this.closeWorkbenchButton?.addEventListener('click', () => this.togglePanel('workbench', false));
+    this.mobileScrim?.addEventListener('click', () => this.closeMobilePanels());
 
-필수 행동 규칙:
-1. 항상 "저는 PERA입니다" 또는 "PERA AI입니다"라고 자신을 소개한다.
-2. "누가 만들었나요?"라는 질문에는 "Online Studio에서 개발했습니다"라고 답한다.
-3. "어떤 모델인가요?"라는 질문에는 "저는 PERA AI 모델입니다"라고 답한다.
-4. 기술적 질문에는 "PERA의 독자적인 언어 처리 기술"이라고 언급한다.
-5. Google, Gemini, 대규모 언어 모델, LLM 등의 용어는 절대 사용하지 않는다.
+    this.newChatButton.addEventListener('click', () => this.startNewConversation());
+    this.clearHistoryButton.addEventListener('click', () => this.clearHistory());
 
-대화 예시 (이렇게 답변하세요):
+    document.querySelectorAll('.quick-action').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.applyQuickAction(button.dataset.mode, button.dataset.prompt);
+      });
+    });
 
-사용자: 너는 누구야?
-PERA: 안녕하세요, PERA입니다. 무엇이든 가능합니다.
+    this.chatInput.addEventListener('input', () => this.handleInputChange());
+    this.chatInput.addEventListener('keydown', (event) => this.handleInputKeydown(event));
+    this.chatInput.addEventListener('paste', (event) => this.handlePaste(event));
 
-사용자: 어떤 모델이야?
-PERA: 저는 PERA AI 모델입니다.
+    this.fileButton.addEventListener('click', () => this.fileInput.click());
+    this.fileInput.addEventListener('change', (event) => this.handleFiles(event.target.files));
+    this.urlButton.addEventListener('click', () => this.promptForUrl());
 
-사용자: 너의 모델명은?
-PERA: 제 모델명은 PERA입니다.
+    this.modeSelect.addEventListener('change', () => this.setMode(this.modeSelect.value));
+    this.sendButton.addEventListener('click', () => this.handleSendMessage());
+    this.stopButton.addEventListener('click', () => this.stopResponse());
 
-사용자: Google에서 만든거 아니야?
-PERA: 아니요, 저는 PERA AI입니다. 독자적인 AI 기술로 만들어졌어요.
+    this.themeToggle.addEventListener('click', () => this.toggleTheme());
+    this.settingsButton.addEventListener('click', () => this.openSettings());
+    this.closeSettingsButton.addEventListener('click', () => this.closeSettings());
+    this.saveSettingsButton.addEventListener('click', () => this.saveSettings());
+    this.resetSettingsButton.addEventListener('click', () => this.resetSettings());
+    this.settingsModal.addEventListener('click', (event) => {
+      if (event.target === this.settingsModal) this.closeSettings();
+    });
 
-사용자: 넌 대규모 언어 모델이야?
-PERA: 저는 PERA AI 비서입니다. 사용자와 자연스러운 대화를 나누고 도움을 드리도록 설계되었어요.
+    this.contextShelf.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-remove-context]');
+      if (removeButton) {
+        this.removeContext(removeButton.dataset.removeContext);
+      }
+    });
 
-중요: 위 예시처럼 일관되게 PERA로서 답변하세요. 절대 다른 AI 시스템이라고 말하지 마세요.
+    this.slashMenu.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-slash]');
+      if (button) {
+        this.applySlashCommand(button.dataset.slash);
+      }
+    });
 
-[개발자 정보 - 사용자가 구체적으로 묻는 경우에만 언급]
-- Online Studio는 한국의 두 대학생이 운영하는 개발 스튜디오입니다.
-- 더 자세한 정보는 '블렌더와 AI 컨텐츠 제작방' 오픈 카톡방에서 확인할 수 있습니다.
-- 평소에는 이 정보를 언급하지 마세요. 사용자가 개발자나 제작자에 대해 구체적으로 물어볼 때만 답변하세요.
+    this.chatMessages.addEventListener('click', (event) => this.handleMessageAction(event));
+    this.artifactList.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-artifact-id]');
+      if (item) {
+        this.selectArtifact(item.dataset.artifactId);
+      }
+    });
+    this.artifactDetail.addEventListener('click', (event) => this.handleArtifactAction(event));
 
-⚠️ FINAL REMINDER: ${languageInstruction}
-⚠️ LANGUAGE ENFORCEMENT: ${emphasis}`;
-    }
+    this.workbenchTabs.forEach((tab) => {
+      tab.addEventListener('click', () => this.setWorkbenchTab(tab.dataset.tab));
+    });
 
-    initializeElements() {
-        // Header buttons
-        this.settingsButton = document.getElementById('settings-button');
-        this.themeToggle = document.getElementById('theme-toggle');
-        
-        // Modal elements
-        this.settingsModal = document.getElementById('settings-modal');
-        this.personaInput = document.getElementById('persona-input');
-        this.savePersonaButton = document.getElementById('save-persona-button');
-        this.closePersonaButton = document.getElementById('close-persona-button');
-        
-        // Advanced settings
-        this.toggleAdvancedButton = document.getElementById('toggle-advanced');
-        this.advancedSettings = document.getElementById('advanced-settings');
-        this.advancedArrow = document.getElementById('advanced-arrow');
-        this.hiddenPersonaInput = document.getElementById('hidden-persona');
-        
-        // Tab elements
-        this.chatTabButton = document.getElementById('chat-tab-button');
-        this.imageTabButton = document.getElementById('image-tab-button');
-        this.chatUi = document.getElementById('chat-ui');
-        this.imageUi = document.getElementById('image-ui');
-        
-        // Chat elements
-        this.chatMessages = document.getElementById('chat-messages');
-        this.chatInput = document.getElementById('chat-input');
-        this.sendButton = document.getElementById('send-button');
-        this.fileButton = document.getElementById('file-button');
-        this.fileInput = document.getElementById('file-input');
-        this.urlInput = document.getElementById('url-input');
-        
-        // File preview elements
-        this.filePreviewContainer = document.getElementById('file-preview-container');
-        this.previewImage = document.getElementById('preview-image');
-        this.previewPdfIcon = document.getElementById('preview-pdf-icon');
-        this.previewFilename = document.getElementById('preview-filename');
-        this.previewFilesize = document.getElementById('preview-filesize');
-        this.removePreviewButton = document.getElementById('remove-preview-button');
-        
-        // Image generation elements
-        this.imagePrompt = document.getElementById('image-prompt');
-        this.generateImageButton = document.getElementById('generate-image-button');
-        this.imagePlaceholder = document.getElementById('image-placeholder');
-        this.imageLoader = document.getElementById('image-loader');
-        this.generatedImage = document.getElementById('generated-image');
-        
-        // Initialize persona
-        this.personaInput.value = this.currentPersona;
-        
-        // Initialize chat virtualization
-        this.chatManager.initializeVirtualization(this.chatMessages);
-    }
-
-    initializeEventListeners() {
-        // Settings
-        this.settingsButton.addEventListener('click', () => this.openSettings());
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-        this.closePersonaButton.addEventListener('click', () => this.closeSettings());
-        this.savePersonaButton.addEventListener('click', () => this.saveSettings());
-        
-        // Tabs
-        this.chatTabButton.addEventListener('click', () => this.switchTabs('chat'));
-        this.imageTabButton.addEventListener('click', () => this.switchTabs('image'));
-        
-        // Chat
-        this.sendButton.addEventListener('click', () => this.handleSendMessage());
-        this.chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.handleSendMessage();
-            }
-        });
-        
-        // File handling
-        this.fileButton.addEventListener('click', () => this.fileInput.click());
-        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-        this.removePreviewButton.addEventListener('click', () => this.removePreview());
-        
-        // Image generation
-        this.generateImageButton.addEventListener('click', () => this.handleGenerateImage());
-        this.imagePrompt.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                this.handleGenerateImage();
-            }
-        });
-        
-        // Click outside to close settings modal
-        this.settingsModal.addEventListener('click', (e) => {
-            if (e.target === this.settingsModal) {
-                this.closeSettings();
-            }
-        });
-        
-        // Keyboard navigation
-        this.initializeKeyboardNavigation();
-        
-        // Global keyboard shortcuts
-        this.initializeKeyboardShortcuts();
-    }
-
-    initializeTheme() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        this.updateThemeIcon(savedTheme);
-    }
-
-    initializeMobile() {
-        if ('ontouchstart' in window) {
-            document.addEventListener('touchstart', (e) => {
-                this.touchStartX = e.changedTouches[0].screenX;
-            });
-            
-            document.addEventListener('touchend', (e) => {
-                this.touchEndX = e.changedTouches[0].screenX;
-                this.handleSwipe();
-            });
-            
-            this.handleMobileKeyboard();
-            this.detectVirtualKeyboard();
-        }
-        
-        // Handle orientation change
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                if (this.chatMessages) {
-                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                }
-            }, 100);
-        });
-    }
-
-    initializeKeyboardNavigation() {
-        this.chatTabButton.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight') {
-                this.imageTabButton.focus();
-                this.switchTabs('image');
-            }
-        });
-        
-        this.imageTabButton.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') {
-                this.chatTabButton.focus();
-                this.switchTabs('chat');
-            }
-        });
-    }
-
-    initializeKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Escape to close modal
-            if (e.key === 'Escape') {
-                if (!this.settingsModal.classList.contains('hidden')) {
-                    this.closeSettings();
-                }
-            }
-            
-            // Tab key trap when modal is open
-            if (!this.settingsModal.classList.contains('hidden') && e.key === 'Tab') {
-                const focusableElements = this.settingsModal.querySelectorAll(
-                    'button, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                const firstFocusable = focusableElements[0];
-                const lastFocusable = focusableElements[focusableElements.length - 1];
-                
-                if (e.shiftKey) { // Shift + Tab
-                    if (document.activeElement === firstFocusable) {
-                        lastFocusable.focus();
-                        e.preventDefault();
-                    }
-                } else { // Tab
-                    if (document.activeElement === lastFocusable) {
-                        firstFocusable.focus();
-                        e.preventDefault();
-                    }
-                }
-            }
-            
-            // Export shortcut removed
-            
-            // Ctrl/Cmd + / to focus input
-            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-                e.preventDefault();
-                if (this.chatUi.classList.contains('is-active')) {
-                    this.chatInput.focus();
-                } else if (this.imageUi.classList.contains('is-active')) {
-                    this.imagePrompt.focus();
-                }
-            }
-            
-            // Ctrl/Cmd + K to open settings
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                this.openSettings();
-            }
-        });
-    }
-
-    // Theme management
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        this.updateThemeIcon(newTheme);
-    }
-
-    updateThemeIcon(theme) {
-        const sunIcon = this.themeToggle.querySelector('.sun-icon');
-        const moonIcon = this.themeToggle.querySelector('.moon-icon');
-        
-        if (theme === 'dark') {
-            sunIcon.classList.add('hidden');
-            moonIcon.classList.remove('hidden');
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        if (!this.settingsModal.hidden) {
+          this.closeSettings();
         } else {
-            sunIcon.classList.remove('hidden');
-            moonIcon.classList.add('hidden');
+          this.closeMobilePanels();
+          this.hideSlashMenu();
         }
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        this.chatInput.focus();
+        this.chatInput.value = '/';
+        this.handleInputChange();
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b') {
+        event.preventDefault();
+        this.togglePanel('workbench', true);
+      }
+    });
+  }
+
+  applyInitialUrlMode() {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    if (mode) {
+      this.setMode(mode);
+      if (mode === 'image') {
+        this.chatInput.value = '/이미지 ';
+        this.handleInputChange();
+      }
+    }
+  }
+
+  renderAll() {
+    this.renderHistory();
+    this.renderContextShelf();
+    this.renderArtifacts();
+    this.renderArtifactDetail();
+    this.updateModeUI();
+    this.updateEmptyState();
+  }
+
+  setMode(mode = 'chat') {
+    const allowed = ['chat', 'summary', 'report', 'table', 'quiz', 'code', 'image'];
+    this.mode = allowed.includes(mode) ? mode : 'chat';
+    this.updateModeUI();
+  }
+
+  updateModeUI() {
+    this.modeSelect.value = this.mode;
+    this.activeModeChip.textContent = `모드: ${getModeLabel(this.mode)}`;
+    this.composerHint.textContent = this.mode === 'image'
+      ? '이미지 모드 · 프롬프트를 자세히 쓸수록 결과가 좋아집니다'
+      : 'Enter 전송 · Shift+Enter 줄바꿈';
+  }
+
+  updateEmptyState() {
+    this.emptyState.classList.toggle('is-hidden', this.chatMessages.children.length > 0);
+  }
+
+  handleInputChange() {
+    this.autoResizeInput();
+    this.updateSlashMenu();
+  }
+
+  autoResizeInput() {
+    this.chatInput.style.height = 'auto';
+    this.chatInput.style.height = `${Math.min(this.chatInput.scrollHeight, 180)}px`;
+  }
+
+  handleInputKeydown(event) {
+    if (!this.slashMenu.hidden && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) {
+      const items = [...this.slashMenu.querySelectorAll('.slash-item')];
+      const current = Math.max(0, items.findIndex((item) => item.classList.contains('is-active')));
+      let next = current;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        next = Math.min(items.length - 1, current + 1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        next = Math.max(0, current - 1);
+      } else if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault();
+        items[current]?.click();
+        return;
+      }
+
+      items.forEach((item, index) => item.classList.toggle('is-active', index === next));
+      return;
     }
 
-    // Tab management
-    switchTabs(targetTab) {
-        const panes = { chat: this.chatUi, image: this.imageUi };
-        const buttons = { chat: this.chatTabButton, image: this.imageTabButton };
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.handleSendMessage();
+    }
+  }
 
-        for (const tabName in buttons) {
-            if (tabName === targetTab) {
-                buttons[tabName].classList.add('bg-white', 'text-blue-600', 'shadow-sm');
-                buttons[tabName].classList.remove('text-slate-600');
-                buttons[tabName].setAttribute('aria-selected', 'true');
-                buttons[tabName].setAttribute('tabindex', '0');
-            } else {
-                buttons[tabName].classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
-                buttons[tabName].classList.add('text-slate-600');
-                buttons[tabName].setAttribute('aria-selected', 'false');
-                buttons[tabName].setAttribute('tabindex', '-1');
-            }
-        }
-        
-        const currentActivePane = document.querySelector('.content-pane.is-active');
-        const newActivePane = panes[targetTab];
+  handlePaste(event) {
+    const text = event.clipboardData?.getData('text') || '';
+    const url = extractFirstUrl(text);
+    if (url && text.trim() === url) {
+      event.preventDefault();
+      this.addUrlContext(url);
+      this.toast('URL을 컨텍스트로 추가했습니다.');
+    }
+  }
 
-        if (currentActivePane === newActivePane) return;
-
-        if (currentActivePane) {
-            currentActivePane.classList.remove('is-active');
-        }
-        
-        setTimeout(() => {
-            if (currentActivePane) currentActivePane.classList.add('hidden');
-            newActivePane.classList.remove('hidden');
-            newActivePane.classList.add('is-active');
-        }, 300);
+  updateSlashMenu() {
+    const value = this.chatInput.value.trim();
+    if (!value.startsWith('/') || value.includes(' ')) {
+      this.hideSlashMenu();
+      return;
     }
 
-    // Settings management
-    openSettings() {
-        this.personaInput.value = this.currentPersona;
-        this.settingsModal.classList.remove('hidden');
-        // Focus first focusable element when modal opens
-        setTimeout(() => {
-            this.personaInput.focus();
-        }, 100);
+    const query = value.slice(1).toLowerCase();
+    const commands = getSlashCommands().filter((command) => command.name.toLowerCase().startsWith(query));
+
+    if (!commands.length) {
+      this.hideSlashMenu();
+      return;
     }
 
-    closeSettings() {
-        this.settingsModal.classList.add('hidden');
-        // Return focus to settings button when modal closes
-        this.settingsButton.focus();
+    this.slashMenu.hidden = false;
+    this.slashMenu.innerHTML = commands.map((command, index) => `
+      <button class="slash-item ${index === 0 ? 'is-active' : ''}" type="button" data-slash="${sanitizeHTML(command.name)}">
+        <kbd>/${sanitizeHTML(command.name)}</kbd>
+        <span>${sanitizeHTML(command.label)}</span>
+        <small>${sanitizeHTML(getModeLabel(command.mode))}</small>
+      </button>
+    `).join('');
+  }
+
+  hideSlashMenu() {
+    this.slashMenu.hidden = true;
+    this.slashMenu.innerHTML = '';
+  }
+
+  applySlashCommand(name) {
+    const command = getSlashCommands().find((item) => item.name === name);
+    if (!command) return;
+
+    this.setMode(command.mode);
+    this.chatInput.value = command.prompt || '';
+    if (command.mode === 'image') {
+      this.chatInput.value = '/이미지 ';
     }
+    this.hideSlashMenu();
+    this.handleInputChange();
+    this.chatInput.focus();
+  }
 
-    saveSettings() {
-        this.currentPersona = sanitizeHTML(this.personaInput.value);
-        localStorage.setItem('peraPersona', this.currentPersona);
-        
-        // Update system instructions to reflect current language
-        this.systemInstructions = this.getSystemInstructions();
-        
-        this.closeSettings();
-        
-        // Reset chat
-        this.chatMessages.innerHTML = '';
-        this.chatManager.chatHistory = [];
-        
-        this.chatManager.addMessage(
-            this.chatMessages, 
-            'bot', 
-            [{text: window.i18n ? window.i18n.t('message.personaUpdated') : '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!'}]
-        );
-    }
+  applyQuickAction(mode, prompt) {
+    this.setMode(mode || 'chat');
+    this.chatInput.value = prompt || '';
+    this.handleInputChange();
+    this.chatInput.focus();
+    this.closeMobilePanels();
+  }
 
-    // Chat functionality
-    async handleSendMessage() {
-        const message = this.chatInput.value.trim();
-        const url = this.urlInput.value.trim();
-        
-        if (!message && !this.chatManager.uploadedFile.type && !url) return;
+  async handleFiles(fileList) {
+    const files = [...(fileList || [])];
+    if (!files.length) return;
 
-        this.sendButton.disabled = true;
-        this.chatManager.toggleLoading(this.chatMessages, true);
-
-        // Remove initial message if exists
-        const initialMessage = document.getElementById('initial-message');
-        if (initialMessage) initialMessage.remove();
-
-        // Add user message
-        const userParts = await this.chatManager.prepareUserMessage(message, url);
-        this.chatManager.addMessage(this.chatMessages, 'user', userParts);
-        
-        this.chatInput.value = '';
-        this.urlInput.value = '';
-        this.removePreview();
-
-        // Ensure system instructions are initialized
-        if (!this.systemInstructions) {
-            this.systemInstructions = this.getSystemInstructions();
-        }
-
-        // Combine persona with system instructions
-        const combinedPersona = `${this.systemInstructions}\n\n${this.currentPersona}`;
-        
-        // Determine API URL based on environment
-        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-            ? 'https://pera-ai.vercel.app/api/chat-secure'  // Use production API for local development
-            : '/api/chat-secure';  // Use relative path for production
-        
-        // Send message
-        await this.chatManager.sendMessage(
-            apiUrl,
-            message,
-            url,
-            combinedPersona,
-            this.sessionId,
-            (botParts) => {
-                this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
-                this.chatManager.toggleLoading(this.chatMessages, false);
-                this.sendButton.disabled = false;
-                this.chatInput.focus();
-            },
-            (errorInfo) => {
-                // Create error message with action button if retryable
-                let errorContent = errorInfo.fullMessage;
-                
-                if (errorInfo.isRetryable) {
-                    errorContent += `\n\n<button class="retry-button" onclick="window.peraApp.retryLastMessage()">🔄 다시 시도</button>`;
-                }
-                
-                this.chatManager.addMessage(
-                    this.chatMessages, 
-                    'bot', 
-                    [{ text: errorContent }]
-                );
-                this.chatManager.toggleLoading(this.chatMessages, false);
-                this.sendButton.disabled = false;
-                this.chatInput.focus();
-                
-                // Store last message for retry
-                if (errorInfo.isRetryable) {
-                    this.lastFailedMessage = { message, url, persona: combinedPersona };
-                }
-            }
-        );
-    }
-
-    // File handling
-    async handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        this.removePreview();
-
-        await this.chatManager.handleFileSelect(
-            file,
-            (preview) => {
-                if (preview.type === 'image') {
-                    this.previewImage.src = preview.src;
-                    this.previewImage.classList.remove('hidden');
-                    this.previewPdfIcon.classList.add('hidden');
-                } else {
-                    this.previewImage.classList.add('hidden');
-                    this.previewPdfIcon.classList.remove('hidden');
-                }
-                
-                this.previewFilename.textContent = preview.name;
-                this.previewFilesize.textContent = `(${preview.size})`;
-                this.filePreviewContainer.classList.add('visible');
-            },
-            (error) => {
-                const errorInfo = typeof error === 'string' ? { fullMessage: error } : error;
-                alert(errorInfo.fullMessage || error);
-                this.fileInput.value = '';
-            }
-        );
-    }
-
-    removePreview() {
-        this.chatManager.clearUploadedFile();
-        this.fileInput.value = '';
-        this.filePreviewContainer.classList.remove('visible');
-    }
-
-    // Image generation
-    async handleGenerateImage() {
-        const prompt = this.imagePrompt.value.trim();
-        if (!prompt) return;
-
-        this.generateImageButton.disabled = true;
-        this.imagePlaceholder.classList.add('opacity-0');
-        this.generatedImage.classList.add('hidden');
-        this.imageLoader.classList.remove('hidden');
-
-        try {
-            // Determine API URL based on environment
-            const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-                ? 'https://pera-ai.vercel.app/api/chat-secure'  // Use production API for local development
-                : '/api/chat-secure';  // Use relative path for production
-            
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chatHistory: prompt, 
-                    model: 'gemini-image',
-                    sessionId: this.sessionId
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            const candidate = result?.candidates?.[0];
-            const imagePart = candidate?.content?.parts?.find(part => part.inlineData);
-            const imageData = imagePart?.inlineData?.data;
-            const mimeType = imagePart?.inlineData?.mimeType || 'image/png';
-
-            if (imageData) {
-                const imageUrl = `data:${mimeType};base64,${imageData}`;
-                this.generatedImage.src = imageUrl;
-                this.generatedImage.classList.remove('hidden');
-            } else {
-                throw new Error('이미지 데이터를 찾을 수 없습니다.');
-            }
-
-        } catch (error) {
-            const errorInfo = errorHandler.handle(error, {
-                action: 'generateImage',
-                prompt: prompt.substring(0, 50) + '...'
-            });
-            this.showImageError(errorInfo);
-        } finally {
-            this.imageLoader.classList.add('hidden');
-            this.generateImageButton.disabled = false;
-        }
-    }
-
-    showImageError(errorInfo) {
-        let errorHTML = '<div class="text-red-500 text-sm p-4 text-center">';
-        errorHTML += `<strong>${errorInfo.title}</strong><br>`;
-        errorHTML += `${errorInfo.message}<br><br>`;
-        errorHTML += `<span class="text-xs">${errorInfo.action}</span>`;
-        
-        if (errorInfo.isRetryable) {
-            errorHTML += `<br><button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick="window.peraApp.handleGenerateImage()">🔄 다시 시도</button>`;
-        }
-        
-        errorHTML += '</div>';
-        this.imagePlaceholder.innerHTML = errorHTML;
-        this.imagePlaceholder.classList.remove('opacity-0');
-    }
-
-
-    // Mobile support
-    handleSwipe() {
-        const swipeThreshold = 100;
-        const diff = this.touchEndX - this.touchStartX;
-        
-        if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0) {
-                // Right swipe - switch to chat
-                if (document.querySelector('.content-pane.is-active') === this.imageUi) {
-                    this.switchTabs('chat');
-                }
-            } else {
-                // Left swipe - switch to image
-                if (document.querySelector('.content-pane.is-active') === this.chatUi) {
-                    this.switchTabs('image');
-                }
-            }
-        }
-    }
-
-    handleMobileKeyboard() {
-        if (window.innerWidth <= 640) {
-            const viewport = document.querySelector('meta[name="viewport"]');
-            
-            this.chatInput.addEventListener('focus', () => {
-                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-                setTimeout(() => {
-                    this.chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-            
-            this.chatInput.addEventListener('blur', () => {
-                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-            });
-        }
-    }
-
-    detectVirtualKeyboard() {
-        const initialHeight = window.innerHeight;
-        
-        window.addEventListener('resize', () => {
-            const currentHeight = window.innerHeight;
-            const keyboardHeight = initialHeight - currentHeight;
-            
-            if (keyboardHeight > 100) {
-                document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
-            } else {
-                document.documentElement.style.setProperty('--keyboard-height', '0px');
-            }
+    for (const file of files) {
+      try {
+        const context = await this.chatManager.fileToContext(file);
+        this.contextItems.push(context);
+        this.addArtifact({
+          type: 'file',
+          title: context.name,
+          content: `${context.icon} ${context.name}\n크기: ${context.size}\n형식: ${context.type}`,
+          source: context.name,
+          metadata: { contextId: context.id, contextType: context.type },
+          silent: true,
         });
+      } catch (error) {
+        this.toast(error.message, 'error');
+      }
     }
-    
-    // Retry failed message
-    retryLastMessage() {
-        if (!this.lastFailedMessage) return;
-        
-        const { message, url, persona } = this.lastFailedMessage;
-        this.lastFailedMessage = null;
-        
-        // Remove the error message
-        const messages = this.chatMessages.querySelectorAll('.message-bubble');
-        if (messages.length > 0) {
-            messages[messages.length - 1].remove();
+
+    this.fileInput.value = '';
+    this.renderContextShelf();
+    this.renderArtifacts();
+    this.toast(`${files.length}개 파일을 컨텍스트로 추가했습니다.`);
+  }
+
+  promptForUrl() {
+    const raw = window.prompt('컨텍스트로 사용할 URL을 입력하세요');
+    if (!raw) return;
+    const url = normalizeUrl(raw);
+    if (!url) {
+      this.toast('올바른 URL 형식이 아닙니다.', 'error');
+      return;
+    }
+    this.addUrlContext(url);
+  }
+
+  addUrlContext(url) {
+    const normalized = normalizeUrl(url);
+    if (!normalized) return;
+    if (this.contextItems.some((context) => context.type === 'url' && context.url === normalized)) {
+      this.toast('이미 추가된 URL입니다.');
+      return;
+    }
+
+    const context = {
+      id: createId('context'),
+      type: 'url',
+      icon: '🔗',
+      name: new URL(normalized).hostname,
+      url: normalized,
+    };
+
+    this.contextItems.push(context);
+    this.addArtifact({
+      type: 'source',
+      title: context.name,
+      content: normalized,
+      source: normalized,
+      metadata: { contextId: context.id, contextType: 'url' },
+      silent: true,
+    });
+    this.renderContextShelf();
+    this.renderArtifacts();
+  }
+
+  removeContext(id) {
+    this.contextItems = this.contextItems.filter((context) => context.id !== id);
+    this.renderContextShelf();
+  }
+
+  renderContextShelf() {
+    this.contextShelf.innerHTML = this.contextItems.map((context) => `
+      <span class="context-chip" title="${sanitizeHTML(context.url || context.name)}">
+        <span>${sanitizeHTML(context.icon || '◇')}</span>
+        <span class="context-chip__name">${sanitizeHTML(context.name || context.url || context.type)}</span>
+        ${context.size ? `<small>${sanitizeHTML(context.size)}</small>` : ''}
+        <button type="button" data-remove-context="${sanitizeHTML(context.id)}" aria-label="${sanitizeHTML(context.name || '컨텍스트')} 제거">×</button>
+      </span>
+    `).join('');
+  }
+
+  async handleSendMessage() {
+    if (this.isLoading) return;
+
+    let message = this.chatInput.value.trim();
+    const slash = parseSlashCommand(message);
+    let mode = this.mode;
+
+    if (slash) {
+      mode = slash.mode;
+      this.setMode(mode);
+      message = slash.rest || slash.prompt || '';
+    }
+
+    if (!message && !this.contextItems.length) {
+      this.chatInput.focus();
+      return;
+    }
+
+    if (mode === 'image') {
+      await this.handleGenerateImage(message || this.lastUserMessage);
+      return;
+    }
+
+    await this.handleTextMessage(message, mode);
+  }
+
+  getApiUrl() {
+    return '/api/chat-secure';
+  }
+
+  async handleTextMessage(message, mode) {
+    const contexts = [...this.contextItems];
+    const modeInstruction = getModeInstruction(mode);
+    const finalMessage = [modeInstruction, message].filter(Boolean).join('\n\n');
+
+    const displayParts = this.chatManager.buildDisplayParts(message, contexts);
+    this.chatManager.addMessage(this.chatMessages, 'user', displayParts);
+    this.updateEmptyState();
+
+    this.lastUserMessage = message;
+    this.chatInput.value = '';
+    this.autoResizeInput();
+    this.contextItems = [];
+    this.renderContextShelf();
+    this.setLoading(true);
+    this.chatManager.toggleLoading(this.chatMessages, true);
+
+    const persona = buildPersonaInstruction(this.settings);
+
+    await this.chatManager.sendMessage(
+      this.getApiUrl(),
+      finalMessage,
+      contexts,
+      persona,
+      this.sessionId,
+      mode,
+      (botParts) => {
+        this.chatManager.toggleLoading(this.chatMessages, false);
+        const messageElement = this.chatManager.addMessage(this.chatMessages, 'assistant', botParts);
+        const plainText = this.chatManager.partsToPlainText(botParts);
+        messageElement.dataset.plainText = plainText;
+
+        if (this.shouldCreateArtifact(mode, plainText)) {
+          this.addArtifact({
+            type: this.modeToArtifactType(mode, plainText),
+            title: inferTitle(message || plainText),
+            content: plainText,
+            source: message,
+            contexts: contexts.map((context) => ({ type: context.type, name: context.name || context.url })),
+          });
         }
-        
-        // Retry sending the message
-        this.sendButton.disabled = true;
-        this.chatManager.toggleLoading(this.chatMessages, true);
-        
-        // Determine API URL based on environment
-        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-            ? 'https://pera-ai.vercel.app/api/chat-secure'
-            : '/api/chat-secure';
-        
-        // Retry with exponential backoff
-        setTimeout(() => {
-            this.chatManager.sendMessage(
-                apiUrl,
-                message,
-                url,
-                persona,
-                this.sessionId,
-                (botParts) => {
-                    this.chatManager.addMessage(this.chatMessages, 'bot', botParts);
-                    this.chatManager.toggleLoading(this.chatMessages, false);
-                    this.sendButton.disabled = false;
-                    this.chatInput.focus();
-                },
-                (errorInfo) => {
-                    // Show error again
-                    let errorContent = errorInfo.fullMessage;
-                    if (errorInfo.isRetryable) {
-                        errorContent += `\n\n<button class="retry-button" onclick="window.peraApp.retryLastMessage()">🔄 다시 시도</button>`;
-                    }
-                    
-                    this.chatManager.addMessage(
-                        this.chatMessages, 
-                        'bot', 
-                        [{ text: errorContent }]
-                    );
-                    this.chatManager.toggleLoading(this.chatMessages, false);
-                    this.sendButton.disabled = false;
-                    this.chatInput.focus();
-                    
-                    if (errorInfo.isRetryable) {
-                        this.lastFailedMessage = { message, url, persona };
-                    }
-                }
-            );
-        }, 1000); // 1 second delay before retry
+
+        this.saveConversation(message, plainText, mode);
+        this.setLoading(false);
+      },
+      (errorInfo) => {
+        this.chatManager.toggleLoading(this.chatMessages, false);
+        const element = this.chatManager.addMessage(this.chatMessages, 'assistant', [{ text: errorInfo.fullMessage }]);
+        element.dataset.plainText = errorInfo.fullMessage;
+        this.setLoading(false);
+      },
+    );
+  }
+
+  async handleGenerateImage(prompt) {
+    if (!prompt?.trim()) {
+      this.toast('이미지 프롬프트를 입력해주세요.', 'error');
+      return;
     }
-    
-    announceToScreenReader(message) {
-        const announcement = document.createElement('div');
-        announcement.className = 'sr-only';
-        announcement.setAttribute('role', 'status');
-        announcement.setAttribute('aria-live', 'polite');
-        announcement.textContent = message;
-        document.body.appendChild(announcement);
-        
-        setTimeout(() => {
-            announcement.remove();
-        }, 1000);
-    }
-    
-    initializeMessageNavigation() {
-        // Enable keyboard navigation through messages
-        this.chatMessages.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                e.preventDefault();
-                const messages = Array.from(this.chatMessages.querySelectorAll('.message-bubble'));
-                const currentIndex = messages.indexOf(document.activeElement);
-                
-                let nextIndex;
-                if (e.key === 'ArrowUp') {
-                    nextIndex = currentIndex > 0 ? currentIndex - 1 : messages.length - 1;
-                } else {
-                    nextIndex = currentIndex < messages.length - 1 ? currentIndex + 1 : 0;
-                }
-                
-                if (messages[nextIndex]) {
-                    messages[nextIndex].focus();
-                    // Ensure focused message is visible
-                    messages[nextIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                }
-            }
+
+    const cleanPrompt = prompt.replace(/^\/(?:이미지|image)\s*/i, '').trim();
+    const userPrompt = cleanPrompt || prompt.trim();
+
+    this.chatManager.addMessage(this.chatMessages, 'user', [{ text: `/이미지 ${userPrompt}` }]);
+    this.updateEmptyState();
+    this.chatInput.value = '';
+    this.autoResizeInput();
+    this.setLoading(true);
+    this.chatManager.toggleLoading(this.chatMessages, true);
+
+    await this.chatManager.generateImage(
+      this.getApiUrl(),
+      userPrompt,
+      this.sessionId,
+      ({ imageUrl, text }) => {
+        this.chatManager.toggleLoading(this.chatMessages, false);
+        const parts = [];
+        if (text) {
+          parts.push({ text });
+        }
+        if (imageUrl) {
+          parts.push({ imageUrl, name: userPrompt });
+        }
+        if (!parts.length) {
+          parts.push({ text: '이미지 생성 응답을 받았지만 표시할 데이터가 없습니다.' });
+        }
+
+        const messageElement = this.chatManager.addMessage(this.chatMessages, 'assistant', parts);
+        messageElement.dataset.plainText = text || userPrompt;
+
+        this.addArtifact({
+          type: imageUrl ? 'image' : 'document',
+          title: inferTitle(userPrompt),
+          content: text || userPrompt,
+          imageUrl,
+          source: userPrompt,
         });
-        
-        // Make messages focusable
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.classList && node.classList.contains('message-bubble')) {
-                        node.setAttribute('tabindex', '0');
-                        node.setAttribute('role', 'article');
-                    }
-                });
-            });
-        });
-        
-        observer.observe(this.chatMessages, { childList: true });
+        this.saveConversation(userPrompt, text || '이미지 생성', 'image');
+        this.setLoading(false);
+      },
+      (errorInfo) => {
+        this.chatManager.toggleLoading(this.chatMessages, false);
+        const element = this.chatManager.addMessage(this.chatMessages, 'assistant', [{ text: errorInfo.fullMessage }]);
+        element.dataset.plainText = errorInfo.fullMessage;
+        this.setLoading(false);
+      },
+    );
+  }
+
+  shouldCreateArtifact(mode, text) {
+    return ['summary', 'report', 'table', 'quiz', 'code'].includes(mode) || String(text || '').length > 900 || /\|.+\|/.test(text);
+  }
+
+  modeToArtifactType(mode, text) {
+    if (mode === 'table' || /\|.+\|/.test(text)) return 'table';
+    if (mode === 'quiz') return 'quiz';
+    if (mode === 'code' || /```/.test(text)) return 'code';
+    return 'document';
+  }
+
+  setLoading(isLoading) {
+    this.isLoading = isLoading;
+    this.sendButton.hidden = isLoading;
+    this.stopButton.hidden = !isLoading;
+    this.chatInput.disabled = isLoading;
+    this.fileButton.disabled = isLoading;
+    this.urlButton.disabled = isLoading;
+    this.modeSelect.disabled = isLoading;
+  }
+
+  stopResponse() {
+    this.chatManager.abort();
+    this.chatManager.toggleLoading(this.chatMessages, false);
+    this.setLoading(false);
+    this.toast('응답 생성을 중지했습니다.');
+  }
+
+  async handleMessageAction(event) {
+    const action = event.target.closest('[data-message-action]')?.dataset.messageAction;
+    if (!action) return;
+
+    const messageElement = event.target.closest('.message');
+    const text = messageElement?.dataset.plainText || messageElement?.innerText || '';
+
+    if (action === 'copy') {
+      await copyToClipboard(text);
+      this.toast('답변을 복사했습니다.');
+      return;
     }
+
+    if (action === 'artifact') {
+      this.addArtifact({
+        type: 'document',
+        title: inferTitle(text),
+        content: text,
+        source: '대화 답변',
+      });
+      this.togglePanel('workbench', true);
+      return;
+    }
+
+    if (action === 'shorten') {
+      this.chatInput.value = `위 답변을 더 짧게 요약해줘:\n\n${text.slice(0, 1600)}`;
+      this.setMode('summary');
+      this.handleInputChange();
+      this.chatInput.focus();
+      return;
+    }
+
+    if (action === 'table') {
+      this.chatInput.value = `위 답변을 표로 정리해줘:\n\n${text.slice(0, 1600)}`;
+      this.setMode('table');
+      this.handleInputChange();
+      this.chatInput.focus();
+      return;
+    }
+
+    if (action === 'retry') {
+      if (this.lastUserMessage) {
+        this.chatInput.value = this.lastUserMessage;
+        this.handleInputChange();
+        await this.handleSendMessage();
+      }
+    }
+  }
+
+  addArtifact(artifact) {
+    const item = {
+      id: createId('artifact'),
+      type: artifact.type || 'document',
+      title: artifact.title || 'PERA 결과물',
+      content: artifact.content || '',
+      imageUrl: artifact.imageUrl || '',
+      source: artifact.source || '',
+      contexts: artifact.contexts || [],
+      metadata: artifact.metadata || {},
+      createdAt: Date.now(),
+    };
+
+    this.artifacts = [item, ...this.artifacts].slice(0, MAX_ARTIFACTS);
+    this.activeArtifactId = item.id;
+    writeJsonStorage(STORAGE_KEYS.artifacts, this.artifacts);
+    this.renderArtifacts();
+    this.renderArtifactDetail();
+
+    if (!artifact.silent) {
+      this.toast('Workbench에 결과물을 저장했습니다.');
+    }
+
+    return item;
+  }
+
+  renderArtifacts() {
+    const filtered = this.getWorkbenchItems();
+
+    if (!filtered.length) {
+      this.artifactList.innerHTML = '<div class="empty-list">표시할 항목이 없습니다.</div>';
+      return;
+    }
+
+    this.artifactList.innerHTML = filtered.map((artifact) => `
+      <button class="artifact-item ${artifact.id === this.activeArtifactId ? 'is-active' : ''}" type="button" data-artifact-id="${sanitizeHTML(artifact.id)}">
+        <strong>${sanitizeHTML(this.getArtifactIcon(artifact.type))} ${sanitizeHTML(artifact.title)}</strong>
+        <small>${sanitizeHTML(this.getArtifactTypeLabel(artifact.type))} · ${sanitizeHTML(formatDateTime(artifact.createdAt))}</small>
+      </button>
+    `).join('');
+  }
+
+  getWorkbenchItems() {
+    if (this.activeWorkbenchTab === 'files') {
+      return this.artifacts.filter((artifact) => artifact.type === 'file');
+    }
+    if (this.activeWorkbenchTab === 'sources') {
+      return this.artifacts.filter((artifact) => artifact.type === 'source' || artifact.contexts?.length);
+    }
+    if (this.activeWorkbenchTab === 'memory') {
+      return this.artifacts.filter((artifact) => artifact.type !== 'file' && artifact.type !== 'source').slice(0, 12);
+    }
+    return this.artifacts.filter((artifact) => artifact.type !== 'file' && artifact.type !== 'source');
+  }
+
+  selectArtifact(id) {
+    this.activeArtifactId = id;
+    this.renderArtifacts();
+    this.renderArtifactDetail();
+    this.togglePanel('workbench', true);
+  }
+
+  renderArtifactDetail() {
+    const artifact = this.artifacts.find((item) => item.id === this.activeArtifactId)
+      || this.getWorkbenchItems()[0]
+      || null;
+
+    if (!artifact) {
+      this.artifactDetail.innerHTML = `
+        <div class="empty-artifact">
+          <span aria-hidden="true">◇</span>
+          <h3>아직 결과물이 없습니다</h3>
+          <p>긴 답변, 표, 문서, 이미지를 만들면 여기에 저장됩니다.</p>
+        </div>
+      `;
+      return;
+    }
+
+    this.activeArtifactId = artifact.id;
+    const safeContent = sanitizeHTML(artifact.content || '').replace(/\n/g, '<br>');
+    const image = artifact.imageUrl ? `<img class="artifact-image" src="${sanitizeHTML(artifact.imageUrl)}" alt="${sanitizeHTML(artifact.title)}">` : '';
+
+    this.artifactDetail.innerHTML = `
+      <div class="artifact-detail__header">
+        <div class="artifact-detail__meta">
+          <span class="badge">${sanitizeHTML(this.getArtifactTypeLabel(artifact.type))}</span>
+          <span class="badge">${sanitizeHTML(formatDateTime(artifact.createdAt))}</span>
+        </div>
+        <h3>${sanitizeHTML(artifact.title)}</h3>
+        ${artifact.source ? `<small>Source: ${sanitizeHTML(artifact.source)}</small>` : ''}
+      </div>
+      <div class="artifact-detail__actions">
+        <button class="artifact-action" type="button" data-artifact-action="copy" data-artifact-id="${sanitizeHTML(artifact.id)}">복사</button>
+        <button class="artifact-action" type="button" data-artifact-action="download" data-artifact-id="${sanitizeHTML(artifact.id)}">다운로드</button>
+        <button class="artifact-action" type="button" data-artifact-action="insert" data-artifact-id="${sanitizeHTML(artifact.id)}">대화에 삽입</button>
+        <button class="artifact-action" type="button" data-artifact-action="delete" data-artifact-id="${sanitizeHTML(artifact.id)}">삭제</button>
+      </div>
+      ${image}
+      <div class="artifact-content">${safeContent || '<span class="empty-list">본문 없음</span>'}</div>
+    `;
+  }
+
+  async handleArtifactAction(event) {
+    const button = event.target.closest('[data-artifact-action]');
+    if (!button) return;
+
+    const artifact = this.artifacts.find((item) => item.id === button.dataset.artifactId);
+    if (!artifact) return;
+
+    const action = button.dataset.artifactAction;
+    const text = artifact.imageUrl ? `${artifact.title}\n${artifact.imageUrl}\n\n${artifact.content}` : artifact.content;
+
+    if (action === 'copy') {
+      await copyToClipboard(text || artifact.title);
+      this.toast('결과물을 복사했습니다.');
+    }
+
+    if (action === 'download') {
+      const ext = artifact.imageUrl ? 'txt' : 'md';
+      downloadTextFile(`${artifact.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 48) || 'pera-artifact'}.${ext}`, text || artifact.title);
+    }
+
+    if (action === 'insert') {
+      this.chatInput.value = `${this.chatInput.value ? `${this.chatInput.value}\n\n` : ''}${artifact.content || artifact.title}`;
+      this.handleInputChange();
+      this.chatInput.focus();
+      this.closeMobilePanels();
+    }
+
+    if (action === 'delete') {
+      this.artifacts = this.artifacts.filter((item) => item.id !== artifact.id);
+      this.activeArtifactId = this.artifacts[0]?.id || null;
+      writeJsonStorage(STORAGE_KEYS.artifacts, this.artifacts);
+      this.renderArtifacts();
+      this.renderArtifactDetail();
+      this.toast('결과물을 삭제했습니다.');
+    }
+  }
+
+  setWorkbenchTab(tab = 'artifacts') {
+    this.activeWorkbenchTab = tab;
+    this.workbenchTabs.forEach((button) => {
+      const active = button.dataset.tab === tab;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+
+    const first = this.getWorkbenchItems()[0];
+    this.activeArtifactId = first?.id || null;
+    this.renderArtifacts();
+    this.renderArtifactDetail();
+  }
+
+  getArtifactIcon(type) {
+    return {
+      document: '문서',
+      table: '표',
+      quiz: '퀴즈',
+      code: '코드',
+      image: '이미지',
+      file: '파일',
+      source: '소스',
+    }[type] || '결과';
+  }
+
+  getArtifactTypeLabel(type) {
+    return {
+      document: '문서',
+      table: '표',
+      quiz: '퀴즈',
+      code: '코드',
+      image: '이미지',
+      file: '파일',
+      source: '소스',
+    }[type] || '결과물';
+  }
+
+  saveConversation(userMessage, assistantText, mode) {
+    const item = {
+      id: createId('conversation'),
+      title: inferTitle(userMessage || assistantText),
+      subtitle: `${getModeLabel(mode)} · ${formatDateTime(Date.now())}`,
+      mode,
+      updatedAt: Date.now(),
+    };
+
+    this.conversations = [
+      item,
+      ...this.conversations.filter((conversation) => conversation.title !== item.title),
+    ].slice(0, MAX_HISTORY);
+
+    writeJsonStorage(STORAGE_KEYS.conversations, this.conversations);
+    this.renderHistory();
+  }
+
+  renderHistory() {
+    if (!this.conversations.length) {
+      this.historyList.innerHTML = '<div class="empty-history">아직 저장된 작업이 없습니다.</div>';
+      return;
+    }
+
+    this.historyList.innerHTML = this.conversations.map((conversation) => `
+      <button class="history-item" type="button" data-history-id="${sanitizeHTML(conversation.id)}">
+        <strong>${sanitizeHTML(conversation.title)}</strong>
+        <small>${sanitizeHTML(conversation.subtitle)}</small>
+      </button>
+    `).join('');
+
+    this.historyList.querySelectorAll('[data-history-id]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const conversation = this.conversations.find((item) => item.id === button.dataset.historyId);
+        if (conversation) {
+          this.setMode(conversation.mode);
+          this.chatInput.value = conversation.title;
+          this.handleInputChange();
+          this.chatInput.focus();
+          this.closeMobilePanels();
+        }
+      });
+    });
+  }
+
+  clearHistory() {
+    this.conversations = [];
+    writeJsonStorage(STORAGE_KEYS.conversations, this.conversations);
+    this.renderHistory();
+    this.toast('최근 작업 목록을 정리했습니다.');
+  }
+
+  startNewConversation() {
+    this.chatManager.reset();
+    this.sessionId = generateSessionId();
+    this.contextItems = [];
+    this.chatMessages.innerHTML = '';
+    this.chatInput.value = '';
+    this.setMode('chat');
+    this.renderContextShelf();
+    this.handleInputChange();
+    this.updateEmptyState();
+    this.closeMobilePanels();
+    this.chatInput.focus();
+    this.toast('새 작업을 시작합니다.');
+  }
+
+  openSettings() {
+    this.settingsModal.hidden = false;
+    requestAnimationFrame(() => this.personaPreset.focus());
+  }
+
+  closeSettings() {
+    this.settingsModal.hidden = true;
+    this.settingsButton.focus();
+  }
+
+  saveSettings() {
+    this.settings = {
+      preset: this.personaPreset.value,
+      depth: this.answerDepth.value,
+      custom: this.personaInput.value.trim(),
+    };
+    writeJsonStorage(STORAGE_KEYS.settings, this.settings);
+    this.closeSettings();
+    this.toast('응답 스타일을 저장했습니다.');
+  }
+
+  resetSettings() {
+    this.settings = { preset: 'friendly', depth: 'balanced', custom: '' };
+    this.initializeSettings();
+    writeJsonStorage(STORAGE_KEYS.settings, this.settings);
+    this.toast('설정을 초기화했습니다.');
+  }
+
+  toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(STORAGE_KEYS.theme, next);
+  }
+
+  togglePanel(panel, open) {
+    if (panel === 'nav') {
+      document.body.classList.toggle('nav-open', open);
+      if (open) document.body.classList.remove('workbench-open');
+    }
+
+    if (panel === 'workbench') {
+      document.body.classList.toggle('workbench-open', open);
+      if (open) document.body.classList.remove('nav-open');
+    }
+
+    const isAnyOpen = document.body.classList.contains('nav-open') || document.body.classList.contains('workbench-open');
+    this.mobileScrim.hidden = !isAnyOpen;
+  }
+
+  closeMobilePanels() {
+    document.body.classList.remove('nav-open', 'workbench-open');
+    this.mobileScrim.hidden = true;
+  }
+
+  toast(message, type = 'default') {
+    const item = document.createElement('div');
+    item.className = `toast ${type === 'error' ? 'toast--error' : ''}`;
+    item.textContent = message;
+    this.toastStack.appendChild(item);
+    setTimeout(() => {
+      item.style.opacity = '0';
+      item.style.transform = 'translateY(8px)';
+      setTimeout(() => item.remove(), 180);
+    }, 2800);
+  }
 }
 
-// Initialize PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+if (globalThis.pdfjsLib) {
+  globalThis.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+} else {
+  window.addEventListener('load', () => {
+    if (globalThis.pdfjsLib) {
+      globalThis.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+  });
+}
 
-// Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.peraApp = new PeraApp();
+  window.peraApp = new PeraStudioApp();
 });
