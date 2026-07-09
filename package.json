@@ -1,23 +1,31 @@
 {
   "name": "ai-chatbot-project",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "PERA Studio - AI workspace with chat, context shelf, and artifact workbench",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node server.js",
+    "start": "node server.js",
+    "check": "node --check server.js && node --check js/app.js && node --check js/chat.js && node --check api/chat-secure.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/parkjaeuk0210/ai-chatbot-project.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "pera",
+    "ai-chatbot",
+    "ai-workspace",
+    "vercel",
+    "gemini"
+  ],
+  "author": "Online Studio",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/parkjaeuk0210/ai-chatbot-project/issues"
   },
   "homepage": "https://github.com/parkjaeuk0210/ai-chatbot-project#readme",
-  "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.4",
     "@vercel/analytics": "^1.5.0",
