@@ -1,34 +1,58 @@
 import express from 'express';
-import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 정적 파일 제공 (Vercel과 동일하게)
-app.use(express.static('.'));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.static(__dirname));
 
-// API 엔드포인트 모킹 (로컬 테스트용)
-app.post('/api/chat', express.json(), (req, res) => {
-  console.log('API request received:', req.body);
-  res.json({
-    success: true,
-    data: {
-      content: '로컬 서버에서의 테스트 응답입니다.',
-      sessionId: req.body.sessionId
-    }
-  });
+function createMockTextResponse(body) {
+  const lastMessage = Array.isArray(body.chatHistory)
+    ? [...body.chatHistory].reverse().find((message) => message.role === 'user')
+    : null;
+  const userText = lastMessage?.parts?.find((part) => part.text)?.text || '요청 내용';
+
+  return {
+    candidates: [
+      {
+        content: {
+          role: 'assistant',
+          parts: [
+            {
+              text: `로컬 개발 서버의 PERA Studio 모의 응답입니다.\n\n요청을 받았습니다: ${userText.slice(0, 260)}\n\n- 실제 배포 환경에서는 /api/chat-secure가 Gemini API로 연결됩니다.\n- UI, 첨부, 작업대 흐름을 로컬에서 먼저 확인할 수 있습니다.`,
+            },
+          ],
+        },
+      },
+    ],
+  };
+}
+
+app.post(['/api/chat', '/api/chat-secure'], (req, res) => {
+  if (req.body?.model === 'gemini-image') {
+    return res.json({
+      candidates: [
+        {
+          content: {
+            role: 'assistant',
+            parts: [{ text: `로컬 모의 이미지 응답입니다. 프롬프트: ${String(req.body.chatHistory || '').slice(0, 240)}` }],
+          },
+        },
+      ],
+    });
+  }
+
+  return res.json(createMockTextResponse(req.body || {}));
 });
 
-// 모든 경로에 대해 index.html 반환 (SPA 지원)
-app.get('*', (req, res) => {
+app.get('*', (_req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log('This simulates Vercel deployment environment locally');
+  console.log(`PERA Studio running at http://localhost:${PORT}`);
 });
