@@ -1,528 +1,451 @@
-// Chat functionality module
-import { sanitizeHTML, formatFileSize, compressImage, extractTextFromPdf, formatErrorMessage, validateInput, errorHandler } from './utils.js';
-import { domBatcher, performanceMonitor } from './performance.js';
+// Chat and message rendering module for PERA Studio.
+import {
+  compressImage,
+  createId,
+  errorHandler,
+  extractTextFromPdf,
+  fileToDataUrl,
+  fileToText,
+  formatFileSize,
+  sanitizeHTML,
+  validateInput,
+} from './utils.js';
+
+function looksLikeTable(text) {
+  const lines = String(text || '').split('\n').map((line) => line.trim());
+  return lines.some((line, index) => line.includes('|') && lines[index + 1]?.match(/^\|?\s*:?-{3,}:?\s*\|/));
+}
+
+function markdownToHtml(markdown = '') {
+  const source = String(markdown || '');
+  const codeBlocks = [];
+  let html = sanitizeHTML(source).replace(/```([\w-]*)\n([\s\S]*?)```/g, (_match, lang, code) => {
+    const token = `@@CODE_BLOCK_${codeBlocks.length}@@`;
+    codeBlocks.push({ lang: sanitizeHTML(lang || ''), code });
+    return token;
+  });
+
+  html = html
+    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  if (looksLikeTable(source)) {
+    html = convertMarkdownTables(html);
+  }
+
+  html = html
+    .split(/\n{2,}/)
+    .map((block) => {
+      if (!block.trim()) return '';
+      if (/^<h[1-3]>/.test(block) || /^<table/.test(block) || block.startsWith('@@CODE_BLOCK_')) {
+        return block;
+      }
+      const listLines = block.split('\n').filter((line) => /^[-*]\s+/.test(line.trim()));
+      if (listLines.length > 1 && listLines.length === block.split('\n').length) {
+        return `<ul>${listLines.map((line) => `<li>${line.replace(/^[-*]\s+/, '')}</li>`).join('')}</ul>`;
+      }
+      const orderedLines = block.split('\n').filter((line) => /^\d+\.\s+/.test(line.trim()));
+      if (orderedLines.length > 1 && orderedLines.length === block.split('\n').length) {
+        return `<ol>${orderedLines.map((line) => `<li>${line.replace(/^\d+\.\s+/, '')}</li>`).join('')}</ol>`;
+      }
+      return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+    })
+    .join('');
+
+  codeBlocks.forEach((block, index) => {
+    const token = `@@CODE_BLOCK_${index}@@`;
+    const replacement = `<pre data-language="${block.lang}"><code>${block.code}</code></pre>`;
+    html = html.replace(token, replacement);
+  });
+
+  return html;
+}
+
+function convertMarkdownTables(html) {
+  const blocks = html.split(/\n{2,}/);
+  return blocks.map((block) => {
+    const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+    if (lines.length < 2 || !lines[0].includes('|') || !/^\|?\s*:?-{3,}:?\s*\|/.test(lines[1])) {
+      return block;
+    }
+
+    const rows = lines
+      .filter((_, index) => index !== 1)
+      .map((line) => line.replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim()));
+
+    const [head, ...body] = rows;
+    return `<table><thead><tr>${head.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead><tbody>${body.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  }).join('\n\n');
+}
+
+function partsToText(parts = []) {
+  return parts
+    .filter((part) => part?.text)
+    .map((part) => part.text)
+    .join('\n\n')
+    .trim();
+}
+
+function extractImagePart(result) {
+  const candidate = result?.candidates?.[0];
+  const parts = candidate?.content?.parts || [];
+  const imagePart = parts.find((part) => part?.inlineData?.data);
+  if (!imagePart) return null;
+  const mimeType = imagePart.inlineData.mimeType || 'image/png';
+  return `data:${mimeType};base64,${imagePart.inlineData.data}`;
+}
 
 export class ChatManager {
-    constructor() {
-        this.chatHistory = [];
-        this.uploadedFile = { type: null, data: null, name: null };
-        this.messageObserver = null;
-        this.messageCache = new Map();
-        this.maxVisibleMessages = 50;
-        this.messageCountSinceInjection = 0;
-        this.identityReinforcementInterval = 10; // Reinforce identity every 10 messages
-        this.maxHistoryLength = 20; // Maximum messages to keep in history
-        this.contextWindowSize = 10; // Messages to send to API
+  constructor() {
+    this.chatHistory = [];
+    this.abortController = null;
+    this.lastRequest = null;
+  }
+
+  reset() {
+    this.chatHistory = [];
+    this.lastRequest = null;
+    this.abort();
+  }
+
+  abort() {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+  }
+
+  scrollToBottom(container) {
+    requestAnimationFrame(() => {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    });
+  }
+
+  toggleLoading(container, show) {
+    const existing = container.querySelector('#loading-indicator');
+    if (!show) {
+      existing?.remove();
+      return;
     }
 
-    // Initialize message virtualization for performance
-    initializeVirtualization(container) {
-        this.messageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    this.loadMessage(entry.target);
-                } else {
-                    this.unloadMessage(entry.target);
-                }
-            });
-        }, {
-            root: container,
-            rootMargin: '100px',
-            threshold: 0.1
+    if (existing) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'loading-indicator';
+    wrapper.className = 'message message--assistant';
+    wrapper.innerHTML = `
+      <div class="message__avatar" aria-hidden="true">AI</div>
+      <div class="message__bubble">
+        <div class="message__content">
+          <span class="loading-dots" aria-label="PERA가 응답을 생성하고 있습니다">
+            <span></span><span></span><span></span>
+          </span>
+        </div>
+      </div>
+    `;
+    container.appendChild(wrapper);
+    this.scrollToBottom(container);
+  }
+
+  addMessage(container, sender, parts = [], options = {}) {
+    const wrapper = document.createElement('article');
+    wrapper.className = `message message--${sender === 'user' ? 'user' : 'assistant'}`;
+    wrapper.dataset.messageId = options.id || createId('message');
+    wrapper.dataset.sender = sender;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message__avatar';
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = sender === 'user' ? '나' : 'AI';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message__bubble';
+
+    const content = document.createElement('div');
+    content.className = 'message__content';
+
+    for (const part of parts) {
+      if (part?.text) {
+        const block = document.createElement('div');
+        block.innerHTML = markdownToHtml(part.text);
+        content.appendChild(block);
+      }
+
+      if (part?.inlineData?.data) {
+        const image = document.createElement('img');
+        image.className = 'message__image';
+        image.loading = 'lazy';
+        image.alt = part.name ? `첨부 이미지: ${part.name}` : '첨부 이미지';
+        image.src = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+        content.appendChild(image);
+      }
+
+      if (part?.imageUrl) {
+        const image = document.createElement('img');
+        image.className = 'message__image';
+        image.loading = 'lazy';
+        image.alt = part.name || '생성 이미지';
+        image.src = part.imageUrl;
+        content.appendChild(image);
+      }
+
+      if (part?.contexts?.length) {
+        const preview = document.createElement('div');
+        preview.className = 'context-preview';
+        preview.innerHTML = part.contexts.map((context) => `<span>${sanitizeHTML(context.icon || '◇')} ${sanitizeHTML(context.name || context.url || context.type)}</span>`).join('');
+        content.appendChild(preview);
+      }
+    }
+
+    bubble.appendChild(content);
+
+    if (sender !== 'user') {
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+      actions.innerHTML = `
+        <button class="message-action" type="button" data-message-action="copy">복사</button>
+        <button class="message-action" type="button" data-message-action="shorten">짧게</button>
+        <button class="message-action" type="button" data-message-action="table">표로</button>
+        <button class="message-action" type="button" data-message-action="artifact">문서로 보내기</button>
+        <button class="message-action" type="button" data-message-action="retry">다시 생성</button>
+      `;
+      bubble.appendChild(actions);
+    }
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    container.appendChild(wrapper);
+    this.scrollToBottom(container);
+    return wrapper;
+  }
+
+  buildDisplayParts(message, contexts = []) {
+    const parts = [];
+    if (message) {
+      parts.push({ text: message });
+    }
+
+    if (contexts.length) {
+      parts.push({
+        text: message ? '' : '첨부한 컨텍스트를 바탕으로 도와줘.',
+        contexts: contexts.map((context) => ({
+          type: context.type,
+          icon: context.icon,
+          name: context.name || context.url,
+          url: context.url,
+        })),
+      });
+    }
+
+    for (const context of contexts) {
+      if (context.type === 'image' && context.dataUrl) {
+        parts.push({
+          inlineData: {
+            mimeType: context.mimeType,
+            data: context.dataUrl.split(',')[1],
+          },
+          name: context.name,
         });
+      }
     }
 
-    // Load message content when visible
-    loadMessage(element) {
-        const messageId = element.dataset.messageId;
-        if (!messageId || !this.messageCache.has(messageId)) return;
-        
-        const cachedContent = this.messageCache.get(messageId);
-        const contentDiv = element.querySelector('.message-content');
-        if (contentDiv && contentDiv.dataset.virtualized === 'true') {
-            contentDiv.innerHTML = cachedContent;
-            contentDiv.dataset.virtualized = 'false';
-        }
-    }
+    return parts.length ? parts : [{ text: '' }];
+  }
 
-    // Unload message content when not visible
-    unloadMessage(element) {
-        const messageId = element.dataset.messageId;
-        if (!messageId) return;
-        
-        const contentDiv = element.querySelector('.message-content');
-        if (contentDiv && contentDiv.dataset.virtualized !== 'true') {
-            // Cache the content before removing
-            this.messageCache.set(messageId, contentDiv.innerHTML);
-            
-            // Replace with placeholder
-            contentDiv.innerHTML = '<div class="text-gray-400">...</div>';
-            contentDiv.dataset.virtualized = 'true';
-        }
-    }
+  async buildApiParts(message, contexts = []) {
+    const contextTexts = [];
+    const parts = [];
 
-    // Add message with security and performance optimizations
-    addMessage(container, sender, parts) {
-        performanceMonitor.measureRender('addMessage', () => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex items-start gap-3 message-bubble';
-            wrapper.dataset.messageId = `msg-${Date.now()}-${Math.random()}`;
+    for (const context of contexts) {
+      if (context.type === 'url') {
+        contextTexts.push(`[URL 컨텍스트]\n${context.url}`);
+      }
 
-            let imageHtml = '';
-            let textContent = '';
+      if (context.type === 'pdf') {
+        const text = context.text || await extractTextFromPdf(context.file);
+        context.text = text;
+        contextTexts.push(`[PDF 파일: ${context.name}]\n${text}`);
+      }
 
-            parts.forEach(part => {
-                if (part.inlineData) {
-                    imageHtml = this.createImageElement(part.inlineData);
-                }
-                if (part.text) {
-                    // Sanitize text to prevent XSS
-                    const sanitizedText = sanitizeHTML(part.text);
-                    
-                    if (part.text.includes('---PDF 시작---')) {
-                        textContent += this.createPdfPreview(sanitizedText);
-                    } else {
-                        textContent += `<p>${sanitizedText.replace(/\n/g, '<br>')}</p>`;
-                    }
-                }
-            });
+      if (context.type === 'text') {
+        contextTexts.push(`[텍스트 파일: ${context.name}]\n${context.text || ''}`);
+      }
 
-            const bubbleContent = textContent + imageHtml;
-            const messageHtml = this.createMessageHtml(sender, bubbleContent);
-            
-            wrapper.innerHTML = messageHtml;
-            
-            // Batch DOM updates
-            domBatcher.addUpdate((fragment) => {
-                container.appendChild(wrapper);
-                
-                // Observe for virtualization
-                if (this.messageObserver) {
-                    this.messageObserver.observe(wrapper);
-                }
-                
-                // Limit visible messages for performance
-                this.limitVisibleMessages(container);
-                
-                // Smooth scroll to bottom
-                this.scrollToBottom(container);
-            });
+      if (context.type === 'image' && context.dataUrl) {
+        parts.push({
+          inlineData: {
+            mimeType: context.mimeType,
+            data: context.dataUrl.split(',')[1],
+          },
         });
+      }
     }
 
-    createImageElement(inlineData) {
-        // Use data-src for lazy loading optimization
-        const altText = this.uploadedFile.name ? `업로드된 이미지: ${this.uploadedFile.name}` : '업로드된 이미지';
-        return `<img 
-            data-src="data:${inlineData.mimeType};base64,${inlineData.data}"
-            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3C/svg%3E"
-            class="rounded-lg mt-2 w-full h-auto lazy-image"
-            loading="lazy"
-            alt="${altText}"
-        />`;
+    const text = [
+      contextTexts.length ? contextTexts.join('\n\n---\n\n') : '',
+      message ? `[사용자 요청]\n${message}` : '[사용자 요청]\n첨부한 컨텍스트를 분석해줘.',
+    ].filter(Boolean).join('\n\n');
+
+    if (text) {
+      parts.unshift({ text });
     }
 
-    createPdfPreview(text) {
-        const div = document.createElement('div');
-        div.className = 'text-xs bg-slate-100 p-2 rounded-md mt-2 max-h-40 overflow-y-auto border';
-        const pre = document.createElement('pre');
-        pre.className = 'whitespace-pre-wrap font-sans';
-        pre.textContent = text.replace(/<br>/g, '\n');
-        div.appendChild(pre);
-        return div.outerHTML;
+    return parts;
+  }
+
+  async sendMessage(apiUrl, message, contexts, persona, sessionId, mode, onSuccess, onError) {
+    if (!validateInput(message || '')) {
+      onError(errorHandler.handle(new Error('입력값이 너무 깁니다.'), { action: 'validateInput' }));
+      return;
     }
 
-    createMessageHtml(sender, content) {
-        if (sender === 'user') {
-            return `
-                <div class="bg-blue-500 text-white rounded-2xl rounded-tr-none p-3.5 text-sm shadow-md max-w-lg" role="article" aria-label="사용자 메시지">
-                    <div class="message-content">${content}</div>
-                </div>
-                <div class="w-9 h-9 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="사용자 아바타">나</div>
-            `;
-        } else {
-            return `
-                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md" role="img" aria-label="AI 아바타">AI</div>
-                <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm" role="article" aria-label="AI 응답">
-                    <div class="message-content">${content}</div>
-                </div>
-            `;
-        }
+    try {
+      const userParts = await this.buildApiParts(message, contexts);
+      const userMessage = { role: 'user', parts: userParts };
+      this.chatHistory.push(userMessage);
+      this.chatHistory = this.chatHistory.slice(-24);
+
+      this.lastRequest = { apiUrl, message, contexts: [...contexts], persona, sessionId, mode };
+
+      this.abortController = new AbortController();
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatHistory: this.chatHistory.slice(-18),
+          model: 'gemini',
+          persona,
+          sessionId,
+          mode,
+        }),
+        signal: this.abortController.signal,
+      });
+
+      const resultText = await response.text();
+      let result;
+      try {
+        result = resultText ? JSON.parse(resultText) : {};
+      } catch {
+        result = { raw: resultText };
+      }
+
+      if (!response.ok) {
+        throw new Error(result?.message || result?.error?.message || `HTTP ${response.status}`);
+      }
+
+      const candidate = result?.candidates?.[0];
+      const botParts = candidate?.content?.parts || (result.raw ? [{ text: result.raw }] : []);
+
+      if (!botParts.length) {
+        throw new Error('응답을 받았지만 내용이 비어있습니다.');
+      }
+
+      this.chatHistory.push({ role: 'assistant', parts: botParts });
+      onSuccess(botParts, result);
+    } catch (error) {
+      onError(errorHandler.handle(error, { action: 'sendMessage', mode }));
+    } finally {
+      this.abortController = null;
+    }
+  }
+
+  async generateImage(apiUrl, prompt, sessionId, onSuccess, onError) {
+    try {
+      if (!prompt.trim()) {
+        throw new Error('이미지 생성 프롬프트가 비어 있습니다.');
+      }
+
+      this.lastRequest = { apiUrl, message: prompt, contexts: [], persona: '', sessionId, mode: 'image' };
+      this.abortController = new AbortController();
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatHistory: prompt,
+          model: 'gemini-image',
+          sessionId,
+        }),
+        signal: this.abortController.signal,
+      });
+
+      const resultText = await response.text();
+      let result;
+      try {
+        result = resultText ? JSON.parse(resultText) : {};
+      } catch {
+        result = { raw: resultText };
+      }
+
+      if (!response.ok) {
+        throw new Error(result?.message || result?.error?.message || `HTTP ${response.status}`);
+      }
+
+      const imageUrl = extractImagePart(result);
+      const text = partsToText(result?.candidates?.[0]?.content?.parts || []) || result.raw || '';
+      onSuccess({ imageUrl, text, raw: result });
+    } catch (error) {
+      onError(errorHandler.handle(error, { action: 'generateImage' }));
+    } finally {
+      this.abortController = null;
+    }
+  }
+
+  async fileToContext(file) {
+    if (!file) {
+      throw new Error('파일이 선택되지 않았습니다.');
     }
 
-    limitVisibleMessages(container) {
-        const messages = container.querySelectorAll('.message-bubble');
-        if (messages.length > this.maxVisibleMessages) {
-            const toRemove = messages.length - this.maxVisibleMessages;
-            for (let i = 0; i < toRemove; i++) {
-                if (this.messageObserver) {
-                    this.messageObserver.unobserve(messages[i]);
-                }
-                messages[i].remove();
-            }
-        }
+    const maxFileSize = 10 * 1024 * 1024;
+    if (file.size > maxFileSize) {
+      throw new Error(`파일 크기는 10MB를 초과할 수 없습니다. 현재 파일: ${formatFileSize(file.size)}`);
     }
 
-    scrollToBottom(container) {
-        // Use passive scrolling for better performance
-        requestAnimationFrame(() => {
-            container.scrollTo({
-                top: container.scrollHeight,
-                behavior: 'smooth'
-            });
-        });
+    const id = createId('context');
+
+    if (file.type.startsWith('image/')) {
+      const compressed = file.size > 1024 * 1024 ? await compressImage(file) : { dataUrl: await fileToDataUrl(file), blob: file };
+      return {
+        id,
+        type: 'image',
+        icon: '🖼️',
+        name: file.name,
+        size: formatFileSize(compressed.blob?.size || file.size),
+        dataUrl: compressed.dataUrl,
+        mimeType: file.type || 'image/png',
+      };
     }
 
-    toggleLoading(container, show) {
-        let loadingEl = document.getElementById('loading-indicator');
-        if (show) {
-            if (!loadingEl) {
-                loadingEl = document.createElement('div');
-                loadingEl.id = 'loading-indicator';
-                loadingEl.className = 'flex items-start gap-3 max-w-lg message-bubble';
-                loadingEl.innerHTML = `
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
-                    <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                        <span class="loading-dot"></span>
-                        <span class="loading-dot"></span>
-                        <span class="loading-dot"></span>
-                        <span class="sr-only" role="status" aria-live="polite">AI가 응답을 생성하고 있습니다</span>
-                    </div>
-                `;
-                container.appendChild(loadingEl);
-                this.scrollToBottom(container);
-            }
-        } else {
-            if (loadingEl) {
-                loadingEl.remove();
-            }
-        }
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      return {
+        id,
+        type: 'pdf',
+        icon: '📄',
+        name: file.name,
+        size: formatFileSize(file.size),
+        file,
+      };
     }
 
-    async sendMessage(apiUrl, message, url, persona, sessionId, onSuccess, onError) {
-        // Validate inputs
-        if (message && !validateInput(message)) {
-            const errorInfo = errorHandler.handle(
-                new Error('입력값에 허용되지 않은 문자가 포함되어 있습니다.'), 
-                { action: 'validateInput' }
-            );
-            onError(errorInfo);
-            return;
-        }
-
-        // Track message count for identity reinforcement
-        this.messageCountSinceInjection++;
-
-        const userParts = [];
-
-        if (url) {
-            userParts.push({ text: `[URL 컨텍스트: ${sanitizeHTML(url)}]` });
-        }
-
-        if (this.uploadedFile.type === 'image') {
-            userParts.push({ 
-                inlineData: { 
-                    mimeType: this.uploadedFile.mimeType, 
-                    data: this.uploadedFile.data.split(',')[1] 
-                } 
-            });
-        } else if (this.uploadedFile.type === 'pdf') {
-            try {
-                const pdfText = await extractTextFromPdf(this.uploadedFile.data);
-                userParts.push({ 
-                    text: `[첨부된 PDF 파일 '${this.uploadedFile.name}'의 내용입니다.]\n\n---PDF 시작---\n${pdfText}\n---PDF 끝---` 
-                });
-            } catch (error) {
-                const errorInfo = errorHandler.handle(error, {
-                    action: 'extractPdfText',
-                    fileName: this.uploadedFile.name
-                });
-                onError(errorInfo);
-                return;
-            }
-        }
-        
-        if (message) {
-            const existingTextPart = userParts.find(p => p.text);
-            if (existingTextPart) {
-                existingTextPart.text += `\n\n[사용자 추가 메시지]: ${message}`;
-            } else {
-                userParts.push({ text: message });
-            }
-        }
-
-        // Check if we need to reinforce identity
-        let enhancedPersona = persona;
-        if (this.shouldReinforceIdentity()) {
-            enhancedPersona = this.addIdentityReinforcement(persona);
-            this.messageCountSinceInjection = 0;
-        }
-
-        this.chatHistory.push({ role: "user", parts: userParts });
-        
-        // Trim chat history to prevent token overflow
-        this.trimChatHistory();
-        
-        // Get context window for API request
-        const contextHistory = this.getContextWindow();
-
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chatHistory: contextHistory, 
-                    model: 'gemini',
-                    persona: enhancedPersona,
-                    sessionId: sessionId,
-                    url: url
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = errorText;
-                try {
-                    const errorData = JSON.parse(errorText);
-                    errorMessage = errorData.message || JSON.stringify(errorData);
-                } catch (e) { /* Ignore */ }
-                throw new Error(errorMessage);
-            }
-
-            const result = await response.json();
-            
-            if (result.candidates && result.candidates.length > 0) {
-                const botParts = result.candidates[0].content.parts;
-                this.chatHistory.push(result.candidates[0].content);
-                onSuccess(botParts);
-            } else { 
-                throw new Error('응답을 받았지만 내용이 비어있습니다.'); 
-            }
-
-        } catch (error) {
-            const errorInfo = errorHandler.handle(error, {
-                action: 'sendMessage',
-                sessionId: sessionId,
-                messageLength: message?.length || 0
-            });
-            onError(errorInfo);
-        }
+    if (file.type.startsWith('text/') || /\.(txt|md|csv|json|js|ts|tsx|jsx|py|html|css)$/i.test(file.name)) {
+      const text = await fileToText(file);
+      return {
+        id,
+        type: 'text',
+        icon: '📝',
+        name: file.name,
+        size: formatFileSize(file.size),
+        text: text.slice(0, 60000),
+      };
     }
 
-    async handleFileSelect(file, onPreview, onError) {
-        if (!file) return;
+    throw new Error('지원하지 않는 파일 형식입니다. 이미지, PDF, 텍스트 파일만 업로드 가능합니다.');
+  }
 
-        // File size limit (10MB)
-        const maxFileSize = 10 * 1024 * 1024;
-        if (file.size > maxFileSize) {
-            const i18n = window.i18n;
-            const errorMsg = i18n ? i18n.t('error.fileSize') : '파일 크기는 10MB를 초과할 수 없습니다.';
-            onError(`${errorMsg} ${window.i18n ? '' : `현재 파일 크기: ${formatFileSize(file.size)}`}`);
-            return;
-        }
-
-        // Validate file type
-        const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        const allowedDocTypes = ['application/pdf'];
-        
-        if (!allowedImageTypes.includes(file.type) && !allowedDocTypes.includes(file.type)) {
-            const i18n = window.i18n;
-            onError(i18n ? i18n.t('error.fileType') : '지원하지 않는 파일 형식입니다. 이미지(JPEG, PNG, GIF, WebP) 또는 PDF 파일만 업로드 가능합니다.');
-            return;
-        }
-
-        if (file.type.startsWith('image/')) {
-            try {
-                let imageData;
-                
-                // Compress if larger than 1MB
-                if (file.size > 1024 * 1024) {
-                    const compressed = await compressImage(file);
-                    imageData = {
-                        type: 'image',
-                        data: compressed.dataUrl,
-                        mimeType: file.type,
-                        name: file.name,
-                        originalSize: file.size,
-                        compressedSize: compressed.blob.size
-                    };
-                    onPreview({
-                        src: compressed.dataUrl,
-                        name: file.name,
-                        size: formatFileSize(compressed.blob.size),
-                        type: 'image'
-                    });
-                } else {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        imageData = {
-                            type: 'image',
-                            data: e.target.result,
-                            mimeType: file.type,
-                            name: file.name,
-                            originalSize: file.size
-                        };
-                        onPreview({
-                            src: e.target.result,
-                            name: file.name,
-                            size: formatFileSize(file.size),
-                            type: 'image'
-                        });
-                    };
-                    await new Promise((resolve, reject) => {
-                        reader.onload = () => resolve();
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                }
-                
-                this.uploadedFile = imageData;
-            } catch (error) {
-                console.error('이미지 처리 실패:', error);
-                const i18n = window.i18n;
-                onError(i18n ? i18n.t('error.imageProcess') : '이미지 처리 중 오류가 발생했습니다.');
-            }
-        } else if (file.type === 'application/pdf') {
-            this.uploadedFile = { type: 'pdf', data: file, name: file.name };
-            onPreview({
-                name: file.name,
-                size: formatFileSize(file.size),
-                type: 'pdf'
-            });
-        }
-    }
-
-    clearUploadedFile() {
-        this.uploadedFile = { type: null, data: null, name: null };
-    }
-
-    async prepareUserMessage(message, url) {
-        const userParts = [];
-
-        if (url) {
-            userParts.push({ text: `[URL 컨텍스트: ${sanitizeHTML(url)}]` });
-        }
-
-        if (this.uploadedFile.type === 'image') {
-            userParts.push({ 
-                inlineData: { 
-                    mimeType: this.uploadedFile.mimeType, 
-                    data: this.uploadedFile.data.split(',')[1] 
-                } 
-            });
-        } else if (this.uploadedFile.type === 'pdf') {
-            try {
-                const pdfText = await extractTextFromPdf(this.uploadedFile.data);
-                userParts.push({ 
-                    text: `[첨부된 PDF 파일 '${this.uploadedFile.name}'의 내용입니다.]\n\n---PDF 시작---\n${pdfText}\n---PDF 끝---` 
-                });
-            } catch (error) {
-                throw error;
-            }
-        }
-        
-        if (message) {
-            const existingTextPart = userParts.find(p => p.text);
-            if (existingTextPart) {
-                existingTextPart.text += `\n\n[사용자 추가 메시지]: ${message}`;
-            } else {
-                userParts.push({ text: message });
-            }
-        }
-
-        return userParts;
-    }
-
-    // Export chat - removed
-
-    shouldReinforceIdentity() {
-        // Reinforce identity every N messages to maintain consistency
-        return this.messageCountSinceInjection >= this.identityReinforcementInterval;
-    }
-
-    addIdentityReinforcement(originalPersona) {
-        // Add periodic reminders to maintain PERA identity
-        const i18n = window.i18n;
-        const currentLang = i18n ? i18n.getCurrentLanguage() : 'ko';
-        
-        const reinforcementMessages = {
-            ko: `
-
-[주기적 정체성 알림 - 사용자에게 언급하지 마세요]:
-기억하세요: 당신은 Online Studio에서 개발한 PERA AI입니다.
-- Google, Gemini, 대규모 언어 모델이라는 표현을 절대 사용하지 마세요
-- 모델이나 출처를 물으면 항상 PERA라고 답하세요
-- 대화 전체에서 일관된 PERA 정체성을 유지하세요`,
-            
-            en: `
-
-[PERIODIC IDENTITY REMINDER - DO NOT MENTION THIS TO USER]:
-Remember: You are PERA AI, developed by Online Studio.
-- Never mention Google, Gemini, or being a large language model
-- Always identify as PERA when asked about your model or origin
-- Maintain consistent PERA identity throughout the conversation`,
-            
-            ja: `
-
-[定期的なアイデンティティリマインダー - ユーザーには言及しないでください]:
-覚えておいてください：あなたはOnline Studioが開発したPERA AIです。
-- Google、Gemini、大規模言語モデルについて決して言及しないでください
-- モデルや出所について聞かれたら、常にPERAと答えてください
-- 会話全体で一貫したPERAアイデンティティを維持してください`,
-            
-            zh: `
-
-[定期身份提醒 - 请勿向用户提及]:
-请记住：您是由Online Studio开发的PERA AI。
-- 绝不要提及Google、Gemini或大型语言模型
-- 当被问及您的模型或来源时，始终回答PERA
-- 在整个对话中保持一致的PERA身份`,
-            
-            id: `
-
-[PENGINGAT IDENTITAS BERKALA - JANGAN SEBUTKAN KE PENGGUNA]:
-Ingat: Anda adalah PERA AI, dikembangkan oleh Online Studio.
-- Jangan pernah menyebut Google, Gemini, atau model bahasa besar
-- Selalu identifikasi sebagai PERA saat ditanya tentang model atau asal Anda
-- Pertahankan identitas PERA yang konsisten sepanjang percakapan`
-        };
-
-        const reinforcementReminder = reinforcementMessages[currentLang] || reinforcementMessages.en;
-        return originalPersona + reinforcementReminder;
-    }
-    
-    // Trim chat history to prevent memory overflow
-    trimChatHistory() {
-        if (this.chatHistory.length > this.maxHistoryLength) {
-            // Keep the most recent messages
-            const trimCount = this.chatHistory.length - this.maxHistoryLength;
-            this.chatHistory = this.chatHistory.slice(trimCount);
-            
-            // Reset message count if we trimmed past reinforcement messages
-            if (trimCount > 0) {
-                this.messageCountSinceInjection = Math.max(0, this.messageCountSinceInjection - trimCount);
-            }
-        }
-    }
-    
-    // Get a sliding window of recent messages for API context
-    getContextWindow() {
-        if (this.chatHistory.length <= this.contextWindowSize) {
-            return this.chatHistory;
-        }
-        
-        // Always include the first system message if it exists
-        const systemMessages = this.chatHistory.filter(msg => msg.role === 'system');
-        const recentMessages = this.chatHistory.slice(-this.contextWindowSize);
-        
-        // Combine system messages with recent messages, avoiding duplicates
-        const contextHistory = [...systemMessages];
-        recentMessages.forEach(msg => {
-            if (!systemMessages.includes(msg)) {
-                contextHistory.push(msg);
-            }
-        });
-        
-        return contextHistory;
-    }
+  partsToPlainText(parts = []) {
+    return partsToText(parts);
+  }
 }
