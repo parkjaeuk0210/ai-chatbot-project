@@ -1,11 +1,11 @@
 {
-  "name": "PERA AI - 인공지능 어시스턴트",
-  "short_name": "PERA",
-  "description": "무엇이든 가능한 AI 챗봇 및 이미지 생성 플랫폼",
+  "name": "PERA Studio - AI 작업실",
+  "short_name": "PERA Studio",
+  "description": "채팅, 파일 분석, 이미지 생성, 결과물 관리를 한 화면에서 제공하는 AI 작업실",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f0f9ff",
-  "theme_color": "#3b82f6",
+  "background_color": "#080b14",
+  "theme_color": "#0b1020",
   "orientation": "portrait",
   "icons": [
     {
@@ -15,23 +15,23 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
+  "categories": ["productivity", "utilities", "education"],
   "lang": "ko-KR",
   "dir": "ltr",
   "prefer_related_applications": false,
   "related_applications": [],
   "shortcuts": [
     {
-      "name": "새 채팅",
-      "short_name": "채팅",
-      "description": "새로운 AI 채팅 시작",
-      "url": "/?tab=chat"
+      "name": "새 작업",
+      "short_name": "새 작업",
+      "description": "PERA Studio에서 새 AI 작업 시작",
+      "url": "/"
     },
     {
       "name": "이미지 생성",
       "short_name": "이미지",
-      "description": "AI 이미지 생성",
-      "url": "/?tab=image"
+      "description": "PERA Studio 이미지 생성 모드 열기",
+      "url": "/?mode=image"
     }
   ]
 }
