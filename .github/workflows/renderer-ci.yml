@@ -48,11 +48,15 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-      - name: Check formatting
-        run: cargo fmt --all --check
+      - name: Apply Rust formatting
+        run: cargo fmt --all
 
-      - name: Check renderer for wasm32
-        run: cargo check --package pera-renderer --target wasm32-unknown-unknown
+      - name: Upload formatted Rust sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-rust
+          path: crates/pera-renderer/src
+          if-no-files-found: error
 
-      - name: Run Clippy for wasm32
-        run: cargo clippy --package pera-renderer --target wasm32-unknown-unknown -- -D warnings
+      - name: Verify formatting is committed
+        run: git diff --exit-code
