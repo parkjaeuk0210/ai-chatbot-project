@@ -19,8 +19,7 @@ const UNIT_QUAD: [[f32; 2]; 6] = [
     [1.0, 1.0],
 ];
 
-const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] =
-    wgpu::vertex_attr_array![0 => Float32x2];
+const VERTEX_ATTRIBUTES: [wgpu::VertexAttribute; 1] = wgpu::vertex_attr_array![0 => Float32x2];
 const INSTANCE_ATTRIBUTES: [wgpu::VertexAttribute; 2] =
     wgpu::vertex_attr_array![1 => Float32x4, 2 => Float32x4];
 
@@ -109,7 +108,9 @@ impl GpuRenderer {
 
         let config = surface
             .get_default_config(&adapter, physical_width, physical_height)
-            .ok_or_else(|| JsValue::from_str("The selected adapter cannot present to this canvas"))?;
+            .ok_or_else(|| {
+                JsValue::from_str("The selected adapter cannot present to this canvas")
+            })?;
         surface.configure(&device, &config);
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -257,12 +258,16 @@ impl GpuRenderer {
         logical_height: f32,
         device_pixel_ratio: f32,
     ) -> Result<(), JsValue> {
-        self.logical_width = positive_dimension(logical_width)
-            .ok_or_else(|| JsValue::from_str("logical_width must be finite and greater than zero"))?;
-        self.logical_height = positive_dimension(logical_height)
-            .ok_or_else(|| JsValue::from_str("logical_height must be finite and greater than zero"))?;
+        self.logical_width = positive_dimension(logical_width).ok_or_else(|| {
+            JsValue::from_str("logical_width must be finite and greater than zero")
+        })?;
+        self.logical_height = positive_dimension(logical_height).ok_or_else(|| {
+            JsValue::from_str("logical_height must be finite and greater than zero")
+        })?;
         self.device_pixel_ratio = positive_dimension(device_pixel_ratio)
-            .ok_or_else(|| JsValue::from_str("device_pixel_ratio must be finite and greater than zero"))?
+            .ok_or_else(|| {
+                JsValue::from_str("device_pixel_ratio must be finite and greater than zero")
+            })?
             .min(MAX_DEVICE_PIXEL_RATIO);
 
         self.config.width = physical_dimension(self.logical_width, self.device_pixel_ratio);
@@ -324,11 +329,8 @@ impl GpuRenderer {
         }
 
         if !instances.is_empty() {
-            self.queue.write_buffer(
-                &self.instance_buffer,
-                0,
-                bytemuck::cast_slice(&instances),
-            );
+            self.queue
+                .write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
         }
         self.instance_count = instances.len() as u32;
         Ok(())
