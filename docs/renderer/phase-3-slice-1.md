@@ -28,6 +28,7 @@
 
 ```text
 Cargo.toml
+Cargo.lock
 rust-toolchain.toml
 crates/pera-renderer/
   Cargo.toml
@@ -41,10 +42,13 @@ js/renderer/
   konvaAdapter.js
   rendererFacade.js
   demo.js
+  *.test.mjs
 renderer-demo.html
 docs/renderer/phase-3-slice-1.md
 .github/workflows/renderer-ci.yml
 ```
+
+`Cargo.lock`은 애플리케이션 빌드의 Rust 의존성을 고정하며 CI와 `npm run renderer:check`는 `--locked`로 실행한다.
 
 ## 빌드
 
@@ -80,7 +84,7 @@ npm run renderer:build:dev
 | `renderer=gpu` | GPU를 먼저 시도하고, 실패하면 기본적으로 Konva로 폴백한다. |
 | `renderer=auto` | GPU 실험군 모드다. GPU 실패 시 Konva로 폴백한다. |
 
-localStorage 키는 `pera.renderer.mode`다.
+localStorage 키는 `pera.renderer.mode`다. 브라우저의 개인정보 보호 설정으로 storage 접근이 차단되어도 예외를 전파하지 않고 `konva` 기본값을 사용한다.
 
 ```js
 import { setRendererMode } from './js/renderer/featureFlags.js';
@@ -133,6 +137,8 @@ destroy()
 backend / adapterName / apiVersion / rectCount
 ```
 
+테스트에서는 `gpuFactory`도 주입할 수 있다. 이를 통해 브라우저 GPU 없이 GPU 성공, 초기화 실패, Konva 폴백, 엄격 모드를 각각 검증한다.
+
 ## Wasm 사각형 프로토콜
 
 JS 어댑터는 사각형 하나를 `Float32Array`의 8개 값으로 패킹한다.
@@ -162,6 +168,7 @@ DPR은 과도한 VRAM 사용을 막기 위해 최대 4로 제한한다.
 2. WebGPU를 사용할 수 없으면 같은 `wgpu` 파이프라인을 WebGL2 backend로 초기화한다.
 3. Wasm 로딩, surface 생성, adapter/device 생성 중 하나라도 실패하면 JS 파사드가 Konva를 초기화한다.
 4. 기본 모드는 `konva`다. 플래그가 켜지지 않은 사용자는 GPU 코드를 로드하지 않는다.
+5. `allowLegacyFallback: false`인 엄격 모드에서는 GPU 오류를 호출자에게 그대로 전달한다.
 
 ## 검증
 
@@ -170,13 +177,14 @@ npm run check
 npm run renderer:check
 ```
 
-CI는 다음을 수행한다.
+CI는 읽기 전용 권한으로 다음을 수행한다.
 
 - JS 문법 검사
-- Node 내장 test runner로 기능 플래그와 사각형 패킹 테스트
+- Node 내장 test runner로 기능 플래그, storage 차단, 사각형 패킹, GPU/Konva 전환과 폴백 테스트
 - `cargo fmt --check`
-- wasm32 target `cargo check`
+- 고정된 lockfile로 wasm32 target `cargo check`
 - wasm32 target Clippy (`-D warnings`)
+- release `.wasm` 링크와 산출물 존재 확인
 
 ## 완료 기준
 
@@ -186,6 +194,7 @@ CI는 다음을 수행한다.
 - WebGPU가 없는 환경에서는 WebGL2를 시도한다.
 - GPU 전체 초기화가 실패하면 Konva로 복귀하고 원인을 상태 UI에 표시한다.
 - resize와 DPR 변경 뒤에도 logical 좌표가 유지된다.
+- CI에서 release `pera_renderer.wasm`이 실제로 생성된다.
 
 ## 다음 슬라이스
 
