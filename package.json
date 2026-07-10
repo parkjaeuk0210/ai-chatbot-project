@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "check": "node --check server.js && node --check js/app.js && node --check js/chat.js && node --check api/chat-secure.js"
+    "check": "node --check server.js && node --check js/app.js && node --check js/chat.js && node --check api/chat-secure.js && node --check js/renderer/featureFlags.js && node --check js/renderer/scene.js && node --check js/renderer/gpuRenderer.js && node --check js/renderer/konvaAdapter.js && node --check js/renderer/rendererFacade.js && node --check js/renderer/demo.js && node --test js/renderer/*.test.mjs",
+    "renderer:build": "wasm-pack build crates/pera-renderer --target web --out-dir ../../renderer/pkg --release",
+    "renderer:build:dev": "wasm-pack build crates/pera-renderer --target web --out-dir ../../renderer/pkg --dev",
+    "renderer:check": "cargo fmt --all --check && cargo check --locked --package pera-renderer --target wasm32-unknown-unknown && cargo clippy --locked --package pera-renderer --target wasm32-unknown-unknown -- -D warnings && cargo build --locked --package pera-renderer --target wasm32-unknown-unknown --release"
   },
   "repository": {
     "type": "git",

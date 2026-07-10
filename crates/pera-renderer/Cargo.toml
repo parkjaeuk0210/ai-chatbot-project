@@ -1,0 +1,21 @@
+[package]
+name = "pera-renderer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "PERA Studio's browser GPU scene renderer"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bytemuck = { version = "1.22", features = ["derive"] }
+console_error_panic_hook = "0.1.7"
+js-sys = "0.3.85"
+wasm-bindgen = "0.2.108"
+wasm-bindgen-futures = "0.4.58"
+web-sys = { version = "0.3.85", features = ["HtmlCanvasElement"] }
+wgpu = { version = "30.0.0", default-features = false, features = ["std", "wgsl", "web", "webgpu", "webgl"] }

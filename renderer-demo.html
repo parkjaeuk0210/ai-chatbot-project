@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>PERA Phase 3 Renderer Slice 1</title>
+  <style>
+    :root {
+      font-family: Inter, "Noto Sans KR", system-ui, sans-serif;
+      color: #e8eefc;
+      background: #080b14;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      background:
+        radial-gradient(circle at 16% 12%, rgba(109, 140, 255, 0.18), transparent 34%),
+        radial-gradient(circle at 84% 82%, rgba(103, 232, 195, 0.12), transparent 32%),
+        #080b14;
+    }
+
+    main {
+      width: min(920px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 24px;
+      background: rgba(17, 24, 43, 0.78);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(20px);
+    }
+
+    header {
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    h1 { margin: 4px 0 8px; font-size: clamp(1.4rem, 3vw, 2.1rem); }
+    p { margin: 0; color: #aebbd4; line-height: 1.6; }
+    .eyebrow { color: #8da3ff; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+
+    .mode-switcher, .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 999px;
+      padding: 9px 14px;
+      color: inherit;
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+    }
+    button:hover, button.is-active { background: rgba(109, 140, 255, 0.22); border-color: rgba(141, 163, 255, 0.58); }
+
+    .stage-panel { padding: 14px; }
+    .stage {
+      position: relative;
+      width: 100%;
+      height: clamp(330px, 50vw, 500px);
+      overflow: hidden;
+      border-radius: 18px;
+      background: #0b1020;
+    }
+    #gpu-canvas, #konva-host {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    [hidden] { display: none !important; }
+
+    .status-panel {
+      padding: 18px 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+    }
+    #renderer-status { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; }
+    #renderer-status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #67e8c3; box-shadow: 0 0 16px rgba(103, 232, 195, 0.65); }
+    #renderer-status[data-state="fallback"]::before { background: #fbbf24; box-shadow: 0 0 16px rgba(251, 191, 36, 0.65); }
+    #renderer-status[data-state="error"]::before { background: #fb7185; box-shadow: 0 0 16px rgba(251, 113, 133, 0.65); }
+    #renderer-details { margin-top: 5px; font-size: 0.9rem; }
+
+    code { color: #c7d2fe; }
+    @media (max-width: 620px) {
+      body { padding: 14px; }
+      header { padding: 18px; }
+      .status-panel { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script src="https://unpkg.com/konva@9.3.22/konva.min.js" defer></script>
+  <script type="module" src="/js/renderer/demo.js"></script>
+</head>
+<body>
+  <main>
+    <header class="panel">
+      <div>
+        <div class="eyebrow">Phase 3 · Slice 1</div>
+        <h1>배경 + 사각형 GPU 파이프라인</h1>
+        <p>기본값은 Konva이며, <code>?renderer=gpu</code> 또는 <code>?renderer=auto</code>로 새 렌더러를 시험합니다.</p>
+      </div>
+      <div class="mode-switcher" aria-label="렌더러 선택">
+        <button type="button" data-renderer-mode="konva">Konva</button>
+        <button type="button" data-renderer-mode="auto">Auto</button>
+        <button type="button" data-renderer-mode="gpu">GPU</button>
+      </div>
+    </header>
+
+    <section class="panel stage-panel" aria-label="렌더러 데모">
+      <div class="stage">
+        <canvas id="gpu-canvas" aria-label="wgpu 렌더링 캔버스"></canvas>
+        <div id="konva-host" aria-label="Konva 렌더링 컨테이너"></div>
+      </div>
+    </section>
+
+    <section class="panel status-panel" aria-live="polite">
+      <div>
+        <div id="renderer-status">초기화 중</div>
+        <p id="renderer-details">Wasm 모듈과 렌더러 백엔드를 확인하고 있습니다.</p>
+      </div>
+      <div class="actions">
+        <button id="redraw-button" type="button">다시 그리기</button>
+        <button type="button" onclick="location.href='/'">Studio로 돌아가기</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

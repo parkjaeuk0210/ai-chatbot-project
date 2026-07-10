@@ -1,0 +1,17 @@
+[workspace]
+members = ["crates/pera-renderer"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
+license = "ISC"
+repository = "https://github.com/parkjaeuk0210/ai-chatbot-project"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
