@@ -11,6 +11,10 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function defaultGpuFactory(options) {
+  return GpuSceneRenderer.create(options);
+}
+
 export class RendererFacade {
   static async create(options = {}) {
     const resolved = options.mode
@@ -22,6 +26,7 @@ export class RendererFacade {
     }
 
     const legacyFactory = options.legacyFactory || createKonvaRenderer;
+    const gpuFactory = options.gpuFactory || defaultGpuFactory;
     const allowLegacyFallback = options.allowLegacyFallback !== false;
     const notify = typeof options.onStatus === 'function' ? options.onStatus : () => {};
 
@@ -40,7 +45,7 @@ export class RendererFacade {
     }
 
     try {
-      const renderer = await GpuSceneRenderer.create({
+      const renderer = await gpuFactory({
         canvas: options.canvas,
         moduleUrl: options.moduleUrl,
       });
