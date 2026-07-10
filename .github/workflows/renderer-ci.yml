@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       - 'Cargo.toml'
-      - 'rust-toolchain.toml'
       - 'Cargo.lock'
+      - 'rust-toolchain.toml'
       - 'crates/pera-renderer/**'
       - 'js/renderer/**'
       - 'renderer-demo.html'
@@ -16,8 +16,8 @@ on:
       - 'feat/phase3-wgpu-renderer-slice1'
     paths:
       - 'Cargo.toml'
-      - 'rust-toolchain.toml'
       - 'Cargo.lock'
+      - 'rust-toolchain.toml'
       - 'crates/pera-renderer/**'
       - 'js/renderer/**'
       - 'renderer-demo.html'
@@ -25,7 +25,7 @@ on:
       - '.github/workflows/renderer-ci.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   renderer:
@@ -52,20 +52,17 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-      - name: Generate lockfile
-        run: cargo generate-lockfile
-
-      - name: Commit lockfile on branch push
-        if: github.event_name == 'push'
-        run: |
-          if git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1 && git diff --quiet -- Cargo.lock; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Cargo.lock
-          git commit -m "chore(renderer): lock Rust dependencies"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Cache Cargo dependencies and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-rust-1.87-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-1.87-
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -78,3 +75,6 @@ jobs:
 
       - name: Build release Wasm
         run: cargo build --locked --package pera-renderer --target wasm32-unknown-unknown --release
+
+      - name: Verify Wasm artifact
+        run: test -s target/wasm32-unknown-unknown/release/pera_renderer.wasm
