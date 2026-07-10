@@ -51,3 +51,38 @@ test('stored mode can be set and cleared', () => {
   clearRendererMode({ storage });
   assert.equal(resolveRendererMode({ search: '', storage }).mode, RendererMode.KONVA);
 });
+
+test('blocked storage falls back to Konva without throwing', () => {
+  const blockedStorage = {
+    getItem() {
+      throw new DOMException('blocked', 'SecurityError');
+    },
+  };
+
+  assert.deepEqual(resolveRendererMode({ search: '', storage: blockedStorage }), {
+    mode: RendererMode.KONVA,
+    source: 'default',
+  });
+});
+
+test('set and clear remain safe when storage writes are blocked', () => {
+  const blockedStorage = {
+    setItem() {
+      throw new DOMException('blocked', 'SecurityError');
+    },
+    removeItem() {
+      throw new DOMException('blocked', 'SecurityError');
+    },
+  };
+
+  assert.equal(setRendererMode('auto', { storage: blockedStorage }), RendererMode.AUTO);
+  assert.doesNotThrow(() => clearRendererMode({ storage: blockedStorage }));
+});
+
+test('an explicit null storage disables persistence cleanly', () => {
+  assert.equal(setRendererMode('gpu', { storage: null }), RendererMode.GPU);
+  assert.deepEqual(resolveRendererMode({ search: '', storage: null }), {
+    mode: RendererMode.KONVA,
+    source: 'default',
+  });
+});
