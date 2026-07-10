@@ -7,6 +7,26 @@ export const RendererMode = Object.freeze({
   AUTO: 'auto',
 });
 
+function defaultSearch() {
+  try {
+    return globalThis.location?.search ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function resolveStorage(options) {
+  if (Object.hasOwn(options, 'storage')) {
+    return options.storage;
+  }
+
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function normalizeRendererMode(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'wgpu' || normalized === 'webgpu') return RendererMode.GPU;
@@ -14,8 +34,8 @@ export function normalizeRendererMode(value) {
 }
 
 export function resolveRendererMode(options = {}) {
-  const search = options.search ?? globalThis.location?.search ?? '';
-  const storage = options.storage ?? globalThis.localStorage;
+  const search = options.search ?? defaultSearch();
+  const storage = resolveStorage(options);
 
   const queryMode = normalizeRendererMode(new URLSearchParams(search).get('renderer'));
   if (queryMode) {
@@ -40,14 +60,20 @@ export function setRendererMode(mode, options = {}) {
     throw new TypeError(`Unsupported renderer mode: ${mode}`);
   }
 
-  const storage = options.storage ?? globalThis.localStorage;
-  storage?.setItem(STORAGE_KEY, normalized);
+  try {
+    resolveStorage(options)?.setItem(STORAGE_KEY, normalized);
+  } catch {
+    // The query parameter can still select the renderer when storage is blocked.
+  }
   return normalized;
 }
 
 export function clearRendererMode(options = {}) {
-  const storage = options.storage ?? globalThis.localStorage;
-  storage?.removeItem(STORAGE_KEY);
+  try {
+    resolveStorage(options)?.removeItem(STORAGE_KEY);
+  } catch {
+    // Clearing an unavailable storage backend is already effectively complete.
+  }
 }
 
 export function shouldAttemptGpu(mode) {
