@@ -1,0 +1,58 @@
+name: Renderer CI
+
+on:
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+      - 'crates/pera-renderer/**'
+      - 'js/renderer/**'
+      - 'renderer-demo.html'
+      - 'package.json'
+      - '.github/workflows/renderer-ci.yml'
+  push:
+    branches:
+      - 'feat/phase3-wgpu-renderer-slice1'
+    paths:
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+      - 'crates/pera-renderer/**'
+      - 'js/renderer/**'
+      - 'renderer-demo.html'
+      - 'package.json'
+      - '.github/workflows/renderer-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  renderer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript and tests
+        run: npm run check
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.87.0
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Check renderer for wasm32
+        run: cargo check --package pera-renderer --target wasm32-unknown-unknown
+
+      - name: Run Clippy for wasm32
+        run: cargo clippy --package pera-renderer --target wasm32-unknown-unknown -- -D warnings
