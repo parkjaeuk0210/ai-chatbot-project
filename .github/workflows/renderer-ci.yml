@@ -5,6 +5,7 @@ on:
     paths:
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
+      - 'Cargo.lock'
       - 'crates/pera-renderer/**'
       - 'js/renderer/**'
       - 'renderer-demo.html'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
+      - 'Cargo.lock'
       - 'crates/pera-renderer/**'
       - 'js/renderer/**'
       - 'renderer-demo.html'
@@ -48,36 +50,24 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
+      - name: Generate lockfile
+        run: cargo generate-lockfile
+
+      - name: Upload lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-lock
+          path: Cargo.lock
+          if-no-files-found: error
+
       - name: Check formatting
         run: cargo fmt --all --check
 
       - name: Check renderer for wasm32
-        id: cargo-check
-        continue-on-error: true
-        run: cargo check --package pera-renderer --target wasm32-unknown-unknown 2>&1 | tee cargo-check.log
-
-      - name: Upload cargo check log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-check-log
-          path: cargo-check.log
-          if-no-files-found: error
+        run: cargo check --package pera-renderer --target wasm32-unknown-unknown
 
       - name: Run Clippy for wasm32
-        if: steps.cargo-check.outcome == 'success'
-        id: clippy
-        continue-on-error: true
-        run: cargo clippy --package pera-renderer --target wasm32-unknown-unknown -- -D warnings 2>&1 | tee clippy.log
+        run: cargo clippy --package pera-renderer --target wasm32-unknown-unknown -- -D warnings
 
-      - name: Upload Clippy log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: clippy-log
-          path: clippy.log
-          if-no-files-found: ignore
-
-      - name: Fail on Rust validation errors
-        if: steps.cargo-check.outcome == 'failure' || steps.clippy.outcome == 'failure'
-        run: exit 1
+      - name: Build release Wasm
+        run: cargo build --package pera-renderer --target wasm32-unknown-unknown --release
