@@ -10,6 +10,10 @@ coverage/
 dist/
 build/
 
+# Rust / Wasm renderer
+target/
+renderer/pkg/
+
 # Environment variables
 .env
 .env.local
