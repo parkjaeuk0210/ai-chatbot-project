@@ -76,6 +76,7 @@ impl GpuRenderer {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
+                apply_limit_buckets: false,
             })
             .await
             .map_err(|error| js_error("No compatible WebGPU/WebGL2 adapter", error))?;
@@ -152,7 +153,7 @@ impl GpuRenderer {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("PERA rectangle pipeline layout"),
-            bind_group_layouts: &[&globals_bind_group_layout],
+            bind_group_layouts: &[Some(&globals_bind_group_layout)],
             immediate_size: 0,
         });
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -163,16 +164,16 @@ impl GpuRenderer {
                 entry_point: Some("vs_main"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 buffers: &[
-                    wgpu::VertexBufferLayout {
+                    Some(wgpu::VertexBufferLayout {
                         array_stride: size_of::<[f32; 2]>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &VERTEX_ATTRIBUTES,
-                    },
-                    wgpu::VertexBufferLayout {
+                    }),
+                    Some(wgpu::VertexBufferLayout {
                         array_stride: size_of::<RectInstance>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &INSTANCE_ATTRIBUTES,
-                    },
+                    }),
                 ],
             },
             fragment: Some(wgpu::FragmentState {
