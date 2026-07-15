@@ -1,52 +1,34 @@
-# PERA AI 배포 가이드
+# PERA 배포 가이드
 
-## 현재 운영 구조
+## Vercel 프로젝트 설정
 
-```txt
-index.html      # 기본 프론트 엔트리
-css/            # 로컬 빌드된 Tailwind CSS 및 앱 스타일
-js/main.js      # 브라우저 앱 로직
-js/i18n/        # 다국어 리소스
-api/chat.js     # 단일 Vercel API 핸들러
-vercel.json     # 배포 설정
-server.js       # 로컬 정적 서버 및 /api/chat 목업
-```
+이 저장소는 프레임워크 없는 정적 프런트와 Node.js Serverless Function을 함께 배포합니다.
 
-프론트는 `/api/chat` 하나만 호출합니다. 이전의 레거시/보안/Edge API 분기 구조와 Tailwind CDN 의존성은 제거되었습니다.
+- Build Command: `npm run build`
+- Output Directory: `public` (`vercel.json`에도 명시)
+- Install Command: 기본값
+- Node.js: 22.x
 
-## 환경 변수
+프로덕션에는 `GEMINI_API_KEY`를 반드시 설정합니다. 모델을 고정해야 할 때만 `GEMINI_CHAT_MODEL`, `GEMINI_IMAGE_MODEL`을 추가합니다.
 
-Vercel 프로젝트에 다음 값을 설정하세요.
-
-```txt
-GEMINI_API_KEY     # Gemini API 키
-ALLOWED_ORIGIN     # 허용할 프론트 도메인, 미설정 시 * 사용
-```
-
-## 로컬 확인
+## 배포 전 게이트
 
 ```bash
-npm install
-npm run build
-npm run dev
-```
-
-기본 주소는 `http://localhost:3000`입니다. 포트가 사용 중이면 다음처럼 실행합니다.
-
-```bash
-PORT=3001 npm run dev
-```
-
-## 배포 전 확인
-
-```bash
+npm run check
 npm test
 npm run build
-npm audit --omit=dev
 ```
 
-두 명령이 모두 통과한 뒤 main 브랜치에 push하면 Vercel 자동 배포가 진행됩니다.
+세 명령이 통과해야 배포 가능한 상태입니다. 빌드는 기존 `public/`을 삭제한 뒤 승인된 정적 자산만 복사하므로 서버 코드나 개발 파일이 정적 호스팅 영역에 노출되지 않습니다.
 
-## 주의
+## 배포 후 점검
 
-`vercel.json`의 CSP는 인라인 스크립트와 인라인 스타일을 허용하지 않습니다. 새 프론트 코드는 `index.html`에 직접 `<script>`/`<style>`을 추가하지 말고 `js/` 또는 `css/` 파일로 분리하세요.
+1. `/`에서 채팅·이미지 탭과 설정 대화상자가 정상 동작하는지 확인합니다.
+2. `/api/chat`에 POST 요청을 보내고 200 또는 명확한 구성 오류가 반환되는지 확인합니다.
+3. 응답 헤더에 CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`가 있는지 확인합니다.
+4. 모바일 너비에서 composer가 화면 밖으로 밀리지 않는지 확인합니다.
+5. 브라우저 콘솔에 CSP 위반이나 모듈 로딩 오류가 없는지 확인합니다.
+
+## 롤백
+
+문제가 발생하면 Vercel의 직전 READY 배포로 롤백하고, 해당 커밋을 새 브랜치에서 수정합니다. `main`을 직접 덮어쓰지 않습니다.

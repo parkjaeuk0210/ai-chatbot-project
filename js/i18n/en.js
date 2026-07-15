@@ -1,78 +1,72 @@
-// English translations
 export const en = {
-    // Header
-    "header.export": "Export",
-    "header.settings": "Settings",
-    
-    // Tabs
-    "tab.chat": "Chat",
-    "tab.image": "Image Generation",
-    
-    // Chat UI
-    "chat.placeholder": "Type a message",
-    "chat.urlPlaceholder": "Enter URL (optional)",
-    "chat.send": "Send",
-    "chat.initialMessage": "Hello, I'm PERA. Anything is possible.",
-    
-    // Settings
-    "settings.title": "AI Persona Settings",
-    "settings.description": "Customize your AI by setting its name, personality, and speaking style. PERA is the world's fastest and smartest AI model.",
-    "settings.placeholder": "Enter AI persona...",
-    "settings.presetLabel": "Persona Presets",
-    "settings.presetDefault": "Custom",
-    "settings.presetFriendly": "Friendly Buddy",
-    "settings.presetProfessional": "Professional Assistant",
-    "settings.presetTeacher": "Kind Teacher",
-    "settings.presetCreative": "Creative Artist",
-    "settings.save": "Save",
-    "settings.close": "Close",
-    
-    // Image Generation
-    "image.placeholder": "Describe the image you want to generate...",
-    "image.generate": "Generate Image",
-    "image.generating": "Generating image...",
-    
-    // Messages
-    "message.personaUpdated": "Persona updated. Start a new conversation!",
-    "message.exportEmpty": "No chat content to export.",
-    "message.copied": "Copied to clipboard",
-    "message.loading": "Waiting for response...",
-    
-    // Errors
-    "error.network": "Cannot connect to server. Please check your network settings.",
-    "error.serverConfig": "Server configuration error occurred.",
-    "error.fileSize": "File size cannot exceed 10MB.",
-    "error.fileType": "Unsupported file format. Only images (JPEG, PNG, GIF, WebP) or PDF files are allowed.",
-    "error.imageProcess": "Error processing image.",
-    "error.pdfProcess": "Error processing PDF.",
-    "error.general": "An error occurred",
-    
-    // Accessibility
-    "a11y.skipToInput": "Skip to chat input",
-    "a11y.skipToMessages": "Skip to chat messages",
-    "a11y.chatMessages": "Chat messages",
-    "a11y.userAvatar": "User avatar",
-    "a11y.aiAvatar": "AI avatar",
-    "a11y.settingsClose": "Close settings",
-    "a11y.fileUpload": "Upload file",
-    "a11y.messageSend": "Send message",
-    "a11y.removeFile": "Remove file",
-    
-    // Persona descriptions
-    "persona.friendly": "Hey, I'm your buddy! I speak casually and love using emojis! 😊 Fun and friendly personality.",
-    "persona.professional": "I am a professional assistant. I will help you with a polite and professional tone.",
-    "persona.teacher": "Hello, I'm your teacher. I'll explain things kindly and in an easy-to-understand way.",
-    "persona.creative": "I'm a creative artist! Rich imagination and unique perspectives.",
-    
-    // Language names
-    "lang.ko": "한국어",
-    "lang.en": "English",
-    "lang.ja": "日本語",
-    "lang.zh": "中文",
-    
-    // Page
-    "page.title": "PERA - Free AI Chat App",
-    
-    // Default persona
-    "persona.default": ""
+  "page.title": "PERA — AI Workspace",
+  "header.settings": "Settings",
+  "header.theme": "Change theme",
+  "header.newChat": "New conversation",
+  "header.status": "Ready",
+  "tab.chat": "Chat",
+  "tab.image": "Image",
+  "chat.initialTitle": "What can we solve together?",
+  "chat.initialDescription": "Move from questions and document analysis to clear ideas in one calm workflow.",
+  "chat.suggestionSummary": "Summarize the essentials",
+  "chat.suggestionSummaryMeta": "Condense long content",
+  "chat.suggestionSummaryPrompt": "Summarize the following content by key claim, evidence, and conclusion.",
+  "chat.suggestionPlan": "Build an action plan",
+  "chat.suggestionPlanMeta": "Turn complexity into steps",
+  "chat.suggestionPlanPrompt": "Create a prioritized action plan with a realistic schedule for my goal.",
+  "chat.suggestionWrite": "Refine my writing",
+  "chat.suggestionWriteMeta": "Make it clear and natural",
+  "chat.suggestionWritePrompt": "Rewrite the following text to be clearer and more natural without changing its meaning.",
+  "chat.placeholder": "Message PERA",
+  "chat.attach": "Attach a file",
+  "chat.send": "Send",
+  "chat.hint": "Enter to send · Shift+Enter for a new line",
+  "chat.you": "You",
+  "chat.ai": "PERA",
+  "chat.loading": "Preparing a response",
+  "chat.newConversation": "Started a new conversation.",
+  "chat.attachmentAdded": "File attached.",
+  "chat.pdfAttached": "PDF attached",
+  "chat.retry": "Try again",
+  "image.title": "Turn an idea into an image",
+  "image.description": "Describe the scene, mood, and composition in natural language. PERA keeps the flow focused on one result.",
+  "image.promptLabel": "Image description",
+  "image.placeholder": "Example: a minimal glass office above Seoul at dawn, cinematic lighting",
+  "image.generate": "Generate image",
+  "image.generating": "Generating your image",
+  "image.empty": "Your generated image will appear here",
+  "image.emptyMeta": "Specific prompts usually produce stronger results.",
+  "image.alt": "Image generated by PERA",
+  "settings.title": "PERA settings",
+  "settings.description": "Set a role and tone. Changes apply from your next message.",
+  "settings.personaLabel": "AI role and tone",
+  "settings.placeholder": "Example: a strategy consultant who leads with the answer, supports it with evidence, and recommends clear next actions",
+  "settings.languageLabel": "Language",
+  "settings.save": "Save",
+  "settings.close": "Cancel",
+  "settings.saved": "Settings saved.",
+  "error.network": "PERA could not reach the server. Check your connection.",
+  "error.rateLimit": "There are too many requests. Please try again shortly.",
+  "error.timeout": "The response timed out. Please try again.",
+  "error.general": "PERA could not complete the request.",
+  "error.fileSize": "Files must be 10 MB or smaller.",
+  "error.fileType": "Only image and PDF files are supported.",
+  "error.imageProcess": "The image could not be processed.",
+  "error.pdfProcess": "The PDF could not be read.",
+  "a11y.skipToInput": "Skip to chat input",
+  "a11y.skipToMessages": "Skip to chat messages",
+  "a11y.chatMessages": "Chat messages",
+  "a11y.tabs": "Workspace mode",
+  "a11y.fileUpload": "Attach a file",
+  "a11y.messageSend": "Send message",
+  "a11y.removeFile": "Remove attachment",
+  "a11y.themeToggle": "Change theme",
+  "a11y.newChat": "New conversation",
+  "a11y.settingsClose": "Close settings",
+  "a11y.imageResult": "Image generation result",
+  "lang.ko": "한국어",
+  "lang.en": "English",
+  "lang.ja": "日本語",
+  "lang.zh": "中文",
+  "lang.id": "Bahasa Indonesia"
 };

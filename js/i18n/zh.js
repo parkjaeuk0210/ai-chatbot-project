@@ -1,78 +1,72 @@
-// Chinese translations
 export const zh = {
-    // Header
-    "header.export": "导出",
-    "header.settings": "设置",
-    
-    // Tabs
-    "tab.chat": "聊天",
-    "tab.image": "图像生成",
-    
-    // Chat UI
-    "chat.placeholder": "输入消息",
-    "chat.urlPlaceholder": "输入网址（可选）",
-    "chat.send": "发送",
-    "chat.initialMessage": "你好，我是PERA。一切皆有可能。",
-    
-    // Settings
-    "settings.title": "AI人格设置",
-    "settings.description": "通过设置名称、性格和说话风格来定制您的AI。PERA是世界上最快、最聪明的AI模型。",
-    "settings.placeholder": "输入AI人格...",
-    "settings.presetLabel": "人格预设",
-    "settings.presetDefault": "自定义",
-    "settings.presetFriendly": "友好伙伴",
-    "settings.presetProfessional": "专业助手",
-    "settings.presetTeacher": "亲切老师",
-    "settings.presetCreative": "创意艺术家",
-    "settings.save": "保存",
-    "settings.close": "关闭",
-    
-    // Image Generation
-    "image.placeholder": "描述您想生成的图像...",
-    "image.generate": "生成图像",
-    "image.generating": "正在生成图像...",
-    
-    // Messages
-    "message.personaUpdated": "人格已更新。开始新的对话吧！",
-    "message.exportEmpty": "没有可导出的聊天内容。",
-    "message.copied": "已复制到剪贴板",
-    "message.loading": "等待响应中...",
-    
-    // Errors
-    "error.network": "无法连接到服务器。请检查您的网络设置。",
-    "error.serverConfig": "服务器配置错误。",
-    "error.fileSize": "文件大小不能超过10MB。",
-    "error.fileType": "不支持的文件格式。仅支持图像（JPEG、PNG、GIF、WebP）或PDF文件。",
-    "error.imageProcess": "处理图像时出错。",
-    "error.pdfProcess": "处理PDF时出错。",
-    "error.general": "发生错误",
-    
-    // Accessibility
-    "a11y.skipToInput": "跳转到聊天输入",
-    "a11y.skipToMessages": "跳转到聊天消息",
-    "a11y.chatMessages": "聊天消息",
-    "a11y.userAvatar": "用户头像",
-    "a11y.aiAvatar": "AI头像",
-    "a11y.settingsClose": "关闭设置",
-    "a11y.fileUpload": "上传文件",
-    "a11y.messageSend": "发送消息",
-    "a11y.removeFile": "删除文件",
-    
-    // Persona descriptions
-    "persona.friendly": "我是你的朋友！说话很随意，喜欢用表情符号！😊 有趣友好的性格。",
-    "persona.professional": "我是专业助手。我会以礼貌和专业的语气为您提供帮助。",
-    "persona.teacher": "您好，我是老师。我会亲切地、易懂地为您解释。",
-    "persona.creative": "我是创意艺术家！富有想象力和独特的视角。",
-    
-    // Language names
-    "lang.ko": "한국어",
-    "lang.en": "English",
-    "lang.ja": "日本語",
-    "lang.zh": "中文",
-    
-    // Page
-    "page.title": "PERA - 免费AI聊天应用",
-    
-    // Default persona
-    "persona.default": ""
+  "page.title": "PERA — AI 工作空间",
+  "header.settings": "设置",
+  "header.theme": "切换主题",
+  "header.newChat": "新对话",
+  "header.status": "已就绪",
+  "tab.chat": "对话",
+  "tab.image": "图像",
+  "chat.initialTitle": "我们一起解决什么问题？",
+  "chat.initialDescription": "从提问、文档分析到整理思路，在一个清晰安静的流程中完成。",
+  "chat.suggestionSummary": "提炼重点",
+  "chat.suggestionSummaryMeta": "快速整理长内容",
+  "chat.suggestionSummaryPrompt": "请按核心观点、依据和结论的顺序，简洁总结以下内容。",
+  "chat.suggestionPlan": "制定行动计划",
+  "chat.suggestionPlanMeta": "将复杂任务拆成步骤",
+  "chat.suggestionPlanPrompt": "请为我的目标制定包含优先级和现实时间表的行动计划。",
+  "chat.suggestionWrite": "润色文字",
+  "chat.suggestionWriteMeta": "表达更清晰自然",
+  "chat.suggestionWritePrompt": "请在不改变原意的前提下，将以下文字改得更清晰自然。",
+  "chat.placeholder": "输入消息",
+  "chat.attach": "添加附件",
+  "chat.send": "发送",
+  "chat.hint": "Enter 发送 · Shift+Enter 换行",
+  "chat.you": "我",
+  "chat.ai": "PERA",
+  "chat.loading": "正在准备回答",
+  "chat.newConversation": "已开始新对话。",
+  "chat.attachmentAdded": "已添加文件。",
+  "chat.pdfAttached": "已添加 PDF",
+  "chat.retry": "重试",
+  "image.title": "把想法变成图像",
+  "image.description": "用自然语言描述场景、氛围和构图，PERA 会专注生成一个结果。",
+  "image.promptLabel": "图像描述",
+  "image.placeholder": "例如：黎明时俯瞰首尔的极简玻璃办公室，电影感灯光",
+  "image.generate": "生成图像",
+  "image.generating": "正在生成图像",
+  "image.empty": "生成的图像会显示在这里",
+  "image.emptyMeta": "描述越具体，通常效果越好。",
+  "image.alt": "PERA 生成的图像",
+  "settings.title": "PERA 设置",
+  "settings.description": "设置角色和语气，修改会从下一条消息开始生效。",
+  "settings.personaLabel": "AI 角色与语气",
+  "settings.placeholder": "例如：先给结论，再给依据，并明确建议下一步行动的战略顾问",
+  "settings.languageLabel": "语言",
+  "settings.save": "保存",
+  "settings.close": "取消",
+  "settings.saved": "设置已保存。",
+  "error.network": "无法连接服务器，请检查网络。",
+  "error.rateLimit": "请求过多，请稍后再试。",
+  "error.timeout": "响应超时，请重试。",
+  "error.general": "无法完成请求。",
+  "error.fileSize": "文件不能超过 10MB。",
+  "error.fileType": "仅支持图像或 PDF 文件。",
+  "error.imageProcess": "无法处理图像。",
+  "error.pdfProcess": "无法读取 PDF。",
+  "a11y.skipToInput": "跳到对话输入框",
+  "a11y.skipToMessages": "跳到对话消息",
+  "a11y.chatMessages": "对话消息",
+  "a11y.tabs": "工作模式",
+  "a11y.fileUpload": "添加文件",
+  "a11y.messageSend": "发送消息",
+  "a11y.removeFile": "移除附件",
+  "a11y.themeToggle": "切换主题",
+  "a11y.newChat": "新对话",
+  "a11y.settingsClose": "关闭设置",
+  "a11y.imageResult": "图像生成结果",
+  "lang.ko": "한국어",
+  "lang.en": "English",
+  "lang.ja": "日本語",
+  "lang.zh": "中文",
+  "lang.id": "Bahasa Indonesia"
 };

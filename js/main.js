@@ -1,814 +1,927 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- PDF.js Worker 설정 ---
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;
-     // --- DOM Elements ---
-    const settingsButton = document.getElementById('settings-button');
-    const themeToggle = document.getElementById('theme-toggle');
-    const settingsModal = document.getElementById('settings-modal');
-    const personaInput = document.getElementById('persona-input');
-    const savePersonaButton = document.getElementById('save-persona-button');
-    const closePersonaButton = document.getElementById('close-persona-button');
-    const chatTabButton = document.getElementById('chat-tab-button');
-    const imageTabButton = document.getElementById('image-tab-button');
-    const chatUi = document.getElementById('chat-ui');
-    const imageUi = document.getElementById('image-ui');
-    const chatMessages = document.getElementById('chat-messages');
-    const chatInput = document.getElementById('chat-input');
-    const sendButton = document.getElementById('send-button');
-    const fileButton = document.getElementById('file-button');
-    const fileInput = document.getElementById('file-input');
-    const filePreviewContainer = document.getElementById('file-preview-container');
-    const previewImage = document.getElementById('preview-image');
-    const previewPdfIcon = document.getElementById('preview-pdf-icon');
-    const previewFilename = document.getElementById('preview-filename');
-    const previewFilesize = document.getElementById('preview-filesize');
-    const removePreviewButton = document.getElementById('remove-preview-button');
-    const imagePrompt = document.getElementById('image-prompt');
-    const generateImageButton = document.getElementById('generate-image-button');
-    const imageResultContainer = document.getElementById('image-result-container');
-    const imagePlaceholder = document.getElementById('image-placeholder');
-    const imageLoader = document.getElementById('image-loader');
-    const generatedImage = document.getElementById('generated-image');
-     // --- State ---
-    let chatHistory = [];
-    let uploadedFile = { type: null, data: null, name: null };
-    // Default persona will be set after i18n is loaded
-    let defaultPersona = "";
-    let currentPersona = localStorage.getItem('peraPersona') || defaultPersona;
-    personaInput.value = currentPersona;
-    const apiEndpoint = '/api/chat';
-    const isDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-     // 고유한 세션 ID 생성 (페이지 로드 시 한 번만)
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-
-    // 다크 모드 초기화
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
-
-    // --- Functions ---
-
-    // 모바일에서 헤더 자동 숨김/표시
-    function initHeaderScroll() {
-        if (window.innerWidth > 640) return; // 모바일에서만 작동
-
-        const header = document.getElementById('main-header');
-        const chatMessages = document.getElementById('chat-messages');
-        let lastScrollTop = 0;
-        let scrollTimer;
-        let isScrolling = false;
-
-        chatMessages.addEventListener('scroll', () => {
-            if (!isScrolling) {
-                isScrolling = true;
-
-                clearTimeout(scrollTimer);
-
-                const currentScrollTop = chatMessages.scrollTop;
-                const scrollDiff = currentScrollTop - lastScrollTop;
-
-                // 스크롤 다운 (20px 이상) - 헤더 숨김
-                if (scrollDiff > 20 && currentScrollTop > 100) {
-                    header.classList.add('header-hidden');
-                }
-                // 스크롤 업 또는 최상단 근처 - 헤더 표시
-                else if (scrollDiff < -10 || currentScrollTop < 50) {
-                    header.classList.remove('header-hidden');
-                }
-
-                lastScrollTop = currentScrollTop;
-
-                // 스크롤 멈춤 감지
-                scrollTimer = setTimeout(() => {
-                    isScrolling = false;
-                    // 최상단에서는 항상 헤더 표시
-                    if (chatMessages.scrollTop < 50) {
-                        header.classList.remove('header-hidden');
-                    }
-                }, 150);
-            }
-        });
-    }
-
-    // 터치 제스처 지원
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    function handleSwipe() {
-        const swipeThreshold = 100;
-        const diff = touchEndX - touchStartX;
-
-        if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0) {
-                // 오른쪽 스와이프 - 채팅으로 전환
-                if (document.querySelector('.content-pane.is-active') === imageUi) {
-                    switchTabs('chat');
-                    // 스와이프 시에도 헤더 표시
-                    const header = document.getElementById('main-header');
-                    if (header) header.classList.remove('header-hidden');
-                }
-            } else {
-                // 왼쪽 스와이프 - 이미지 생성으로 전환
-                if (document.querySelector('.content-pane.is-active') === chatUi) {
-                    switchTabs('image');
-                    // 스와이프 시에도 헤더 표시
-                    const header = document.getElementById('main-header');
-                    if (header) header.classList.remove('header-hidden');
-                }
-            }
-        }
-    }
-
-    // 모바일 키보드 대응
-    function handleMobileKeyboard() {
-        if (window.innerWidth <= 640) {
-            const viewport = document.querySelector('meta[name="viewport"]');
-
-            chatInput.addEventListener('focus', () => {
-                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-
-                setTimeout(() => {
-                    chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-
-            chatInput.addEventListener('blur', () => {
-                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-            });
-        }
-    }
-
-    // 가상 키보드 높이 감지 - 개선된 버전
-    function detectVirtualKeyboard() {
-        let initialHeight = window.innerHeight;
-        let resizeTimer;
-
-        const handleResize = () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                const currentHeight = window.innerHeight;
-                const keyboardHeight = initialHeight - currentHeight;
-
-                if (keyboardHeight > 50) {
-                    // 키보드가 열림
-                    document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
-                    document.body.classList.add('keyboard-open');
-
-                    // 입력창이 보이도록 스크롤
-                    const inputContainer = chatInput.closest('.mt-2');
-                    if (inputContainer) {
-                        setTimeout(() => {
-                            inputContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                        }, 100);
-                    }
-                } else {
-                    // 키보드가 닫힘
-                    document.documentElement.style.setProperty('--keyboard-height', '0px');
-                    document.body.classList.remove('keyboard-open');
-                }
-            }, 100);
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // 방향 전환 시 초기 높이 재설정
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                initialHeight = window.innerHeight;
-            }, 500);
-        });
-    }
-
-    // 테마 변경 함수
-    function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateThemeIcon(newTheme);
-    }
-
-    // 테마 아이콘 업데이트
-    function updateThemeIcon(theme) {
-        const sunIcon = themeToggle.querySelector('.sun-icon');
-        const moonIcon = themeToggle.querySelector('.moon-icon');
-
-        if (theme === 'dark') {
-            sunIcon.classList.add('hidden');
-            moonIcon.classList.remove('hidden');
-        } else {
-            sunIcon.classList.remove('hidden');
-            moonIcon.classList.add('hidden');
-        }
-    }
-
-
-    // 이미지 압축 함수 - 최적화된 버전
-    async function compressImage(file, maxWidth = 1920, maxHeight = 1080, quality = 0.85) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-
-                    // 비율 유지하며 크기 조정
-                    if (width > height) {
-                        if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        }
-                    } else {
-                        if (height > maxHeight) {
-                            width *= maxHeight / height;
-                            height = maxHeight;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // 압축된 크기 계산을 위해 blob 생성
-                    canvas.toBlob((blob) => {
-                        console.log(`이미지 압축 완료: ${formatFileSize(file.size)} → ${formatFileSize(blob.size)}`);
-                        resolve({
-                            blob,
-                            dataUrl: canvas.toDataURL(file.type, quality),
-                            width,
-                            height,
-                            originalSize: file.size,
-                            compressedSize: blob.size
-                        });
-                    }, file.type, quality);
-                };
-                img.onerror = reject;
-                img.src = e.target.result;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    // 파일 크기 포맷 함수
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    function switchTabs(targetTab) {
-        const panes = { chat: chatUi, image: imageUi };
-        const buttons = { chat: chatTabButton, image: imageTabButton };
-         for (const tabName in buttons) {
-            if (tabName === targetTab) {
-                buttons[tabName].classList.add('bg-white', 'text-blue-600', 'shadow-sm');
-                buttons[tabName].classList.remove('text-slate-600');
-                buttons[tabName].setAttribute('aria-selected', 'true');
-                buttons[tabName].setAttribute('tabindex', '0');
-            } else {
-                buttons[tabName].classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
-                buttons[tabName].classList.add('text-slate-600');
-                buttons[tabName].setAttribute('aria-selected', 'false');
-                buttons[tabName].setAttribute('tabindex', '-1');
-            }
-        }
-
-        const currentActivePane = document.querySelector('.content-pane.is-active');
-        const newActivePane = panes[targetTab];
-         if (currentActivePane === newActivePane) return;
-         if (currentActivePane) {
-            currentActivePane.classList.remove('is-active');
-        }
-
-        setTimeout(() => {
-            if (currentActivePane) currentActivePane.classList.add('hidden');
-            newActivePane.classList.remove('hidden');
-            newActivePane.classList.add('is-active');
-
-            // 탭 전환 시 헤더 표시
-            const header = document.getElementById('main-header');
-            if (header) {
-                header.classList.remove('header-hidden');
-            }
-        }, 300);
-    }
-     function createAvatar(className, label, ariaLabel) {
-        const avatar = document.createElement('div');
-        avatar.className = className;
-        avatar.textContent = label;
-        avatar.setAttribute('role', 'img');
-        avatar.setAttribute('aria-label', ariaLabel);
-        return avatar;
-    }
-     function createInlineImage(inlineData) {
-        const mimeType = /^image\/(png|jpeg|jpg|gif|webp)$/i.test(inlineData.mimeType)
-            ? inlineData.mimeType
-            : 'image/png';
-        const imageData = String(inlineData.data || '').replace(/\s/g, '');
-        const img = document.createElement('img');
-        img.src = `data:${mimeType};base64,${imageData}`;
-        img.className = 'rounded-lg mt-2 w-full h-auto';
-        img.loading = 'lazy';
-        img.alt = uploadedFile.name ? `업로드된 이미지: ${uploadedFile.name}` : '이미지 첨부';
-        return img;
-    }
-     function appendTextPart(container, text) {
-        if (text.includes('---PDF 시작---')) {
-            const preview = document.createElement('div');
-            preview.className = 'text-xs bg-slate-100 p-2 rounded-md mt-2 max-h-40 overflow-y-auto border';
-             const pre = document.createElement('pre');
-            pre.className = 'whitespace-pre-wrap font-sans';
-            pre.textContent = text;
-            preview.appendChild(pre);
-            container.appendChild(preview);
-            return;
-        }
-         const paragraph = document.createElement('p');
-        paragraph.className = 'whitespace-pre-wrap';
-        paragraph.textContent = text;
-        container.appendChild(paragraph);
-    }
-     function addChatMessage(sender, parts) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'flex items-start gap-3 message-bubble';
-         const bubble = document.createElement('div');
-        if (sender === 'user') {
-            wrapper.classList.add('justify-end');
-            bubble.className = 'bg-blue-500 text-white rounded-2xl rounded-tr-none p-3.5 text-sm shadow-md max-w-lg';
-            parts.forEach(part => {
-                if (part.text) appendTextPart(bubble, part.text);
-                if (part.inlineData) bubble.appendChild(createInlineImage(part.inlineData));
-            });
-            wrapper.appendChild(bubble);
-            wrapper.appendChild(createAvatar(
-                'w-9 h-9 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md',
-                '나',
-                '사용자 아바타'
-            ));
-        } else {
-            wrapper.classList.add('max-w-lg');
-            bubble.className = 'bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm';
-            parts.forEach(part => {
-                if (part.text) appendTextPart(bubble, part.text);
-                if (part.inlineData) bubble.appendChild(createInlineImage(part.inlineData));
-            });
-            wrapper.appendChild(createAvatar(
-                'w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md',
-                'AI',
-                'AI 아바타'
-            ));
-            wrapper.appendChild(bubble);
-        }
-        chatMessages.appendChild(wrapper);
-
-        // 부드러운 스크롤 애니메이션으로 맨 아래로
-        requestAnimationFrame(() => {
-            wrapper.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        });
-    }
-
-    function toggleChatLoading(show) {
-        let loadingEl = document.getElementById('loading-indicator');
-        if (show) {
-            if (!loadingEl) {
-                loadingEl = document.createElement('div');
-                loadingEl.id = 'loading-indicator';
-                loadingEl.className = 'flex items-start gap-3 max-w-lg message-bubble';
-                loadingEl.innerHTML = `
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md">AI</div>
-                    <div class="bg-white/80 rounded-2xl rounded-tl-none p-3.5 text-sm text-slate-800 shadow-sm">
-                        <div class="flex items-center space-x-1">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse loading-delay-1"></div>
-                            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse loading-delay-2"></div>
-                        </div>
-                    </div>
-                `;
-                chatMessages.appendChild(loadingEl);
-                requestAnimationFrame(() => {
-                    loadingEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                });
-            }
-        } else {
-            if (loadingEl) {
-                loadingEl.remove();
-            }
-        }
-    }
-
-    async function handleSendMessage() {
-        const message = chatInput.value.trim();
-        if (!message && !uploadedFile.type) return;
-         sendButton.disabled = true;
-        toggleChatLoading(true);
-
-        // 모바일에서 키보드 포커스 유지
-        const isMobile = window.innerWidth <= 640;
-        if (isMobile) {
-            chatInput.setAttribute('readonly', 'readonly');
-        }
-         const userParts = [];
-         if (uploadedFile.type === 'image') {
-            userParts.push({ inlineData: { mimeType: uploadedFile.mimeType, data: uploadedFile.data.split(',')[1] } });
-        } else if (uploadedFile.type === 'pdf') {
-            try {
-                const pdfText = await extractTextFromPdf(uploadedFile.data);
-                userParts.push({ text: `[첨부된 PDF 파일 '${uploadedFile.name}'의 내용입니다. 이 내용을 바탕으로 답변해주세요.]:\n\n---PDF 시작---\n${pdfText}\n---PDF 끝---` });
-            } catch (error) {
-                addChatMessage('bot', [{ text: `PDF 파일을 읽는 중 오류가 발생했습니다: ${error.message}` }]);
-                toggleChatLoading(false);
-                sendButton.disabled = false;
-                return;
-            }
-        }
-
-        if (message) {
-            const existingTextPart = userParts.find(p => p.text);
-            if (existingTextPart) {
-                existingTextPart.text += `\n\n[사용자 추가 메시지]: ${message}`;
-            } else {
-                userParts.push({ text: message });
-            }
-        }
-         const initialMessage = document.getElementById('initial-message');
-        if(initialMessage) initialMessage.remove();
-         addChatMessage('user', userParts);
-        chatInput.value = '';
-        removePreview();
-
-        // 모바일에서 전송 버튼에 진동 피드백 (지원하는 경우)
-        if (window.navigator && window.navigator.vibrate) {
-            window.navigator.vibrate(10);
-        }
-
-        chatHistory.push({ role: "user", parts: userParts });
-
-        try {
-            const response = await fetch(apiEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatHistory: chatHistory,
-                    model: 'gemini',
-                    persona: currentPersona,
-                    sessionId: sessionId // 세션 ID 추가
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = errorText;
-                try {
-                    const errorData = JSON.parse(errorText);
-                    errorMessage = errorData.message || JSON.stringify(errorData);
-                } catch (e) { /* Ignore */ }
-                throw new Error(errorMessage);
-            }
-
-            const result = await response.json();
-
-            if (result.candidates && result.candidates.length > 0) {
-                const botParts = result.candidates[0].content.parts;
-                chatHistory.push(result.candidates[0].content);
-                addChatMessage('bot', botParts);
-            } else { throw new Error('응답을 받았지만 내용이 비어있습니다.'); }
-
-        } catch (error) {
-            let errorMessage = '오류가 발생했습니다';
-            let fallbackMessage = '';
-            let errorType = 'unknown';
-
-            // 네트워크 연결 확인
-            if (!navigator.onLine) {
-                errorType = 'network';
-                errorMessage = '🌐 네트워크 연결 오류';
-                fallbackMessage = '인터넷 연결을 확인해주세요.';
-            }
-            // API 응답 에러
-            else if (error.message.includes('429')) {
-                errorType = 'rateLimit';
-                errorMessage = '⏱️ 요청 한도 초과';
-                fallbackMessage = '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.';
-            } else if (error.message.includes('401') || error.message.includes('403')) {
-                errorType = 'auth';
-                errorMessage = '🔐 인증 오류';
-                fallbackMessage = 'API 인증에 실패했습니다. 관리자에게 문의하세요.';
-            } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-                errorType = 'server';
-                errorMessage = '🖥️ 서버 오류';
-                fallbackMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-            } else if (error.message.includes('timeout')) {
-                errorType = 'timeout';
-                errorMessage = '⏳ 요청 시간 초과';
-                fallbackMessage = '응답 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.';
-            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                errorType = 'network';
-                errorMessage = '🌐 네트워크 요청 실패';
-                fallbackMessage = '서버에 연결할 수 없습니다. 네트워크 설정을 확인해주세요.';
-            } else {
-                errorType = 'general';
-                fallbackMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-            }
-
-            // 에러 로깅 (개발 환경에서만)
-            if (isDev) {
-                console.error(`Error Type: ${errorType}`, error);
-            }
-
-            addChatMessage('bot', [{
-                text: `${errorMessage}\n\n${fallbackMessage}\n\n문제가 지속되면 페이지를 새로고침해주세요.`
-            }]);
-        } finally {
-            toggleChatLoading(false);
-            sendButton.disabled = false;
-
-            // 모바일에서 키보드 포커스 처리
-            const isMobile = window.innerWidth <= 640;
-            if (isMobile) {
-                chatInput.removeAttribute('readonly');
-                // 약간의 지연 후 포커스와 스크롤
-                setTimeout(() => {
-                    chatInput.focus();
-                    // 최신 메시지가 보이도록 스크롤
-                    const lastMessage = chatMessages.lastElementChild;
-                    if (lastMessage) {
-                        lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                    }
-                }, 100);
-            } else {
-                chatInput.focus();
-            }
-        }
-    }
-
-    async function handleGenerateImage() {
-        const prompt = imagePrompt.value.trim();
-        if (!prompt) { return; }
-
-        generateImageButton.disabled = true;
-        imagePlaceholder.classList.add('opacity-0');
-        generatedImage.classList.add('hidden');
-        imageLoader.classList.remove('hidden');
-
-        try {
-            const response = await fetch(apiEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatHistory: prompt, model: 'gemini-image', sessionId: sessionId })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = errorText;
-                try {
-                    const errorData = JSON.parse(errorText);
-                    errorMessage = errorData.message || JSON.stringify(errorData);
-                } catch (e) { /* Ignore */ }
-                throw new Error(errorMessage);
-            }
-
-            const result = await response.json();
-             const candidate = result?.candidates?.[0];
-            const imagePart = candidate?.content?.parts?.find(part => part.inlineData);
-            const imageData = imagePart?.inlineData?.data;
-            const mimeType = imagePart?.inlineData?.mimeType || 'image/png';
-             if (imageData) {
-                const imageUrl = `data:${mimeType};base64,${imageData}`;
-                generatedImage.src = imageUrl;
-                generatedImage.classList.remove('hidden');
-            } else {
-                throw new Error('API 응답에서 이미지 데이터를 찾을 수 없습니다.');
-            }
-
-        } catch (error) {
-            console.error('Image Generation Error:', error);
-            const errorContainer = document.createElement('div');
-            errorContainer.className = 'text-red-500 text-sm p-4 text-center';
-
-            if (error.message.includes('429') || error.message.includes('한도')) {
-                errorContainer.append('요청 한도를 초과했습니다.');
-                errorContainer.appendChild(document.createElement('br'));
-                errorContainer.append('잠시 후 다시 시도해주세요.');
-            } else if (!navigator.onLine) {
-                errorContainer.textContent = '인터넷 연결을 확인해주세요.';
-            } else {
-                errorContainer.append('이미지 생성 중 오류가 발생했습니다.');
-                errorContainer.appendChild(document.createElement('br'));
-                errorContainer.append(error.message);
-            }
-
-            const reloadButton = document.createElement('button');
-            reloadButton.type = 'button';
-            reloadButton.className = 'mt-2 text-blue-500 underline';
-            reloadButton.textContent = '페이지 새로고침';
-            reloadButton.addEventListener('click', () => location.reload());
-            errorContainer.appendChild(document.createElement('br'));
-            errorContainer.appendChild(reloadButton);
-            imagePlaceholder.replaceChildren(errorContainer);
-            imagePlaceholder.classList.remove('opacity-0');
-        } finally {
-            imageLoader.classList.add('hidden');
-            generateImageButton.disabled = false;
-        }
-    }
-     async function handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-         removePreview();
-         // 파일 크기 제한 (10MB)
-        const maxFileSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxFileSize) {
-            alert(`파일 크기는 10MB를 초과할 수 없습니다. 현재 파일 크기: ${formatFileSize(file.size)}`);
-            fileInput.value = '';
-            return;
-        }
-         if (file.type.startsWith('image/')) {
-            try {
-                // 파일 크기가 1MB를 초과하면 압축
-                if (file.size > 1024 * 1024) {
-                    const compressed = await compressImage(file);
-                    uploadedFile = {
-                        type: 'image',
-                        data: compressed.dataUrl,
-                        mimeType: file.type,
-                        name: file.name,
-                        originalSize: file.size,
-                        compressedSize: compressed.blob.size
-                    };
-                    previewImage.src = compressed.dataUrl;
-                    previewFilename.textContent = file.name;
-                    // 압축률 표시
-                    const compressionRate = Math.round((1 - compressed.blob.size / file.size) * 100);
-                    previewFilesize.textContent = `(${formatFileSize(compressed.blob.size)} - ${compressionRate}% 압축됨)`;
-                } else {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        uploadedFile = {
-                            type: 'image',
-                            data: e.target.result,
-                            mimeType: file.type,
-                            name: file.name,
-                            originalSize: file.size
-                        };
-                        previewImage.src = e.target.result;
-                        previewFilename.textContent = file.name;
-                        previewFilesize.textContent = `(${formatFileSize(file.size)})`;
-                        previewImage.classList.remove('hidden');
-                        previewPdfIcon.classList.add('hidden');
-                        filePreviewContainer.classList.add('visible');
-                    };
-                    reader.readAsDataURL(file);
-                    return;
-                }
-                previewImage.classList.remove('hidden');
-                previewPdfIcon.classList.add('hidden');
-                filePreviewContainer.classList.add('visible');
-            } catch (error) {
-                console.error('이미지 압축 실패:', error);
-                addChatMessage('bot', [{ text: '이미지 처리 중 오류가 발생했습니다.' }]);
-            }
-        } else if (file.type === 'application/pdf') {
-            uploadedFile = { type: 'pdf', data: file, name: file.name };
-            previewFilename.textContent = file.name;
-            previewFilesize.textContent = `(${formatFileSize(file.size)})`;
-            previewImage.classList.add('hidden');
-            previewPdfIcon.classList.remove('hidden');
-            filePreviewContainer.classList.add('visible');
-        }
-    }
-     function removePreview() {
-        uploadedFile = { type: null, data: null, name: null };
-        fileInput.value = '';
-        filePreviewContainer.classList.remove('visible');
-    }
-     async function extractTextFromPdf(file) {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-        let fullText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += pageText + '\n\n';
-        }
-        return fullText;
-    }
-     function openSettings() {
-        personaInput.value = currentPersona;
-        settingsModal.classList.remove('hidden');
-    }
-     function closeSettings() {
-        settingsModal.classList.add('hidden');
-    }
-     function saveSettings() {
-        currentPersona = personaInput.value;
-        localStorage.setItem('peraPersona', currentPersona);
-        closeSettings();
-        chatMessages.innerHTML = '';
-        chatHistory = [];
-        const initialMessageDiv = document.createElement('div');
-        initialMessageDiv.id = 'initial-message';
-        chatMessages.appendChild(initialMessageDiv);
-        // Use i18n if available, otherwise use fallback based on current language
-        const message = window.i18n
-            ? window.i18n.t('message.personaUpdated')
-            : '페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!';
-        addChatMessage('bot', [{text: message}]);
-    }
-
-    // --- Event Listeners ---
-    settingsButton.addEventListener('click', openSettings);
-    themeToggle.addEventListener('click', toggleTheme);
-    closePersonaButton.addEventListener('click', closeSettings);
-    savePersonaButton.addEventListener('click', saveSettings);
-    chatTabButton.addEventListener('click', () => switchTabs('chat'));
-    imageTabButton.addEventListener('click', () => switchTabs('image'));
-
-    // 키보드 네비게이션 지원
-    chatTabButton.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') {
-            imageTabButton.focus();
-            switchTabs('image');
-        }
+import i18n from './i18n/i18n.js';
+
+const API_ENDPOINT = '/api/chat';
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_PDF_PAGES = 30;
+const MAX_PDF_CHARACTERS = 80_000;
+const MAX_HISTORY_MESSAGES = 40;
+const REQUEST_TIMEOUT_MS = 30_000;
+
+class ApiError extends Error {
+  constructor(message, status = 0) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+const elements = {
+  chatTab: document.getElementById('chat-tab-button'),
+  imageTab: document.getElementById('image-tab-button'),
+  chatPanel: document.getElementById('chat-ui'),
+  imagePanel: document.getElementById('image-ui'),
+  chatMessages: document.getElementById('chat-messages'),
+  initialMessage: document.getElementById('initial-message'),
+  chatForm: document.getElementById('chat-form'),
+  chatInput: document.getElementById('chat-input'),
+  sendButton: document.getElementById('send-button'),
+  fileButton: document.getElementById('file-button'),
+  fileInput: document.getElementById('file-input'),
+  filePreview: document.getElementById('file-preview-container'),
+  previewImage: document.getElementById('preview-image'),
+  previewPdfIcon: document.getElementById('preview-pdf-icon'),
+  previewFilename: document.getElementById('preview-filename'),
+  previewFilesize: document.getElementById('preview-filesize'),
+  removePreviewButton: document.getElementById('remove-preview-button'),
+  composerStatus: document.getElementById('composer-status'),
+  imageForm: document.getElementById('image-form'),
+  imagePrompt: document.getElementById('image-prompt'),
+  imageCharacterCount: document.getElementById('image-character-count'),
+  generateImageButton: document.getElementById('generate-image-button'),
+  imageResult: document.getElementById('image-result-container'),
+  imagePlaceholder: document.getElementById('image-placeholder'),
+  imageLoader: document.getElementById('image-loader'),
+  generatedImage: document.getElementById('generated-image'),
+  settingsButton: document.getElementById('settings-button'),
+  settingsModal: document.getElementById('settings-modal'),
+  settingsForm: document.getElementById('settings-form'),
+  closeSettingsButton: document.getElementById('close-persona-button'),
+  cancelSettingsButton: document.getElementById('cancel-settings-button'),
+  personaInput: document.getElementById('persona-input'),
+  personaCharacterCount: document.getElementById('persona-character-count'),
+  languageContainer: document.getElementById('language-selector-container'),
+  themeToggle: document.getElementById('theme-toggle'),
+  newChatButton: document.getElementById('new-chat-button'),
+  toast: document.getElementById('toast')
+};
+
+const requiredElements = Object.entries(elements).filter(([, element]) => !element);
+if (requiredElements.length) {
+  throw new Error(`PERA initialization failed. Missing elements: ${requiredElements.map(([key]) => key).join(', ')}`);
+}
+
+const state = {
+  history: [],
+  attachment: null,
+  chatBusy: false,
+  imageBusy: false,
+  lastChatPayload: null,
+  sessionId: createSessionId(),
+  persona: safeStorageGet('pera-persona') ?? safeStorageGet('peraPersona') ?? '',
+  toastTimer: null,
+  activeMode: 'chat'
+};
+
+function createSessionId() {
+  if (globalThis.crypto?.randomUUID) {
+    return `session-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function safeStorageGet(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage may be unavailable in private or embedded contexts.
+  }
+}
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / (1024 ** index);
+  return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`;
+}
+
+function showToast(message) {
+  window.clearTimeout(state.toastTimer);
+  elements.toast.textContent = message;
+  elements.toast.hidden = false;
+
+  state.toastTimer = window.setTimeout(() => {
+    elements.toast.hidden = true;
+  }, 2400);
+}
+
+function setComposerStatus(message = '') {
+  elements.composerStatus.textContent = message;
+}
+
+function applyTheme(theme) {
+  const normalized = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = normalized;
+  safeStorageSet('pera-theme', normalized);
+  safeStorageSet('theme', normalized);
+
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute('content', normalized === 'dark' ? '#0d111b' : '#f5f7fb');
+  }
+}
+
+
+async function cleanupLegacyServiceWorkers() {
+  if (!('serviceWorker' in navigator)) return;
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  } catch {
+    // A stale service worker must never block the current application shell.
+  }
+}
+
+function initializeTheme() {
+  const storedTheme = safeStorageGet('pera-theme') ?? safeStorageGet('theme');
+  const preferredTheme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  applyTheme(storedTheme || preferredTheme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme || 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+function setMode(mode, { focusPanel = false } = {}) {
+  const isChat = mode === 'chat';
+  state.activeMode = isChat ? 'chat' : 'image';
+
+  elements.chatTab.classList.toggle('is-active', isChat);
+  elements.imageTab.classList.toggle('is-active', !isChat);
+  elements.chatTab.setAttribute('aria-selected', String(isChat));
+  elements.imageTab.setAttribute('aria-selected', String(!isChat));
+  elements.chatTab.tabIndex = isChat ? 0 : -1;
+  elements.imageTab.tabIndex = isChat ? -1 : 0;
+
+  elements.chatPanel.hidden = !isChat;
+  elements.imagePanel.hidden = isChat;
+  elements.chatPanel.classList.toggle('is-active', isChat);
+  elements.imagePanel.classList.toggle('is-active', !isChat);
+
+  if (focusPanel) {
+    window.requestAnimationFrame(() => {
+      (isChat ? elements.chatInput : elements.imagePrompt).focus();
+    });
+  }
+}
+
+function handleTabKeydown(event) {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+
+  event.preventDefault();
+  if (event.key === 'Home' || event.key === 'ArrowLeft') {
+    setMode('chat', { focusPanel: true });
+    elements.chatTab.focus();
+  } else {
+    setMode('image', { focusPanel: true });
+    elements.imageTab.focus();
+  }
+}
+
+function autoResizeTextarea(textarea, maxHeight = 154) {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+  textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
+function clearConversation({ announce = true } = {}) {
+  if (state.chatBusy) return;
+
+  state.history = [];
+  state.lastChatPayload = null;
+  state.sessionId = createSessionId();
+  elements.chatMessages.querySelectorAll('.message-row').forEach((message) => message.remove());
+  elements.initialMessage.hidden = false;
+  removeAttachment();
+  elements.chatInput.value = '';
+  autoResizeTextarea(elements.chatInput);
+
+  if (announce) showToast(i18n.t('chat.newConversation'));
+  elements.chatInput.focus();
+}
+
+function createAvatar(role) {
+  const avatar = document.createElement('span');
+  avatar.className = 'message-avatar';
+  avatar.setAttribute('aria-hidden', 'true');
+  avatar.textContent = role === 'user' ? i18n.t('chat.you').slice(0, 2) : 'P';
+  return avatar;
+}
+
+function createAttachmentBadge(attachment) {
+  const badge = document.createElement('span');
+  badge.className = 'message-attachment';
+
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('aria-hidden', 'true');
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', attachment.kind === 'pdf'
+    ? 'M7 2h7l5 5v15H7zM14 2v6h6'
+    : 'M3 5h18v14H3zM7 14l3-3 3 3 2-2 4 4');
+  icon.appendChild(path);
+
+  const label = document.createElement('span');
+  label.textContent = attachment.name || i18n.t('chat.attachmentAdded');
+
+  badge.append(icon, label);
+  return badge;
+}
+
+function createMessagePart(part) {
+  if (part.attachment) {
+    return createAttachmentBadge(part.attachment);
+  }
+
+  if (part.inlineData?.data) {
+    const image = document.createElement('img');
+    const mimeType = /^image\/(?:png|jpe?g|webp|gif)$/i.test(part.inlineData.mimeType || '')
+      ? part.inlineData.mimeType
+      : 'image/png';
+    image.src = `data:${mimeType};base64,${String(part.inlineData.data).replace(/\s/g, '')}`;
+    image.alt = part.alt || i18n.t('image.alt');
+    image.loading = 'lazy';
+    return image;
+  }
+
+  if (typeof part.text === 'string' && part.text.trim()) {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = part.text;
+    return paragraph;
+  }
+
+  return null;
+}
+
+function renderMessage(role, parts, { error = false, retry = false } = {}) {
+  elements.initialMessage.hidden = true;
+
+  const row = document.createElement('article');
+  row.className = `message-row ${role === 'user' ? 'is-user' : 'is-assistant'}`;
+  if (error) row.classList.add('is-error');
+  row.setAttribute('aria-label', role === 'user' ? i18n.t('chat.you') : i18n.t('chat.ai'));
+
+  const card = document.createElement('div');
+  card.className = 'message-card';
+
+  const content = document.createElement('div');
+  content.className = 'message-content';
+
+  for (const part of parts) {
+    const node = createMessagePart(part);
+    if (node) content.appendChild(node);
+  }
+
+  if (!content.childElementCount) {
+    const fallback = document.createElement('p');
+    fallback.textContent = i18n.t('error.general');
+    content.appendChild(fallback);
+  }
+
+  if (retry) {
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.className = 'retry-button';
+    retryButton.textContent = i18n.t('chat.retry');
+    retryButton.addEventListener('click', retryLastChatRequest, { once: true });
+    content.appendChild(retryButton);
+  }
+
+  card.appendChild(content);
+
+  if (role === 'user') {
+    row.append(card, createAvatar(role));
+  } else {
+    row.append(createAvatar(role), card);
+  }
+
+  elements.chatMessages.appendChild(row);
+  scrollMessagesToBottom();
+  return row;
+}
+
+function renderLoadingMessage() {
+  removeLoadingMessage();
+
+  const row = document.createElement('article');
+  row.id = 'loading-indicator';
+  row.className = 'message-row is-assistant';
+  row.setAttribute('aria-label', i18n.t('chat.loading'));
+
+  const card = document.createElement('div');
+  card.className = 'message-card loading-card';
+
+  const content = document.createElement('div');
+  content.className = 'message-content';
+
+  const dots = document.createElement('div');
+  dots.className = 'loading-dots';
+  dots.setAttribute('aria-hidden', 'true');
+  dots.append(document.createElement('span'), document.createElement('span'), document.createElement('span'));
+
+  content.appendChild(dots);
+  card.appendChild(content);
+  row.append(createAvatar('assistant'), card);
+  elements.chatMessages.appendChild(row);
+  scrollMessagesToBottom();
+}
+
+function removeLoadingMessage() {
+  document.getElementById('loading-indicator')?.remove();
+}
+
+function scrollMessagesToBottom() {
+  window.requestAnimationFrame(() => {
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+  });
+}
+
+function normalizeResponseContent(content) {
+  if (!content || !Array.isArray(content.parts)) {
+    throw new ApiError(i18n.t('error.general'));
+  }
+
+  return {
+    role: content.role === 'assistant' ? 'model' : (content.role || 'model'),
+    parts: content.parts
+  };
+}
+
+function trimClientHistory() {
+  if (state.history.length <= MAX_HISTORY_MESSAGES) return;
+  state.history = state.history.slice(-MAX_HISTORY_MESSAGES);
+}
+
+function composePersona() {
+  return [i18n.getAISystemMessage(), state.persona.trim()].filter(Boolean).join('\n\n');
+}
+
+function friendlyError(error) {
+  if (!navigator.onLine) return i18n.t('error.network');
+  if (error?.name === 'AbortError') return i18n.t('error.timeout');
+  if (error?.status === 429) return i18n.t('error.rateLimit');
+  if (error?.status === 408 || error?.status === 504) return i18n.t('error.timeout');
+  return error?.message || i18n.t('error.general');
+}
+
+async function requestApi(payload) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
 
-    imageTabButton.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft') {
-            chatTabButton.focus();
-            switchTabs('chat');
-        }
-    });
+    const responseText = await response.text();
+    let data = null;
 
-    // 전역 키보드 단축키
-    document.addEventListener('keydown', (e) => {
-        // Escape 키로 모달 닫기
-        if (e.key === 'Escape') {
-            if (!settingsModal.classList.contains('hidden')) {
-                closeSettings();
-            }
-        }
-
-
-        // Ctrl/Cmd + / 로 채팅 입력에 포커스
-        if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-            e.preventDefault();
-            if (chatUi.classList.contains('is-active')) {
-                chatInput.focus();
-            } else if (imageUi.classList.contains('is-active')) {
-                imagePrompt.focus();
-            }
-        }
-    });
-    fileButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', handleFileSelect);
-    removePreviewButton.addEventListener('click', removePreview);
-    sendButton.addEventListener('click', handleSendMessage);
-    chatInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            handleSendMessage();
-        }
-    });
-    generateImageButton.addEventListener('click', handleGenerateImage);
-    imagePrompt.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            handleGenerateImage();
-        }
-    });
-
-    // 모바일 최적화 초기화
-    if ('ontouchstart' in window) {
-        document.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        });
-
-        document.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        });
-
-        // 모바일 키보드 대응
-        handleMobileKeyboard();
-        detectVirtualKeyboard();
-        initHeaderScroll();
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        if (!response.ok) throw new ApiError(i18n.t('error.general'), response.status);
+      }
     }
 
-    // 화면 회전 감지
-    window.addEventListener('orientationchange', () => {
-        setTimeout(() => {
-            if (chatMessages) {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }, 100);
+    if (!response.ok) {
+      throw new ApiError(data?.message || i18n.t('error.general'), response.status);
+    }
+
+    return data;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function setChatBusy(busy) {
+  state.chatBusy = busy;
+  elements.sendButton.disabled = busy;
+  elements.fileButton.disabled = busy;
+  elements.newChatButton.disabled = busy;
+  elements.chatInput.setAttribute('aria-busy', String(busy));
+}
+
+async function buildAttachmentParts() {
+  if (!state.attachment) return { apiParts: [], displayParts: [] };
+
+  if (state.attachment.kind === 'image') {
+    const [, base64 = ''] = state.attachment.dataUrl.split(',');
+    return {
+      apiParts: [{
+        inlineData: {
+          mimeType: state.attachment.mimeType,
+          data: base64
+        }
+      }],
+      displayParts: [
+        {
+          attachment: {
+            kind: 'image',
+            name: state.attachment.name
+          }
+        },
+        {
+          inlineData: {
+            mimeType: state.attachment.mimeType,
+            data: base64
+          },
+          alt: state.attachment.name
+        }
+      ]
+    };
+  }
+
+  setComposerStatus(i18n.t('chat.loading'));
+  const pdfText = await extractPdfText(state.attachment.file);
+
+  return {
+    apiParts: [{
+      text: [
+        `[Attached PDF: ${state.attachment.name}]`,
+        'Use the document content below as context for the user request.',
+        '--- PDF CONTENT START ---',
+        pdfText,
+        '--- PDF CONTENT END ---'
+      ].join('\n')
+    }],
+    displayParts: [{
+      attachment: {
+        kind: 'pdf',
+        name: state.attachment.name
+      }
+    }]
+  };
+}
+
+async function submitChat({ retryPayload = null } = {}) {
+  if (state.chatBusy) return;
+
+  if (retryPayload) {
+    await executeChatRequest(retryPayload, { isRetry: true });
+    return;
+  }
+
+  const message = elements.chatInput.value.trim();
+  if (!message && !state.attachment) return;
+
+  setChatBusy(true);
+
+  try {
+    const { apiParts, displayParts } = await buildAttachmentParts();
+
+    if (message) {
+      apiParts.push({ text: message });
+      displayParts.push({ text: message });
+    }
+
+    renderMessage('user', displayParts);
+    state.history.push({ role: 'user', parts: apiParts });
+    trimClientHistory();
+
+    const payload = {
+      chatHistory: state.history,
+      model: 'gemini',
+      persona: composePersona(),
+      sessionId: state.sessionId
+    };
+
+    state.lastChatPayload = structuredCloneSafe(payload);
+    elements.chatInput.value = '';
+    autoResizeTextarea(elements.chatInput);
+    removeAttachment();
+    setComposerStatus('');
+
+    await executeChatRequest(payload, { busyAlreadySet: true });
+  } catch (error) {
+    setComposerStatus('');
+    renderMessage('assistant', [{ text: friendlyError(error) }], { error: true });
+    setChatBusy(false);
+  }
+}
+
+async function executeChatRequest(payload, { busyAlreadySet = false, isRetry = false } = {}) {
+  if (!busyAlreadySet) setChatBusy(true);
+
+  if (isRetry) {
+    elements.chatMessages.querySelector('.message-row.is-error:last-of-type')?.remove();
+  }
+
+  renderLoadingMessage();
+  setComposerStatus(i18n.t('chat.loading'));
+
+  try {
+    const result = await requestApi(payload);
+    const content = normalizeResponseContent(result?.candidates?.[0]?.content);
+    state.history.push(content);
+    trimClientHistory();
+    renderMessage('assistant', content.parts);
+    state.lastChatPayload = null;
+  } catch (error) {
+    renderMessage(
+      'assistant',
+      [{ text: friendlyError(error) }],
+      { error: true, retry: Boolean(state.lastChatPayload) }
+    );
+  } finally {
+    removeLoadingMessage();
+    setComposerStatus('');
+    setChatBusy(false);
+    elements.chatInput.focus();
+  }
+}
+
+async function retryLastChatRequest() {
+  if (!state.lastChatPayload || state.chatBusy) return;
+  await submitChat({ retryPayload: structuredCloneSafe(state.lastChatPayload) });
+}
+
+function structuredCloneSafe(value) {
+  if (globalThis.structuredClone) return globalThis.structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+async function handleFileSelection(event) {
+  const [file] = event.target.files || [];
+  if (!file) return;
+
+  if (file.size > MAX_FILE_BYTES) {
+    showToast(i18n.t('error.fileSize'));
+    elements.fileInput.value = '';
+    return;
+  }
+
+  const isImage = /^image\/(png|jpeg|webp|gif)$/i.test(file.type);
+  const isPdf = file.type === 'application/pdf';
+
+  if (!isImage && !isPdf) {
+    showToast(i18n.t('error.fileType'));
+    elements.fileInput.value = '';
+    return;
+  }
+
+  try {
+    if (isImage) {
+      const dataUrl = file.type === 'image/gif'
+        ? await readFileAsDataUrl(file)
+        : await compressImage(file);
+
+      state.attachment = {
+        kind: 'image',
+        file,
+        name: file.name,
+        size: file.size,
+        mimeType: dataUrl.slice(5, dataUrl.indexOf(';')) || file.type,
+        dataUrl
+      };
+    } else {
+      state.attachment = {
+        kind: 'pdf',
+        file,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type
+      };
+    }
+
+    updateAttachmentPreview();
+    setComposerStatus(i18n.t('chat.attachmentAdded'));
+    elements.chatInput.focus();
+  } catch (error) {
+    console.error('Attachment processing failed:', error);
+    showToast(isImage ? i18n.t('error.imageProcess') : i18n.t('error.pdfProcess'));
+    removeAttachment();
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(String(reader.result)));
+    reader.addEventListener('error', () => reject(reader.error || new Error('File read failed')));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressImage(file) {
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(originalDataUrl);
+  const maxDimension = 1600;
+  const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+
+  if (scale === 1 && file.size <= 1_500_000) {
+    return originalDataUrl;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const context = canvas.getContext('2d', { alpha: file.type === 'image/png' });
+  if (!context) throw new Error('Canvas is unavailable');
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  return canvas.toDataURL(outputType, outputType === 'image/png' ? undefined : 0.84);
+}
+
+function loadImage(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image), { once: true });
+    image.addEventListener('error', () => reject(new Error('Image decode failed')), { once: true });
+    image.src = source;
+  });
+}
+
+function updateAttachmentPreview() {
+  const attachment = state.attachment;
+  elements.filePreview.hidden = !attachment;
+
+  if (!attachment) return;
+
+  elements.previewFilename.textContent = attachment.name;
+  elements.previewFilesize.textContent = formatFileSize(attachment.size);
+
+  const isImage = attachment.kind === 'image';
+  elements.previewImage.hidden = !isImage;
+  elements.previewPdfIcon.hidden = isImage;
+
+  if (isImage) {
+    elements.previewImage.src = attachment.dataUrl;
+    elements.previewImage.alt = attachment.name;
+  } else {
+    elements.previewImage.removeAttribute('src');
+    elements.previewImage.alt = '';
+  }
+}
+
+function removeAttachment() {
+  state.attachment = null;
+  elements.fileInput.value = '';
+  elements.filePreview.hidden = true;
+  elements.previewImage.removeAttribute('src');
+  elements.previewImage.alt = '';
+  elements.previewFilename.textContent = '';
+  elements.previewFilesize.textContent = '';
+}
+
+async function extractPdfText(file) {
+  const pdfLibrary = globalThis.pdfjsLib;
+  if (!pdfLibrary) {
+    throw new Error(i18n.t('error.pdfProcess'));
+  }
+
+  pdfLibrary.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+  const pdf = await pdfLibrary.getDocument(await file.arrayBuffer()).promise;
+  const pageLimit = Math.min(pdf.numPages, MAX_PDF_PAGES);
+  const chunks = [];
+
+  for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item) => ('str' in item ? item.str : ''))
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    if (pageText) chunks.push(`[Page ${pageNumber}]\n${pageText}`);
+
+    if (chunks.join('\n\n').length >= MAX_PDF_CHARACTERS) break;
+  }
+
+  const text = chunks.join('\n\n').slice(0, MAX_PDF_CHARACTERS);
+  if (!text) throw new Error(i18n.t('error.pdfProcess'));
+
+  if (pdf.numPages > pageLimit || text.length >= MAX_PDF_CHARACTERS) {
+    return `${text}\n\n[Document content was truncated for request size and performance.]`;
+  }
+
+  return text;
+}
+
+function setImageBusy(busy) {
+  state.imageBusy = busy;
+  elements.generateImageButton.disabled = busy;
+  elements.imagePrompt.disabled = busy;
+  elements.imageResult.setAttribute('aria-busy', String(busy));
+  elements.imageLoader.hidden = !busy;
+  if (busy) {
+    elements.imagePlaceholder.hidden = true;
+    elements.generatedImage.hidden = true;
+  }
+}
+
+async function submitImage() {
+  if (state.imageBusy) return;
+
+  const prompt = elements.imagePrompt.value.trim();
+  if (!prompt) {
+    elements.imagePrompt.focus();
+    return;
+  }
+
+  setImageBusy(true);
+
+  try {
+    const result = await requestApi({
+      chatHistory: prompt,
+      model: 'gemini-image',
+      persona: composePersona(),
+      sessionId: state.sessionId
     });
 
+    const parts = result?.candidates?.[0]?.content?.parts;
+    const imagePart = Array.isArray(parts)
+      ? parts.find((part) => part.inlineData?.data)
+      : null;
+
+    if (!imagePart) throw new ApiError(i18n.t('error.general'));
+
+    const mimeType = /^image\/(?:png|jpe?g|webp)$/i.test(imagePart.inlineData.mimeType || '')
+      ? imagePart.inlineData.mimeType
+      : 'image/png';
+
+    elements.generatedImage.src =
+      `data:${mimeType};base64,${String(imagePart.inlineData.data).replace(/\s/g, '')}`;
+    elements.generatedImage.hidden = false;
+    elements.imagePlaceholder.hidden = true;
+  } catch (error) {
+    elements.imagePlaceholder.hidden = false;
+    const title = elements.imagePlaceholder.querySelector('strong');
+    const meta = elements.imagePlaceholder.querySelector('span');
+    title.textContent = friendlyError(error);
+    meta.textContent = i18n.t('chat.retry');
+  } finally {
+    setImageBusy(false);
+  }
+}
+
+function resetImagePlaceholderTranslation() {
+  if (!elements.generatedImage.hidden) return;
+  const title = elements.imagePlaceholder.querySelector('strong');
+  const meta = elements.imagePlaceholder.querySelector('span');
+  title.textContent = i18n.t('image.empty');
+  meta.textContent = i18n.t('image.emptyMeta');
+}
+
+function updateImageCharacterCount() {
+  elements.imageCharacterCount.textContent = `${elements.imagePrompt.value.length} / 1000`;
+}
+
+function openSettings() {
+  elements.personaInput.value = state.persona;
+  elements.personaCharacterCount.textContent = String(state.persona.length);
+
+  if (!elements.settingsModal.open) {
+    elements.settingsModal.showModal();
+  }
+
+  window.requestAnimationFrame(() => elements.personaInput.focus());
+}
+
+function closeSettings() {
+  if (elements.settingsModal.open) elements.settingsModal.close();
+  elements.settingsButton.focus();
+}
+
+function saveSettings(event) {
+  event.preventDefault();
+  state.persona = elements.personaInput.value.trim().slice(0, 4000);
+  safeStorageSet('pera-persona', state.persona);
+  safeStorageSet('peraPersona', state.persona);
+  elements.settingsModal.close();
+  showToast(i18n.t('settings.saved'));
+  elements.settingsButton.focus();
+}
+
+function handleSettingsBackdropClick(event) {
+  const bounds = elements.settingsModal.getBoundingClientRect();
+  const inside =
+    event.clientX >= bounds.left &&
+    event.clientX <= bounds.right &&
+    event.clientY >= bounds.top &&
+    event.clientY <= bounds.bottom;
+
+  if (!inside) closeSettings();
+}
+
+function installLanguageSelector() {
+  elements.languageContainer.replaceChildren(i18n.createLanguageSelector());
+}
+
+function bindEvents() {
+  elements.chatTab.addEventListener('click', () => setMode('chat', { focusPanel: true }));
+  elements.imageTab.addEventListener('click', () => setMode('image', { focusPanel: true }));
+  elements.chatTab.addEventListener('keydown', handleTabKeydown);
+  elements.imageTab.addEventListener('keydown', handleTabKeydown);
+
+  elements.chatForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitChat();
+  });
+
+  elements.chatInput.addEventListener('input', () => autoResizeTextarea(elements.chatInput));
+  elements.chatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      elements.chatForm.requestSubmit();
+    }
+  });
+
+  elements.fileButton.addEventListener('click', () => elements.fileInput.click());
+  elements.fileInput.addEventListener('change', handleFileSelection);
+  elements.removePreviewButton.addEventListener('click', removeAttachment);
+
+  elements.imageForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitImage();
+  });
+  elements.imagePrompt.addEventListener('input', () => {
+    updateImageCharacterCount();
+    resetImagePlaceholderTranslation();
+  });
+
+  elements.themeToggle.addEventListener('click', toggleTheme);
+  elements.newChatButton.addEventListener('click', () => clearConversation());
+  elements.settingsButton.addEventListener('click', openSettings);
+  elements.closeSettingsButton.addEventListener('click', closeSettings);
+  elements.cancelSettingsButton.addEventListener('click', closeSettings);
+  elements.settingsForm.addEventListener('submit', saveSettings);
+  elements.settingsModal.addEventListener('click', handleSettingsBackdropClick);
+  elements.personaInput.addEventListener('input', () => {
+    elements.personaCharacterCount.textContent = String(elements.personaInput.value.length);
+  });
+
+  elements.initialMessage.querySelectorAll('[data-prompt-key]').forEach((button) => {
+    button.addEventListener('click', () => {
+      elements.chatInput.value = i18n.t(button.dataset.promptKey);
+      autoResizeTextarea(elements.chatInput);
+      elements.chatInput.focus();
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === '/') {
+      event.preventDefault();
+      (state.activeMode === 'chat' ? elements.chatInput : elements.imagePrompt).focus();
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      openSettings();
+    }
+  });
+
+  window.addEventListener('languageChanged', () => {
+    installLanguageSelector();
+    updateImageCharacterCount();
+    resetImagePlaceholderTranslation();
+    document.querySelectorAll('.message-row').forEach((message) => {
+      const isUser = message.classList.contains('is-user');
+      message.setAttribute('aria-label', isUser ? i18n.t('chat.you') : i18n.t('chat.ai'));
+    });
+  });
+}
+
+async function initialize() {
+  cleanupLegacyServiceWorkers();
+  initializeTheme();
+  state.persona = state.persona.slice(0, 4000);
+  await i18n.init();
+  installLanguageSelector();
+  bindEvents();
+  const initialMode = new URLSearchParams(window.location.search).get('tab') === 'image'
+    ? 'image'
+    : 'chat';
+  setMode(initialMode);
+  updateImageCharacterCount();
+  autoResizeTextarea(elements.chatInput);
+  elements.personaCharacterCount.textContent = String(state.persona.length);
+}
+
+initialize().catch((error) => {
+  console.error('PERA initialization failed:', error);
+  setComposerStatus(i18n.t('error.general'));
 });
