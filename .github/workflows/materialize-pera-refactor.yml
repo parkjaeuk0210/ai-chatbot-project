@@ -1,4 +1,5 @@
 name: Materialize PERA refactor
+# Temporary one-shot workflow used to restore the validated source bundle.
 
 on:
   push:
