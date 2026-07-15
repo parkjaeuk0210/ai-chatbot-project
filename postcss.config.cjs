@@ -1,4 +1,3 @@
-// PostCSS configuration for Tailwind CSS optimization
 module.exports = {
   plugins: {
     tailwindcss: {},
@@ -7,13 +6,13 @@ module.exports = {
       cssnano: {
         preset: ['default', {
           discardComments: {
-            removeAll: true,
+            removeAll: true
           },
           minifyFontValues: {
-            removeQuotes: false,
-          },
-        }],
-      },
+            removeQuotes: false
+          }
+        }]
+      }
     } : {})
-  },
-}
+  }
+};

@@ -1,19 +1,19 @@
 // Service Worker for PERA AI PWA
-const CACHE_NAME = 'pera-ai-v1';
+const CACHE_NAME = 'pera-ai-v2';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/css/tailwind.generated.css',
   '/css/styles.css',
-  '/js/app.js',
-  '/js/chat.js',
-  '/js/utils.js',
-  '/js/performance.js',
+  '/js/main.js',
+  '/js/i18n-bootstrap.js',
   '/js/i18n/i18n.js',
+  '/js/i18n/en.js',
+  '/js/i18n/id.js',
+  '/js/i18n/ja.js',
   '/js/i18n/ko.js',
-  // External resources
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap'
+  '/js/i18n/zh.js',
+  '/manifest.json'
 ];
 
 // Install event - cache resources
@@ -22,7 +22,7 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return Promise.allSettled(urlsToCache.map(url => cache.add(url)));
       })
       .then(() => self.skipWaiting())
   );
