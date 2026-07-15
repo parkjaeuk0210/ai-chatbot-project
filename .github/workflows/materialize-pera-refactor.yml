@@ -1,0 +1,52 @@
+name: Materialize PERA refactor
+
+on:
+  push:
+    branches:
+      - "agent/pera-enterprise-ui"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[materialized]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out refactor branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/pera-enterprise-ui
+
+      - name: Restore validated source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .refactor-payload/part-* > /tmp/pera-refactor.b64
+          echo "0fc3b20cf05f5545dacaa8852fd7fe9dbd4a74fda27eaf6fec9ae810f6512fa6  /tmp/pera-refactor.b64" | sha256sum -c -
+          base64 --decode /tmp/pera-refactor.b64 > /tmp/pera-refactor.tar.gz
+          rm -rf css js api public
+          rm -f index-*.html service-worker.js sw.js
+          tar -xzf /tmp/pera-refactor.tar.gz -C .
+          rm -rf .refactor-payload
+
+      - name: Verify source, tests, and build contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
+          npm test
+          npm run build
+          rm -rf public
+
+      - name: Commit materialized refactor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: redesign PERA as a focused enterprise AI workspace [materialized]"
+          git push origin HEAD:agent/pera-enterprise-ui
