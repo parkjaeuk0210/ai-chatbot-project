@@ -1,78 +1,72 @@
-// Japanese translations
 export const ja = {
-    // Header
-    "header.export": "エクスポート",
-    "header.settings": "設定",
-    
-    // Tabs
-    "tab.chat": "チャット",
-    "tab.image": "画像生成",
-    
-    // Chat UI
-    "chat.placeholder": "メッセージを入力してください",
-    "chat.urlPlaceholder": "URL入力（オプション）",
-    "chat.send": "送信",
-    "chat.initialMessage": "こんにちは、PERAです。何でも可能です。",
-    
-    // Settings
-    "settings.title": "AIペルソナ設定",
-    "settings.description": "AIの名前、性格、話し方などを自由に設定して、あなただけのAIを作りましょう。PERAは世界最速で最も賢いAIモデルです。",
-    "settings.placeholder": "AIのペルソナを入力してください...",
-    "settings.presetLabel": "ペルソナプリセット",
-    "settings.presetDefault": "カスタム設定",
-    "settings.presetFriendly": "フレンドリーな友達",
-    "settings.presetProfessional": "プロフェッショナルアシスタント",
-    "settings.presetTeacher": "優しい先生",
-    "settings.presetCreative": "クリエイティブアーティスト",
-    "settings.save": "保存",
-    "settings.close": "閉じる",
-    
-    // Image Generation
-    "image.placeholder": "生成したい画像を説明してください...",
-    "image.generate": "画像生成",
-    "image.generating": "画像を生成中...",
-    
-    // Messages
-    "message.personaUpdated": "ペルソナが更新されました。新しい会話を始めましょう！",
-    "message.exportEmpty": "エクスポートするチャット内容がありません。",
-    "message.copied": "クリップボードにコピーされました",
-    "message.loading": "応答を待っています...",
-    
-    // Errors
-    "error.network": "サーバーに接続できません。ネットワーク設定を確認してください。",
-    "error.serverConfig": "サーバー設定エラーが発生しました。",
-    "error.fileSize": "ファイルサイズは10MBを超えることはできません。",
-    "error.fileType": "サポートされていないファイル形式です。画像（JPEG、PNG、GIF、WebP）またはPDFファイルのみアップロード可能です。",
-    "error.imageProcess": "画像処理中にエラーが発生しました。",
-    "error.pdfProcess": "PDF処理中にエラーが発生しました。",
-    "error.general": "エラーが発生しました",
-    
-    // Accessibility
-    "a11y.skipToInput": "チャット入力へスキップ",
-    "a11y.skipToMessages": "チャットメッセージへスキップ",
-    "a11y.chatMessages": "チャットメッセージ",
-    "a11y.userAvatar": "ユーザーアバター",
-    "a11y.aiAvatar": "AIアバター",
-    "a11y.settingsClose": "設定を閉じる",
-    "a11y.fileUpload": "ファイルアップロード",
-    "a11y.messageSend": "メッセージ送信",
-    "a11y.removeFile": "ファイル削除",
-    
-    // Persona descriptions
-    "persona.friendly": "友達だよ！タメ口で気軽に話すし、絵文字もよく使うよ！😊 楽しくてフレンドリーな性格だよ。",
-    "persona.professional": "私はプロフェッショナルアシスタントです。丁寧で専門的な口調でお手伝いいたします。",
-    "persona.teacher": "こんにちは、先生です。優しく分かりやすく説明しますね。",
-    "persona.creative": "私はクリエイティブアーティストだ！想像力豊かで独特な視点を提供するよ。",
-    
-    // Language names
-    "lang.ko": "한국어",
-    "lang.en": "English",
-    "lang.ja": "日本語",
-    "lang.zh": "中文",
-    
-    // Page
-    "page.title": "PERA - 無料AIチャットアプリ",
-    
-    // Default persona
-    "persona.default": ""
+  "page.title": "PERA — AIワークスペース",
+  "header.settings": "設定",
+  "header.theme": "テーマを変更",
+  "header.newChat": "新しい会話",
+  "header.status": "準備完了",
+  "tab.chat": "チャット",
+  "tab.image": "画像",
+  "chat.initialTitle": "何を一緒に解決しましょうか？",
+  "chat.initialDescription": "質問、文書分析、アイデア整理まで、ひとつの落ち着いた流れで支援します。",
+  "chat.suggestionSummary": "要点を要約",
+  "chat.suggestionSummaryMeta": "長い内容をすばやく整理",
+  "chat.suggestionSummaryPrompt": "次の内容を、主張・根拠・結論の順に簡潔に要約してください。",
+  "chat.suggestionPlan": "実行計画を作成",
+  "chat.suggestionPlanMeta": "複雑な作業を段階化",
+  "chat.suggestionPlanPrompt": "目標達成のため、優先順位と現実的な日程を含む実行計画を作成してください。",
+  "chat.suggestionWrite": "文章を整える",
+  "chat.suggestionWriteMeta": "明確で自然な表現に",
+  "chat.suggestionWritePrompt": "次の文章を、意味を変えずにより明確で自然な表現へ整えてください。",
+  "chat.placeholder": "メッセージを入力",
+  "chat.attach": "ファイルを添付",
+  "chat.send": "送信",
+  "chat.hint": "Enterで送信 · Shift+Enterで改行",
+  "chat.you": "自分",
+  "chat.ai": "PERA",
+  "chat.loading": "回答を準備しています",
+  "chat.newConversation": "新しい会話を開始しました。",
+  "chat.attachmentAdded": "ファイルを添付しました。",
+  "chat.pdfAttached": "PDFを添付",
+  "chat.retry": "再試行",
+  "image.title": "アイデアを画像に変換",
+  "image.description": "シーン、雰囲気、構図を自然な言葉で説明してください。ひとつの結果に集中して生成します。",
+  "image.promptLabel": "画像の説明",
+  "image.placeholder": "例：夜明けのソウルを見下ろすミニマルなガラス張りのオフィス、映画的な照明",
+  "image.generate": "画像を生成",
+  "image.generating": "画像を生成しています",
+  "image.empty": "生成した画像がここに表示されます",
+  "image.emptyMeta": "具体的なプロンプトほど良い結果につながります。",
+  "image.alt": "PERAが生成した画像",
+  "settings.title": "PERA設定",
+  "settings.description": "希望する役割と口調を設定すると、次のメッセージから反映されます。",
+  "settings.personaLabel": "AIの役割と口調",
+  "settings.placeholder": "例：結論を先に述べ、根拠と次の行動を明確に提案する戦略コンサルタント",
+  "settings.languageLabel": "言語",
+  "settings.save": "保存",
+  "settings.close": "キャンセル",
+  "settings.saved": "設定を保存しました。",
+  "error.network": "サーバーに接続できません。ネットワークを確認してください。",
+  "error.rateLimit": "リクエストが多すぎます。しばらくしてから再試行してください。",
+  "error.timeout": "応答がタイムアウトしました。再試行してください。",
+  "error.general": "リクエストを処理できませんでした。",
+  "error.fileSize": "ファイルは10MB以下にしてください。",
+  "error.fileType": "画像またはPDFのみ添付できます。",
+  "error.imageProcess": "画像を処理できませんでした。",
+  "error.pdfProcess": "PDFを読み取れませんでした。",
+  "a11y.skipToInput": "チャット入力へ移動",
+  "a11y.skipToMessages": "チャットメッセージへ移動",
+  "a11y.chatMessages": "チャットメッセージ",
+  "a11y.tabs": "作業モード",
+  "a11y.fileUpload": "ファイルを添付",
+  "a11y.messageSend": "メッセージを送信",
+  "a11y.removeFile": "添付ファイルを削除",
+  "a11y.themeToggle": "テーマを変更",
+  "a11y.newChat": "新しい会話",
+  "a11y.settingsClose": "設定を閉じる",
+  "a11y.imageResult": "画像生成結果",
+  "lang.ko": "한국어",
+  "lang.en": "English",
+  "lang.ja": "日本語",
+  "lang.zh": "中文",
+  "lang.id": "Bahasa Indonesia"
 };

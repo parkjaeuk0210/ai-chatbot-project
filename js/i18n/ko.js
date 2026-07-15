@@ -1,78 +1,72 @@
-// Korean translations
 export const ko = {
-    // Header
-    "header.export": "내보내기",
-    "header.settings": "설정",
-    
-    // Tabs
-    "tab.chat": "채팅",
-    "tab.image": "이미지 생성",
-    
-    // Chat UI
-    "chat.placeholder": "메시지를 입력하세요",
-    "chat.urlPlaceholder": "URL 입력 (선택사항)",
-    "chat.send": "전송",
-    "chat.initialMessage": "안녕하세요, PERA입니다. 무엇이든 가능합니다.",
-    
-    // Settings
-    "settings.title": "AI 페르소나 설정",
-    "settings.description": "AI의 이름, 성격, 말투 등을 자유롭게 설정하여 나만의 AI를 만들어보세요. 페라는 세계에서 가장 빠르고 똑똑한 AI 모델입니다.",
-    "settings.placeholder": "AI의 페르소나를 입력하세요...",
-    "settings.presetLabel": "페르소나 프리셋",
-    "settings.presetDefault": "직접 설정",
-    "settings.presetFriendly": "친근한 친구",
-    "settings.presetProfessional": "전문 비서",
-    "settings.presetTeacher": "친절한 선생님",
-    "settings.presetCreative": "창의적인 아티스트",
-    "settings.save": "저장",
-    "settings.close": "닫기",
-    
-    // Image Generation
-    "image.placeholder": "생성할 이미지를 설명해주세요...",
-    "image.generate": "이미지 생성",
-    "image.generating": "이미지를 생성하는 중...",
-    
-    // Messages
-    "message.personaUpdated": "페르소나가 업데이트되었습니다. 새로운 대화를 시작해보세요!",
-    "message.exportEmpty": "내보낼 채팅 내용이 없습니다.",
-    "message.copied": "클립보드에 복사되었습니다",
-    "message.loading": "응답을 기다리는 중...",
-    
-    // Errors
-    "error.network": "서버에 연결할 수 없습니다. 네트워크 설정을 확인해주세요.",
-    "error.serverConfig": "서버 설정 오류가 발생했습니다.",
-    "error.fileSize": "파일 크기는 10MB를 초과할 수 없습니다.",
-    "error.fileType": "지원하지 않는 파일 형식입니다. 이미지(JPEG, PNG, GIF, WebP) 또는 PDF 파일만 업로드 가능합니다.",
-    "error.imageProcess": "이미지 처리 중 오류가 발생했습니다.",
-    "error.pdfProcess": "PDF 처리 중 오류가 발생했습니다.",
-    "error.general": "오류가 발생했습니다",
-    
-    // Accessibility
-    "a11y.skipToInput": "채팅 입력으로 건너뛰기",
-    "a11y.skipToMessages": "채팅 메시지로 건너뛰기",
-    "a11y.chatMessages": "채팅 메시지",
-    "a11y.userAvatar": "사용자 아바타",
-    "a11y.aiAvatar": "AI 아바타",
-    "a11y.settingsClose": "설정 창 닫기",
-    "a11y.fileUpload": "파일 업로드",
-    "a11y.messageSend": "메시지 전송",
-    "a11y.removeFile": "파일 제거",
-    
-    // Persona descriptions
-    "persona.friendly": "이름은 친구야. 반말로 편하게 대화하고, 이모티콘도 자주 써! 😊 재미있고 친근한 성격이야.",
-    "persona.professional": "저는 전문 비서입니다. 정중하고 전문적인 어조로 도움을 드리겠습니다.",
-    "persona.teacher": "안녕하세요, 저는 선생님입니다. 친절하고 이해하기 쉽게 설명해드릴게요.",
-    "persona.creative": "나는 창의적인 아티스트야! 상상력이 풍부하고 독특한 관점을 제공할게.",
-    
-    // Language names
-    "lang.ko": "한국어",
-    "lang.en": "English",
-    "lang.ja": "日本語",
-    "lang.zh": "中文",
-    
-    // Page
-    "page.title": "페라 – 무료 AI 채팅앱",
-    
-    // Default persona
-    "persona.default": ""
+  "page.title": "PERA — AI 워크스페이스",
+  "header.settings": "설정",
+  "header.theme": "테마 변경",
+  "header.newChat": "새 대화",
+  "header.status": "준비됨",
+  "tab.chat": "채팅",
+  "tab.image": "이미지",
+  "chat.initialTitle": "무엇을 함께 해결할까요?",
+  "chat.initialDescription": "질문, 문서 분석, 아이디어 정리까지 한 흐름에서 차분하게 도와드립니다.",
+  "chat.suggestionSummary": "핵심만 요약",
+  "chat.suggestionSummaryMeta": "긴 내용을 빠르게 정리",
+  "chat.suggestionSummaryPrompt": "다음 내용을 핵심 주장, 근거, 결론 순서로 간결하게 요약해줘.",
+  "chat.suggestionPlan": "실행 계획 만들기",
+  "chat.suggestionPlanMeta": "복잡한 일을 단계별로",
+  "chat.suggestionPlanPrompt": "내 목표를 달성할 수 있도록 우선순위와 일정이 포함된 실행 계획을 만들어줘.",
+  "chat.suggestionWrite": "문장 다듬기",
+  "chat.suggestionWriteMeta": "명확하고 자연스럽게",
+  "chat.suggestionWritePrompt": "다음 문장을 의미는 유지하면서 더 명확하고 자연스럽게 다듬어줘.",
+  "chat.placeholder": "메시지를 입력하세요",
+  "chat.attach": "파일 첨부",
+  "chat.send": "전송",
+  "chat.hint": "Enter 전송 · Shift+Enter 줄바꿈",
+  "chat.you": "나",
+  "chat.ai": "PERA",
+  "chat.loading": "답변을 준비하고 있습니다",
+  "chat.newConversation": "새 대화를 시작했습니다.",
+  "chat.attachmentAdded": "파일을 첨부했습니다.",
+  "chat.pdfAttached": "PDF 첨부",
+  "chat.retry": "다시 시도",
+  "image.title": "아이디어를 이미지로 전환하세요",
+  "image.description": "원하는 장면, 분위기, 구도를 자연어로 설명하면 하나의 결과에 집중해 생성합니다.",
+  "image.promptLabel": "이미지 설명",
+  "image.placeholder": "예: 새벽의 서울 도심을 내려다보는 미니멀한 유리 오피스, 시네마틱 조명",
+  "image.generate": "이미지 생성",
+  "image.generating": "이미지를 생성하는 중입니다",
+  "image.empty": "생성된 이미지가 여기에 표시됩니다",
+  "image.emptyMeta": "프롬프트는 구체적일수록 결과가 좋아집니다.",
+  "image.alt": "PERA가 생성한 이미지",
+  "settings.title": "PERA 설정",
+  "settings.description": "원하는 말투와 역할을 설정하면 다음 메시지부터 반영됩니다.",
+  "settings.personaLabel": "AI 역할과 말투",
+  "settings.placeholder": "예: 핵심부터 말하고, 근거와 다음 행동을 명확히 제안하는 전략 컨설턴트",
+  "settings.languageLabel": "언어",
+  "settings.save": "저장",
+  "settings.close": "취소",
+  "settings.saved": "설정을 저장했습니다.",
+  "error.network": "서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.",
+  "error.rateLimit": "요청이 많습니다. 잠시 후 다시 시도해주세요.",
+  "error.timeout": "응답 시간이 초과되었습니다. 다시 시도해주세요.",
+  "error.general": "요청을 처리하지 못했습니다.",
+  "error.fileSize": "파일 크기는 10MB를 초과할 수 없습니다.",
+  "error.fileType": "이미지 또는 PDF 파일만 첨부할 수 있습니다.",
+  "error.imageProcess": "이미지를 처리하지 못했습니다.",
+  "error.pdfProcess": "PDF를 읽지 못했습니다.",
+  "a11y.skipToInput": "채팅 입력으로 건너뛰기",
+  "a11y.skipToMessages": "채팅 메시지로 건너뛰기",
+  "a11y.chatMessages": "채팅 메시지",
+  "a11y.tabs": "작업 모드",
+  "a11y.fileUpload": "파일 첨부",
+  "a11y.messageSend": "메시지 전송",
+  "a11y.removeFile": "첨부 파일 제거",
+  "a11y.themeToggle": "테마 변경",
+  "a11y.newChat": "새 대화",
+  "a11y.settingsClose": "설정 닫기",
+  "a11y.imageResult": "이미지 생성 결과",
+  "lang.ko": "한국어",
+  "lang.en": "English",
+  "lang.ja": "日本語",
+  "lang.zh": "中文",
+  "lang.id": "Bahasa Indonesia"
 };
